@@ -73,16 +73,23 @@
 - session tab 已具备最小真实会话 UI：可查看 timeline、输入消息并触发发送
 - 已接入 `/event` 增量同步，打开中的 tab 会随消息、part、status 变化实时更新
 - session tab 已支持最小 permission / question / todo 交互，阻塞请求会暂时接管底部区域
+- session tab 的 timeline 已完成一轮面向 upstream TUI 的重构：从 part 平铺改为 turn-based transcript，并补齐了 part 可见性语义、主要 tool renderer、tool 状态交互以及一轮视觉密度收口
 - 当前仍保留少量 host 侧兜底刷新，用于 submit 后和异常情况下的状态校正
 - `OpenCode UI` output channel 仍可通过命令访问，用于查看启动日志和错误
 
+同时，当前 UI 虽然已经完成第一轮结构性重构，但与 upstream OpenCode TUI 仍有剩余差距，主要集中在更细的 tool 细节保真、context tool 分组、timeline 导航类交互，以及继续基于真实使用反馈做针对性收口。
+
 ### 下一步
 
-下一阶段继续推进里程碑 4，重点补齐实时同步与更完整会话态：
+下一阶段不再是从零开始重构 timeline，而是在当前 4A ~ 4E 第一版基础上做第二轮对齐与验证，重点包括：
 
-- 继续打磨 timeline 与 composer 细节体验
-- 视需要减少当前 submit 兜底刷新，进一步收敛到纯事件驱动
-- 继续完善 question / permission 的细节校验、多问题输入和更接近上游的交互体验
+- 继续提高各类 tool renderer 与 upstream 的细节保真度，尤其是 `bash`、`task`、`edit`、`write`、`apply_patch`
+- 评估并补齐 `read/glob/grep/list` 的 context grouping，而不是仅按单条工具结果展示
+- 根据真实会话使用反馈继续收口 transcript 的默认显隐、折叠和阅读流噪音
+- 评估是否补充轻量 timeline picker / turn jump 等导航能力
+- 在结构稳定后，再决定是否需要把当前部分本地 tool 元数据类型补强，避免 renderer 长期依赖宽松 metadata 解析
+
+当前 4A ~ 4E 的分阶段方案仍保留在下文，作为本轮已完成工作的记录和后续第二轮迭代的基线。
 
 ---
 
@@ -433,9 +440,129 @@ server 启动失败、health check 超时、SDK 调用失败都通过 `window.sh
 
 验收：tab 内可收发消息并实时更新。
 
-当前状态：已部分完成，现已具备最小 timeline/composer/发送闭环，待补 `/event` 实时同步。
+当前状态：已完成基础闭环。现已具备最小 timeline/composer、`/event` 增量同步、最小 permission/question/todo 交互，以及 focused-session 的 Todo / Modified Files sidebar views。
 
-更新：`/event` 实时同步与最小阻塞态都已接入，当前里程碑 4 的主要剩余工作是完善交互细节与状态边界处理。
+更新：里程碑 4 的“能用”目标已达成，并且 timeline presentation layer 已完成一轮专项重构。当前剩余工作不再是基础闭环，而是继续提高与 upstream 的保真度和稳定性。
+
+### 里程碑 4A：重建 timeline 信息架构
+
+目标：把当前按 part 平铺的 session 页面，重构为更接近 upstream 的 turn-based timeline。
+
+- 在 panel webview 中引入 turn 概念，而不是直接逐条输出 `SessionMessage.parts`
+- 明确 user turn 与 assistant turn 的组织关系
+- user message 只取首个可见文本作为主正文，附件 file 挂在该 turn 下方
+- assistant message 不再把所有 part 等权展示，而是先按 upstream 可见性做筛选
+- 预留 turn-level meta 区域，用于承载 model、duration、tokens、cost、finish reason 等元信息
+
+验收：
+
+- timeline 不再呈现“每个 part 一个卡片”的 inspector 风格
+- user / assistant 轮次结构清晰可辨
+- user prompt、assistant answer、attachment、meta 的层级稳定
+
+当前状态：已完成第一版。session timeline 已改为 turn-based transcript，user prompt / assistant lane / attachment / turn meta 的层级已经建立。
+
+### 里程碑 4B：建立 part 可见性与语义映射
+
+目标：对 schema 中存在的所有 part 类型建立明确展示策略，而不是默认全部直出。
+
+- `text`：保留为正文
+- `reasoning`：改为独立 Thinking block，并预留显示/隐藏开关
+- `file`：作为附件条目，而不是独立 section
+- `compaction`：改为 timeline divider
+- `step-finish`：转为 footer/meta 信息来源，而不是正文块
+- `step-start`、`snapshot`：默认不作为主正文显示，必要时仅保留轻量调试入口
+- `patch`：重新定义其与 Modified Files / tool diff 的关系，避免重复信息
+- `agent`、`subtask`、`retry`：明确是主展示、弱提示还是只在特定上下文出现
+
+验收：
+
+- 每种 part 类型都有清晰的展示归属
+- timeline 中不再出现大量无正文价值的空 section 或调试式 block
+- compaction、reasoning、step meta 的语义层级明确
+
+当前状态：已完成第一版。Thinking、Internals、divider/meta、隐藏内部 part、footer meta 等语义映射已接入。
+
+### 里程碑 4C：建立 tool renderer 体系
+
+目标：把 `tool` 从“统一 dump 输出”升级为按工具类别分派的专用 UI。
+
+建议先分三层：
+
+1. 上下文工具
+   - `read`
+   - `glob`
+   - `grep`
+   - `list`
+2. 执行工具
+   - `bash`
+   - `task`
+   - `webfetch`
+   - `websearch`
+   - `codesearch`
+3. 修改工具
+   - `write`
+   - `edit`
+   - `apply_patch`
+   - `todowrite`
+   - `question`
+   - `skill`
+
+具体改造项：
+
+- 建立 `tool -> renderer` 路由层
+- `bash` 展示 command、cwd、output、running/error/completed 状态
+- `read/glob/grep/list` 展示紧凑摘要，不霸占主时间线高度
+- `task` 展示 subagent 摘要并与 child session 导航联动
+- `write/edit/apply_patch` 展示结构化 diff / 写入结果，而不是原始文本 dump
+- `todowrite` 与当前 sidebar Todo 视图语义对齐
+- `question` 明确与底部阻塞问答区的关系，避免重复展示
+- 未命中专用 renderer 的工具，才走 generic fallback
+
+验收：
+
+- timeline 中主要 tool 都有稳定、可读、非调试风格的展示
+- 上下文工具足够紧凑，执行工具具备状态感，修改工具具备 diff 感
+- child task / child session 的关联入口自然可见
+
+当前状态：已完成第一版。主要 tool 已按 row、panel、links、files、todos、question 等形态拆分 renderer，但与 upstream 的细节保真仍可继续提高。
+
+### 里程碑 4D：对齐关键交互行为
+
+目标：不只对齐视觉，还要对齐 upstream TUI 的关键交互路径。
+
+- 为 reasoning block 增加显示策略，而不是永远展开
+- 对 completed tool 引入弱化/折叠策略，减少时间线噪音
+- 对 running / error tool 引入更明确状态视觉
+- 梳理 permission / question / retry 与主 timeline 的关系，避免信息重复和抢焦点
+- 把 task tool、child session 导航、当前已实现的 Parent / Prev / Next 按钮统一到一个连贯交互模型中
+- 评估是否需要类似 upstream timeline picker / turn jump 的轻量版导航
+
+验收：
+
+- timeline 的主阅读流畅度明显提升
+- 用户能区分正文、thinking、tool、阻塞态、子任务态
+- child session 与 task 的关系比当前更直观
+
+当前状态：已完成第一版。已接入 active tool 强调、completed tool 弱化/折叠、task 到 child session 的更直观入口。
+
+### 里程碑 4E：样式与密度收口
+
+目标：在信息架构和交互层稳定后，再进行统一的视觉收口，而不是先做零散像素微调。
+
+- 收口 turn 容器、正文、thinking、tool、divider、footer 的 spacing system
+- 对齐与 upstream 接近的终端式层级感，同时保持 VS Code webview 可读性
+- 校正字体层级、hover、选区、code block、tool block、diff block 的密度
+- 统一深色主题下的对比度、弱文本、错误文本、状态色
+- 避免 sidebar 与 tab 内出现重复但风格不一致的同类信息块
+
+验收：
+
+- timeline 各类块级元素风格一致
+- 相同语义在不同区域的视觉语言统一
+- 样式调整建立在正确的信息架构之上，而不是继续放大结构问题
+
+当前状态：已完成第一版。已对 spacing、contrast、turn hierarchy、footer command area 做过一轮统一收口。
 
 ### 里程碑 5：完善体验
 
@@ -444,6 +571,8 @@ server 启动失败、health check 超时、SDK 调用失败都通过 `window.sh
 - tab 标题同步
 - context menu、快捷键、日志面板
 - 基础集成测试
+
+补充说明：里程碑 5 的体验工作现在可以开始逐步推进，但应建立在当前 4A ~ 4E 第一版结构之上，并优先结合真实会话反馈处理残余问题，而不是再次回到无结构的零散样式微调。
 
 验收：多工作区、重启、断流场景可用。
 

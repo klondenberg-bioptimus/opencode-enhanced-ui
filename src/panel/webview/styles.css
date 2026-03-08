@@ -31,7 +31,10 @@ body,
 }
 
 body,
-button,
+button {
+  font-family: var(--oc-ui);
+}
+
 textarea {
   font-family: var(--oc-mono);
 }
@@ -55,10 +58,11 @@ button {
 }
 
 .oc-footer {
-  padding: 16px 22px;
+  padding: 8px 22px 12px;
 }
 
 .oc-sessionBlock,
+.oc-turnUser,
 .oc-dock,
 .oc-composer,
 .oc-questionCard,
@@ -105,7 +109,7 @@ button {
 .oc-transcript {
   min-height: 0;
   overflow: auto;
-  padding: 18px 22px;
+  padding: 16px 22px 18px;
 }
 
 .oc-transcriptInner {
@@ -117,33 +121,262 @@ button {
 .oc-footerInner,
 .oc-questionList,
 .oc-todoList,
-.oc-parts {
+.oc-parts,
+.oc-turnBody,
+.oc-assistantFlow {
   display: grid;
   gap: 12px;
 }
 
-.oc-entry {
+.oc-transcriptTools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.oc-turn {
   display: grid;
   grid-template-columns: 10px minmax(0, 1fr);
-  gap: 14px;
+  gap: 12px;
   align-items: start;
 }
 
 .oc-rail {
   width: 2px;
   min-height: 100%;
-  background: color-mix(in srgb, var(--oc-border-strong) 72%, transparent 28%);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--oc-accent) 28%, transparent 72%);
+  background: color-mix(in srgb, var(--oc-border-strong) 58%, transparent 42%);
+  box-shadow: none;
   justify-self: center;
 }
 
-.oc-entry-user .oc-rail {
+.oc-turn-hasUser .oc-rail {
   background: color-mix(in srgb, var(--oc-accent) 70%, transparent 30%);
 }
 
-.oc-entryBody {
+.oc-turnBody {
   display: grid;
+  gap: 16px;
+}
+
+.oc-turnUser,
+.oc-turnAssistant {
+  display: grid;
+  gap: 8px;
+}
+
+.oc-turnUser {
+  padding: 10px 12px;
+  border-color: color-mix(in srgb, var(--oc-border-strong) 46%, var(--oc-border) 54%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--oc-panel-strong) 82%, transparent 18%), color-mix(in srgb, var(--oc-panel-soft) 94%, transparent 6%));
+}
+
+.oc-turnAssistant {
+  padding-left: 0;
+}
+
+.oc-entryHeader-assistant {
+  padding-left: 0;
+}
+
+.oc-assistantFlow {
+  gap: 6px;
+}
+
+.oc-turnMeta {
+  padding-left: 0;
+  color: var(--oc-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  font-family: var(--oc-ui);
+}
+
+.oc-attachmentRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.oc-toolRowWrap,
+.oc-toolRow,
+.oc-toolRowMain,
+.oc-toolRowMeta,
+.oc-toolHeaderMain,
+.oc-toolHeaderMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.oc-toolRowWrap {
+  display: grid;
+  gap: 4px;
+}
+
+.oc-toolRow {
+  justify-content: space-between;
+  padding: 1px 0;
+}
+
+.oc-toolRowTitle,
+.oc-toolPanelTitle,
+.oc-fileToolPath {
+  font-size: 12px;
+  color: var(--oc-text);
+}
+
+.oc-toolRowMeta,
+.oc-toolHeaderMeta {
+  justify-content: flex-end;
+}
+
+.oc-toolPanel {
+  display: grid;
+  gap: 6px;
+  border-color: color-mix(in srgb, var(--oc-border) 76%, transparent 24%);
+  background: color-mix(in srgb, var(--oc-panel-soft) 92%, transparent 8%);
+}
+
+.oc-toolPanel.is-completed,
+.oc-toolRowWrap.is-completed {
+  border-color: color-mix(in srgb, var(--oc-border) 54%, transparent 46%);
+  background: color-mix(in srgb, var(--oc-panel-soft) 70%, transparent 30%);
+}
+
+.oc-toolPanel.is-active,
+.oc-toolRowWrap.is-active {
+  opacity: 1;
+}
+
+.oc-toolPanel.is-active {
+  border-color: color-mix(in srgb, var(--oc-accent) 56%, var(--oc-border) 44%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--oc-accent) 18%, transparent 82%);
+}
+
+.oc-toolPanel-files {
   gap: 10px;
+}
+
+.oc-toolStatus {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  color: var(--oc-muted);
+}
+
+.oc-toolRowSummary {
+  color: var(--oc-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.oc-toolRowExtras {
+  display: grid;
+  gap: 2px;
+  padding-left: 19px;
+}
+
+.oc-toolRowExtra {
+  color: var(--oc-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.oc-toolStatus.is-running,
+.oc-toolStatus.is-pending {
+  color: var(--oc-warning);
+}
+
+.oc-toolStatus.is-running {
+  text-shadow: 0 0 10px color-mix(in srgb, var(--oc-warning) 40%, transparent 60%);
+}
+
+.oc-toolStatus.is-pending {
+  color: color-mix(in srgb, var(--oc-warning) 76%, var(--oc-text) 24%);
+}
+
+.oc-toolStatus.is-completed {
+  color: var(--oc-muted);
+}
+
+.oc-toolStatus.is-error {
+  color: var(--oc-error);
+}
+
+.oc-linkList,
+.oc-fileToolList,
+.oc-toolTodoList,
+.oc-toolAnswerList,
+.oc-patchList,
+.oc-diagnosticsList {
+  display: grid;
+  gap: 8px;
+}
+
+.oc-linkItem {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.oc-linkItem:hover {
+  text-decoration: underline;
+}
+
+.oc-fileToolItem {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--oc-border) 70%, transparent 30%);
+  background: color-mix(in srgb, var(--oc-panel-soft) 78%, transparent 22%);
+}
+
+.oc-patchItem {
+  display: grid;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--oc-border) 70%, transparent 30%);
+  background: color-mix(in srgb, var(--oc-panel-soft) 78%, transparent 22%);
+}
+
+.oc-patchHeader,
+.oc-patchMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.oc-fileToolSummary,
+.oc-toolAnswerItem {
+  color: var(--oc-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.oc-toolTodoItem {
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.oc-toolTodoItem.is-completed {
+  color: var(--oc-muted);
+}
+
+.oc-toolTodoItem.is-in_progress {
+  color: var(--oc-warning);
+}
+
+.oc-diagnosticItem {
+  padding: 6px 8px;
+  border-left: 2px solid color-mix(in srgb, var(--oc-warning) 64%, transparent 36%);
+  background: color-mix(in srgb, var(--oc-panel-strong) 72%, transparent 28%);
+  color: var(--oc-muted);
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .oc-entryHeader,
@@ -170,6 +403,7 @@ button {
 
 .oc-composerMeta {
   justify-content: flex-end;
+  width: 100%;
 }
 
 .oc-composerContextWrap {
@@ -192,11 +426,28 @@ button {
 .oc-composer,
 .oc-questionCard,
 .oc-emptyState {
-  padding: 12px 14px;
+  padding: 10px 12px;
+}
+
+.oc-composer {
+  border-color: color-mix(in srgb, var(--oc-border-strong) 44%, transparent 56%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--oc-panel-soft) 82%, transparent 18%), color-mix(in srgb, var(--oc-panel-soft) 94%, transparent 6%));
+}
+
+.oc-composerHeader {
+  justify-content: flex-end;
+}
+
+.oc-part-text {
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .oc-partText,
 .oc-partTerminal,
+.oc-codeBlock,
+.oc-diffBlock,
 .oc-composerInput,
 .oc-answerInput {
   margin: 0;
@@ -211,16 +462,154 @@ button {
   overflow-x: auto;
 }
 
+.oc-part-inline {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.oc-part-compact {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.oc-part-reasoning {
+  padding: 2px 0 2px 12px;
+  border: 0;
+  border-left: 1px solid color-mix(in srgb, var(--oc-border-strong) 34%, transparent 66%);
+  background: transparent;
+}
+
+.oc-part-tool,
+.oc-part-file,
+.oc-part-patch,
+.oc-part-retry,
+.oc-part-snapshot,
+.oc-part-agent,
+.oc-part-subtask,
+.oc-part-compaction,
+.oc-part-step-start,
+.oc-part-step-finish {
+  background: color-mix(in srgb, var(--oc-panel-soft) 90%, transparent 10%);
+}
+
 .oc-partTerminal {
   padding: 10px 12px;
   background: color-mix(in srgb, black 45%, var(--oc-bg) 55%);
   border-left: 2px solid color-mix(in srgb, var(--oc-accent) 72%, transparent 28%);
 }
 
+.oc-codeBlock,
+.oc-diffBlock {
+  overflow-x: auto;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--oc-border-strong) 72%, transparent 28%);
+  background: color-mix(in srgb, black 50%, var(--oc-bg) 50%);
+  border-left: 2px solid color-mix(in srgb, var(--oc-accent) 72%, transparent 28%);
+}
+
+.oc-codeBlock code {
+  display: block;
+}
+
+.oc-codeBlock .hljs {
+  background: transparent;
+  color: var(--oc-text);
+}
+
+.oc-codeBlock .hljs-comment,
+.oc-codeBlock .hljs-quote {
+  color: color-mix(in srgb, var(--oc-muted) 88%, var(--vscode-terminal-ansiBlack) 12%);
+}
+
+.oc-codeBlock .hljs-keyword,
+.oc-codeBlock .hljs-selector-tag,
+.oc-codeBlock .hljs-literal,
+.oc-codeBlock .hljs-section,
+.oc-codeBlock .hljs-link {
+  color: var(--vscode-terminal-ansiMagenta);
+}
+
+.oc-codeBlock .hljs-string,
+.oc-codeBlock .hljs-title,
+.oc-codeBlock .hljs-name,
+.oc-codeBlock .hljs-type,
+.oc-codeBlock .hljs-attribute,
+.oc-codeBlock .hljs-symbol,
+.oc-codeBlock .hljs-bullet,
+.oc-codeBlock .hljs-addition {
+  color: var(--vscode-terminal-ansiGreen);
+}
+
+.oc-codeBlock .hljs-number,
+.oc-codeBlock .hljs-built_in,
+.oc-codeBlock .hljs-variable,
+.oc-codeBlock .hljs-template-variable,
+.oc-codeBlock .hljs-meta,
+.oc-codeBlock .hljs-params {
+  color: var(--vscode-terminal-ansiYellow);
+}
+
+.oc-codeBlock .hljs-function,
+.oc-codeBlock .hljs-subst,
+.oc-codeBlock .hljs-tag,
+.oc-codeBlock .hljs-regexp {
+  color: var(--vscode-terminal-ansiBlue);
+}
+
+.oc-diffLine {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.oc-diffLine.is-add {
+  color: color-mix(in srgb, var(--vscode-terminal-ansiGreen) 88%, var(--oc-text) 12%);
+  background: color-mix(in srgb, var(--vscode-diffEditor-insertedTextBackground, rgba(46, 160, 67, 0.15)) 80%, transparent 20%);
+}
+
+.oc-diffLine.is-del {
+  color: color-mix(in srgb, var(--vscode-terminal-ansiRed) 88%, var(--oc-text) 12%);
+  background: color-mix(in srgb, var(--vscode-diffEditor-removedTextBackground, rgba(248, 81, 73, 0.15)) 80%, transparent 20%);
+}
+
+.oc-diffLine.is-meta {
+  color: var(--oc-muted);
+}
+
 .oc-markdown {
+  font-family: var(--oc-ui);
   font-size: 12px;
   line-height: 1.65;
   color: var(--oc-text);
+}
+
+.oc-markdown.is-subtle {
+  color: color-mix(in srgb, var(--oc-muted) 88%, var(--oc-text) 12%);
+}
+
+.oc-markdown.is-subtle .hljs,
+.oc-markdown.is-subtle code,
+.oc-markdown.is-subtle a,
+.oc-markdown.is-subtle strong,
+.oc-markdown.is-subtle em,
+.oc-markdown.is-subtle blockquote {
+  opacity: 0.72;
+}
+
+.oc-markdown.is-subtle a {
+  color: color-mix(in srgb, var(--vscode-textLink-foreground) 72%, var(--oc-muted) 28%);
+}
+
+.oc-markdown.is-subtle blockquote {
+  background: color-mix(in srgb, var(--oc-panel-soft) 42%, transparent 58%);
+  border-left-color: color-mix(in srgb, var(--oc-border-strong) 48%, transparent 52%);
+}
+
+.oc-markdown.is-subtle pre {
+  background: color-mix(in srgb, black 28%, var(--oc-bg) 72%);
+  border-color: color-mix(in srgb, var(--oc-border-strong) 45%, transparent 55%);
+  border-left-color: color-mix(in srgb, var(--oc-border-strong) 52%, transparent 48%);
 }
 
 .oc-markdown > :first-child {
@@ -289,16 +678,16 @@ button {
 .oc-inlineCode {
   padding: 1px 5px;
   border: 1px solid var(--oc-border-strong);
-  background: color-mix(in srgb, black 24%, var(--oc-bg) 76%);
+  background: color-mix(in srgb, var(--oc-panel-soft) 72%, transparent 28%);
   color: color-mix(in srgb, var(--oc-text) 90%, var(--vscode-terminal-ansiCyan) 10%);
 }
 
 .oc-markdown pre {
   overflow-x: auto;
   padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--oc-border-strong) 80%, transparent 20%);
-  background: color-mix(in srgb, black 50%, var(--oc-bg) 50%);
-  border-left: 2px solid color-mix(in srgb, var(--oc-accent) 72%, transparent 28%);
+  border: 1px solid color-mix(in srgb, var(--oc-border-strong) 58%, transparent 42%);
+  background: color-mix(in srgb, black 34%, var(--oc-bg) 66%);
+  border-left: 1px solid color-mix(in srgb, var(--oc-border-strong) 62%, transparent 38%);
 }
 
 .oc-markdown pre code {
@@ -383,6 +772,27 @@ button {
   font-weight: 700;
 }
 
+.oc-dividerPart {
+  display: grid;
+  grid-template-columns: minmax(16px, 1fr) auto minmax(16px, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: var(--oc-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.oc-dividerText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.oc-dividerLine {
+  height: 1px;
+  background: color-mix(in srgb, var(--oc-border-strong) 65%, transparent 35%);
+}
+
 .oc-list {
   margin: 0;
   padding-left: 20px;
@@ -391,8 +801,8 @@ button {
 }
 
 .oc-footer {
-  border-top: 1px solid var(--oc-border);
-  background: color-mix(in srgb, var(--oc-bg) 82%, black 18%);
+  border-top: 1px solid color-mix(in srgb, var(--oc-border-strong) 52%, var(--oc-border) 48%);
+  background: color-mix(in srgb, var(--oc-bg) 76%, black 24%);
 }
 
 .oc-dock-warning {
@@ -449,6 +859,10 @@ button {
   font-size: 11px;
 }
 
+.oc-pill-file {
+  color: var(--oc-muted);
+}
+
 .oc-chip {
   cursor: pointer;
 }
@@ -468,6 +882,49 @@ button {
   cursor: pointer;
 }
 
+.oc-toolTrigger,
+.oc-inlineLinkBtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+}
+
+.oc-toolTrigger {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.oc-inlineLinkBtn {
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.oc-inlineLinkBtn:hover {
+  text-decoration: underline;
+}
+
+.oc-toggleBtn {
+  border: 1px solid var(--oc-border-strong);
+  background: transparent;
+  color: var(--oc-muted);
+  padding: 4px 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.oc-toggleBtn.is-active {
+  color: var(--oc-text);
+  background: color-mix(in srgb, var(--oc-panel-strong) 84%, transparent 16%);
+}
+
 .oc-btn:disabled,
 .oc-composerInput:disabled,
 .oc-answerInput:disabled {
@@ -480,9 +937,9 @@ button {
   width: 100%;
   resize: vertical;
   border: 1px solid var(--oc-border-strong);
-  background: color-mix(in srgb, black 36%, var(--oc-bg) 64%);
+  background: color-mix(in srgb, black 24%, var(--oc-bg) 76%);
   color: var(--oc-text);
-  padding: 12px;
+  padding: 10px 12px;
 }
 
 .oc-composerInput {
@@ -511,7 +968,7 @@ button {
     padding-right: 14px;
   }
 
-  .oc-entry {
+  .oc-turn {
     grid-template-columns: 6px minmax(0, 1fr);
     gap: 10px;
   }
