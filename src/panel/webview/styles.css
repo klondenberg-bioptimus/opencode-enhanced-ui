@@ -16,6 +16,13 @@
   --oc-hover-block: color-mix(in srgb, var(--oc-accent) 10%, transparent 90%);
   --oc-hover-block-inset: color-mix(in srgb, var(--oc-accent) 6%, transparent 94%);
   --oc-rail-user: #4ea1ff;
+  --oc-outputWindow-border: color-mix(in srgb, var(--oc-border-strong) 70%, transparent 30%);
+  --oc-outputWindow-head-bg: color-mix(in srgb, var(--oc-accent) 70%, var(--oc-surface-block) 30%);
+  --oc-outputWindow-head-fg: color-mix(in srgb, var(--oc-surface-canvas) 88%, var(--oc-accent) 12%);
+  --oc-outputWindow-body-bg: color-mix(in srgb, var(--oc-accent) 8%, var(--oc-surface-canvas) 92%);
+  --oc-outputWindow-body-fg: color-mix(in srgb, var(--oc-accent) 86%, var(--oc-fg-primary) 14%);
+  --oc-outputWindow-toggle-bg: color-mix(in srgb, var(--oc-accent) 70%, var(--oc-surface-block) 30%);
+  --oc-outputWindow-toggle-hover: color-mix(in srgb, var(--oc-accent) 62%, var(--oc-surface-block) 38%);
   --oc-warning: var(--vscode-editorWarning-foreground);
   --oc-error: var(--vscode-errorForeground);
   --oc-success: var(--vscode-testing-iconPassed, #4caf50);
@@ -365,6 +372,128 @@ button {
   gap: 10px;
 }
 
+.oc-outputWindow {
+  display: grid;
+  gap: 0;
+  width: 100%;
+  border: 1px solid var(--oc-outputWindow-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--oc-outputWindow-body-bg);
+}
+
+.oc-outputWindow.is-active {
+  border-color: color-mix(in srgb, var(--oc-accent) 56%, var(--oc-outputWindow-border) 44%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--oc-accent) 18%, transparent 82%);
+}
+
+.oc-outputWindowHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 12px;
+  background: var(--oc-outputWindow-head-bg);
+  color: var(--oc-outputWindow-head-fg);
+}
+
+.oc-outputWindowTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.oc-outputWindowAction,
+.oc-outputWindowTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oc-outputWindowAction {
+  flex: 0 0 auto;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.oc-outputWindowTitle {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.oc-outputWindowSpinnerSlot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  min-width: 14px;
+  height: 14px;
+}
+
+.oc-outputWindowBody {
+  min-width: 0;
+  background: var(--oc-outputWindow-body-bg);
+  color: var(--oc-outputWindow-body-fg);
+}
+
+.oc-outputWindowBody.is-collapsed {
+  overflow: hidden;
+}
+
+.oc-outputWindowBody.is-scrollable {
+  overflow-y: auto;
+}
+
+.oc-outputWindowContent,
+.oc-outputWindowContent-shell,
+.oc-outputWindowContent-diff {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.65;
+  font-size: 12px;
+  font-family: var(--oc-mono);
+}
+
+.oc-outputWindowContent-shell,
+.oc-outputWindowContent-diff {
+  padding: 10px 12px;
+}
+
+.oc-outputWindowToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 28px;
+  padding: 6px 12px;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--oc-outputWindow-border) 72%, transparent 28%);
+  background: var(--oc-outputWindow-toggle-bg);
+  color: var(--oc-outputWindow-head-fg);
+  cursor: pointer;
+}
+
+.oc-outputWindowToggle:hover {
+  background: var(--oc-outputWindow-toggle-hover);
+}
+
+.oc-outputWindowToggleIcon {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .oc-toolRowSummary {
   color: var(--oc-fg-muted);
   font-size: 11px;
@@ -419,8 +548,6 @@ button {
 .oc-patchItem {
   display: grid;
   gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--oc-border) 70%, transparent 30%);
 }
 
 .oc-patchHeader,
@@ -583,12 +710,23 @@ button {
   border-left: 2px solid color-mix(in srgb, var(--oc-accent) 72%, transparent 28%);
 }
 
+.oc-outputWindow .oc-partTerminal {
+  padding: 10px 12px;
+  border: 0;
+}
+
 .oc-codeBlock,
 .oc-diffBlock {
   overflow-x: auto;
   padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--oc-border-strong) 72%, transparent 28%);
   border-left: 2px solid color-mix(in srgb, var(--oc-accent) 72%, transparent 28%);
+}
+
+.oc-diffBlock.is-window {
+  border: 0;
+  padding: 10px 12px;
+  color: var(--oc-outputWindow-body-fg);
 }
 
 .oc-codeBlock code {
@@ -662,6 +800,10 @@ button {
   display: grid;
   gap: 0;
   border: 1px solid color-mix(in srgb, var(--oc-border-strong) 72%, transparent 28%);
+}
+
+.oc-splitDiff.is-window {
+  border: 0;
 }
 
 .oc-splitDiffHead,

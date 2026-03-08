@@ -417,6 +417,12 @@ type ToolDetails = {
   args: string[]
 }
 
+const OUTPUT_WINDOW_COLLAPSED_LINES = 10
+const OUTPUT_WINDOW_EXPANDED_LINES = 100
+const OUTPUT_WINDOW_FONT_SIZE_PX = 12
+const OUTPUT_WINDOW_LINE_HEIGHT = 1.65
+const OUTPUT_WINDOW_VERTICAL_PADDING_PX = 24
+
 type ToolFileSummary = {
   path: string
   summary: string
@@ -704,6 +710,10 @@ function ToolPartView({ part, active = false }: { part: Extract<MessagePart, { t
     return <ToolRow part={part} active={active} />
   }
 
+  if (part.tool === "bash") {
+    return <ToolShellPanel part={part} active={active} />
+  }
+
   if (part.tool === "websearch" || part.tool === "codesearch") {
     return <ToolRow part={part} active={active} />
   }
@@ -841,6 +851,23 @@ function ToolTextPanel({ part, active = false }: { part: Extract<MessagePart, { 
       ) : null}
       {expanded && body ? <pre className="oc-partTerminal">{body}</pre> : null}
     </section>
+  )
+}
+
+function ToolShellPanel({ part, active = false }: { part: Extract<MessagePart, { type: "tool" }>; active?: boolean }) {
+  const details = toolDetails(part)
+  const body = toolTextBody(part)
+  const status = part.state?.status || "pending"
+  return (
+    <OutputWindow
+      action={toolLabel(part.tool)}
+      title={details.title}
+      running={status === "running"}
+      lineCount={normalizedLineCount(body)}
+      className={active ? "is-active" : ""}
+    >
+      <pre className="oc-outputWindowContent oc-outputWindowContent-shell">{body || " "}</pre>
+    </OutputWindow>
   )
 }
 
@@ -1035,14 +1062,17 @@ function ToolApplyPatchPanel({ part, active = false }: { part: Extract<MessagePa
         <div className="oc-patchList">
           {files.map((item) => (
             <section key={`${item.path}:${item.type}:${item.summary}`} className="oc-patchItem">
-              <div className="oc-patchHeader">
-                <div className="oc-fileToolPath">{item.path}</div>
-                <div className="oc-patchMeta">
-                  <span className={`oc-pill oc-pill-file is-${item.type}`}>{item.type}</span>
-                  {item.summary ? <span className="oc-fileToolSummary">{item.summary}</span> : null}
-                </div>
-              </div>
-              {item.diff ? <DiffBlock value={item.diff} mode={mode} /> : null}
+              <OutputWindow
+                action={item.type}
+                title={item.path}
+                running={status === "running"}
+                lineCount={item.diff ? diffOutputLineCount(item.diff, mode) : normalizedLineCount(item.summary)}
+                className="oc-outputWindow-patch"
+              >
+                {item.diff
+                  ? <DiffWindowBody value={item.diff} mode={mode} />
+                  : <pre className="oc-outputWindowContent oc-outputWindowContent-shell">{item.summary || " "}</pre>}
+              </OutputWindow>
             </section>
           ))}
         </div>
@@ -1062,21 +1092,25 @@ function DiffBlock({ value, mode = "unified" }: { value: string; mode?: "unified
   return <DiffBlockImpl value={value} mode={mode} />
 }
 
-function DiffBlockImpl({ value, mode }: { value: string; mode: "unified" | "split" }) {
+function DiffWindowBody({ value, mode = "unified" }: { value: string; mode?: "unified" | "split" }) {
+  return <DiffBlockImpl value={value} mode={mode} windowed />
+}
+
+function DiffBlockImpl({ value, mode, windowed = false }: { value: string; mode: "unified" | "split"; windowed?: boolean }) {
   if (mode === "split") {
-    return <SplitDiffBlock value={value} />
+    return <SplitDiffBlock value={value} windowed={windowed} />
   }
   return (
-    <pre className="oc-diffBlock">
+    <div className={`oc-diffBlock${windowed ? " is-window" : ""}`}>
       {value.split("\n").map((line, index) => <div key={`${index}:${line}`} className={diffLineClass(line)}>{line || " "}</div>)}
-    </pre>
+    </div>
   )
 }
 
-function SplitDiffBlock({ value }: { value: string }) {
+function SplitDiffBlock({ value, windowed = false }: { value: string; windowed?: boolean }) {
   const rows = React.useMemo(() => splitDiffRows(value), [value])
   return (
-    <div className="oc-splitDiff">
+    <div className={`oc-splitDiff${windowed ? " is-window" : ""}`}>
       <div className="oc-splitDiffHead">
         <span>Before</span>
         <span>After</span>
@@ -1802,6 +1836,78 @@ function ToolStatus({ state }: { state?: string }) {
   )
 }
 
+function OutputWindow({
+  action,
+  title,
+  running = false,
+  lineCount,
+  className = "",
+  children,
+}: {
+  action: string
+  title: string
+  running?: boolean
+  lineCount: number
+  className?: string
+  children: React.ReactNode
+}) {
+  const collapsible = lineCount > OUTPUT_WINDOW_COLLAPSED_LINES
+  const [expanded, setExpanded] = React.useState(false)
+  const visibleLines = collapsible
+    ? (expanded ? Math.min(lineCount, OUTPUT_WINDOW_EXPANDED_LINES) : OUTPUT_WINDOW_COLLAPSED_LINES)
+    : lineCount
+  const bodyStyle = React.useMemo<React.CSSProperties>(() => {
+    if (!collapsible || visibleLines <= 0) {
+      return {}
+    }
+    return { maxHeight: outputWindowBodyHeight(visibleLines) }
+  }, [collapsible, visibleLines])
+
+  React.useEffect(() => {
+    if (!collapsible && expanded) {
+      setExpanded(false)
+    }
+  }, [collapsible, expanded])
+
+  const bodyClassName = [
+    "oc-outputWindowBody",
+    collapsible ? "is-collapsible" : "",
+    collapsible && expanded ? "is-expanded" : "",
+    collapsible && !expanded ? "is-collapsed" : "",
+    collapsible && expanded && lineCount > OUTPUT_WINDOW_EXPANDED_LINES ? "is-scrollable" : "",
+  ].filter(Boolean).join(" ")
+
+  return (
+    <section className={["oc-outputWindow", className].filter(Boolean).join(" ")}>
+      <div className="oc-outputWindowHead">
+        <div className="oc-outputWindowTitleRow">
+          <span className="oc-outputWindowAction">{action}</span>
+          <span className="oc-outputWindowTitle">{title}</span>
+        </div>
+        <span className="oc-outputWindowSpinnerSlot">{running ? <ToolStatus state="running" /> : null}</span>
+      </div>
+      <div className={bodyClassName} style={bodyStyle}>
+        {children}
+      </div>
+      {collapsible ? (
+        <button
+          type="button"
+          className="oc-outputWindowToggle"
+          aria-expanded={expanded}
+          aria-label={expanded ? "Collapse output" : "Expand output"}
+          onClick={() => setExpanded((current) => !current)}
+        >
+          <svg className="oc-outputWindowToggleIcon" viewBox="0 0 16 16" aria-hidden="true">
+            {expanded
+              ? <path d="M4 10l4-4 4 4" />
+              : <path d="M4 6l4 4 4-4" />}
+          </svg>
+        </button>
+      ) : null}
+    </section>
+  )
+}
+
 function splitDiffRows(value: string) {
   const rows: Array<{ left: string; right: string; leftType: string; rightType: string }> = []
   const lines = value.split("\n")
@@ -1828,6 +1934,25 @@ function splitDiffRows(value: string) {
     rows.push({ left: line, right: line, leftType: "ctx", rightType: "ctx" })
   }
   return rows
+}
+
+function normalizedLineCount(value: string) {
+  if (!value) {
+    return 0
+  }
+  return value.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").length
+}
+
+function diffOutputLineCount(value: string, mode: "unified" | "split") {
+  if (mode === "split") {
+    return splitDiffRows(value).length
+  }
+  return normalizedLineCount(value)
+}
+
+function outputWindowBodyHeight(lines: number) {
+  const lineHeightPx = OUTPUT_WINDOW_FONT_SIZE_PX * OUTPUT_WINDOW_LINE_HEIGHT
+  return `${Math.round(lines * lineHeightPx + OUTPUT_WINDOW_VERTICAL_PADDING_PX)}px`
 }
 
 function splitDiffClass(type: string) {
