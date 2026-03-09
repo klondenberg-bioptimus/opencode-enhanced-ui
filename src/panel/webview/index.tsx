@@ -950,6 +950,13 @@ function ToolPartView({ part, active = false, diffMode = "unified" }: { part: Ex
     return <ToolQuestionPanel part={part} active={active} />
   }
 
+  if (part.tool === "lsp" || part.tool.startsWith("lsp_")) {
+    if (lspRendersInline(part)) {
+      return <ToolRow part={part} active={active} />
+    }
+    return <ToolLspPanel part={part} active={active} />
+  }
+
   return <ToolTextPanel part={part} active={active} />
 }
 
@@ -968,7 +975,7 @@ function ToolRow({ part, active = false }: { part: Extract<MessagePart, { type: 
       <div className="oc-toolRow">
         <div className="oc-toolRowMain">
           <span className="oc-kicker">{toolLabel(part.tool)}</span>
-          <span className="oc-toolRowTitle">{renderToolRowTitle(part, details)}</span>
+          <span className="oc-toolRowTitle">{renderToolRowTitle(part, details, workspaceDir)}</span>
           {part.tool === "task" ? <span className="oc-pill oc-pill-file">Subagent</span> : null}
         </div>
         <div className="oc-toolRowMeta">
@@ -1058,6 +1065,35 @@ function ToolTextPanel({ part, active = false }: { part: Extract<MessagePart, { 
         </div>
       ) : null}
       {expanded && body ? <pre className="oc-partTerminal">{body}</pre> : null}
+    </section>
+  )
+}
+
+function ToolLspPanel({ part, active = false }: { part: Extract<MessagePart, { type: "tool" }>; active?: boolean }) {
+  const details = toolDetails(part)
+  const body = toolTextBody(part)
+  const diagnostics = toolDiagnostics(part)
+  const status = part.state?.status || "pending"
+  return (
+    <section className={`oc-part oc-part-tool oc-toolPanel oc-toolPanel-lsp${active ? " is-active" : ""}${status === "completed" ? " is-completed" : ""}`}>
+      <div className="oc-partHeader">
+        <div className="oc-toolHeaderMain">
+          <span className="oc-kicker">{toolLabel(part.tool)}</span>
+          <span className="oc-toolPanelTitle">{details.title}</span>
+        </div>
+        <div className="oc-toolHeaderMeta">
+          {details.subtitle ? <span className="oc-partMeta">{details.subtitle}</span> : null}
+          <ToolStatus state={part.state?.status} />
+        </div>
+      </div>
+      {details.args.length > 0 ? (
+        <div className="oc-attachmentRow">
+          {details.args.map((item) => <span key={item} className="oc-pill oc-pill-file">{item}</span>)}
+        </div>
+      ) : null}
+      {diagnostics.length > 0
+        ? <DiagnosticsList items={diagnostics} tone="error" />
+        : body ? <pre className="oc-partTerminal">{body}</pre> : null}
     </section>
   )
 }
@@ -1327,10 +1363,10 @@ function DiffCodeText({ text, language }: { text: string; language: string }) {
   return <span className="oc-diffLineText hljs" dangerouslySetInnerHTML={{ __html: html }} />
 }
 
-function DiagnosticsList({ items }: { items: string[] }) {
+function DiagnosticsList({ items, tone = "warning" }: { items: string[]; tone?: "warning" | "error" }) {
   return (
-    <div className="oc-diagnosticsList">
-      {items.map((item) => <div key={item} className="oc-diagnosticItem">{item}</div>)}
+    <div className={`oc-diagnosticsList is-${tone}`}>
+      {items.map((item) => <div key={item} className={`oc-diagnosticItem is-${tone}`}>{item}</div>)}
     </div>
   )
 }
@@ -1759,6 +1795,9 @@ function toolLabel(tool: string) {
   if (tool === "todowrite") {
     return "to-dos"
   }
+  if (tool === "lsp" || tool.startsWith("lsp_")) {
+    return "lsp"
+  }
   return tool || "tool"
 }
 
@@ -1779,6 +1818,12 @@ function defaultToolTitle(tool: string, input: Record<string, unknown>, metadata
   }
   if (tool === "task") {
     return stringValue(input.description) || `${capitalize(stringValue(input.subagent_type) || "task")} task`
+  }
+  if (tool === "lsp_diagnostics") {
+    return "LSP diagnostics"
+  }
+  if (tool === "lsp" || tool.startsWith("lsp_")) {
+    return formatToolName(tool)
   }
   if (tool === "webfetch") {
     return stringValue(input.url) || "Web fetch"
@@ -1954,7 +1999,7 @@ function toolRowTitle(part: Extract<MessagePart, { type: "tool" }>, details: Too
   return details.title
 }
 
-function renderToolRowTitle(part: Extract<MessagePart, { type: "tool" }>, details: ToolDetails) {
+function renderToolRowTitle(part: Extract<MessagePart, { type: "tool" }>, details: ToolDetails, workspaceDir = "") {
   const input = recordValue(part.state?.input)
   if (part.tool === "read") {
     const path = stringValue(input.filePath) || stringValue(input.path)
@@ -1972,6 +2017,19 @@ function renderToolRowTitle(part: Extract<MessagePart, { type: "tool" }>, detail
       <>
         <FileRefText value={path} display={label} />
         {args.length > 0 ? ` [${args.join(", ")}]` : ""}
+      </>
+    )
+  }
+
+  if (part.tool === "lsp_diagnostics" && lspRendersInline(part)) {
+    const filePath = stringValue(input.filePath)
+    const displayPath = relativeWorkspacePath(filePath, workspaceDir) || filePath
+    const severity = stringValue(input.severity) || "all"
+    return (
+      <>
+        {"lsp_diagnostics [filePath="}
+        <FileRefText value={filePath} display={displayPath} />
+        {`, severity=${severity}]`}
       </>
     )
   }
@@ -2021,6 +2079,10 @@ function renderToolRowSubtitle(part: Extract<MessagePart, { type: "tool" }>, det
       return null
     }
     return <span className="oc-partMeta"><FileRefText value={value} display={value} tone="muted" /></span>
+  }
+
+  if (part.tool === "lsp_diagnostics" && lspRendersInline(part)) {
+    return null
   }
 
   const subtitle = toolRowSubtitle(part, details, workspaceDir)
@@ -2565,6 +2627,13 @@ function toolDiagnostics(part: Extract<MessagePart, { type: "tool" }>) {
   return value
     .map((item) => formatDiagnostic(recordValue(item)))
     .filter(Boolean)
+}
+
+function lspRendersInline(part: Extract<MessagePart, { type: "tool" }>) {
+  if (part.tool !== "lsp_diagnostics") {
+    return false
+  }
+  return toolDiagnostics(part).length === 0 && toolTextBody(part).trim() === "No diagnostics found"
 }
 
 function patchFiles(part: Extract<MessagePart, { type: "tool" }>) {
@@ -3277,6 +3346,19 @@ function capitalize(value: string) {
     return ""
   }
   return value[0].toUpperCase() + value.slice(1)
+}
+
+function formatToolName(value: string) {
+  if (!value) {
+    return "Tool"
+  }
+  if (value === "lsp") {
+    return "LSP"
+  }
+  return value
+    .split("_")
+    .map((part) => part.toLowerCase() === "lsp" ? "LSP" : capitalize(part))
+    .join(" ")
 }
 
 function formatDuration(seconds: number) {

@@ -427,6 +427,28 @@ button {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--oc-accent) 18%, transparent 82%);
 }
 
+.oc-toolPanel-lsp {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.oc-toolPanel-lsp.is-active {
+  border: 0;
+  box-shadow: none;
+}
+
+.oc-toolPanel-lsp .oc-partTerminal,
+.oc-toolPanel-lsp .oc-diagnosticsList,
+.oc-toolPanel-lsp .oc-diagnosticItem {
+  background: transparent;
+}
+
+.oc-toolPanel-lsp .oc-partTerminal {
+  padding: 0;
+  border-left: 0;
+}
+
 .oc-toolPanel-todos {
   background: color-mix(in srgb, var(--oc-accent) 10%, var(--oc-surface-block) 90%);
 }
@@ -760,6 +782,13 @@ button {
   border-left: 2px solid color-mix(in srgb, var(--oc-warning) 64%, transparent 36%);
   color: var(--oc-fg-muted);
   font-size: var(--oc-font-size-sm);
+  line-height: 1.5;
+}
+
+.oc-diagnosticItem.is-error {
+  padding: 0;
+  border-left: 0;
+  color: var(--oc-error);
   line-height: 1.5;
 }
 
