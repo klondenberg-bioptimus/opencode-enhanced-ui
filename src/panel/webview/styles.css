@@ -16,13 +16,13 @@
   --oc-hover-block: color-mix(in srgb, var(--oc-accent) 10%, transparent 90%);
   --oc-hover-block-inset: color-mix(in srgb, var(--oc-accent) 6%, transparent 94%);
   --oc-rail-user: #4ea1ff;
-  --oc-outputWindow-border: color-mix(in srgb, var(--oc-border-strong) 70%, transparent 30%);
-  --oc-outputWindow-head-bg: color-mix(in srgb, var(--oc-accent) 70%, var(--oc-surface-block) 30%);
+  --oc-outputWindow-border: color-mix(in srgb, var(--oc-border-strong) 60%, transparent 40%);
+  --oc-outputWindow-head-bg: color-mix(in srgb, var(--oc-accent) 60%, var(--oc-surface-block) 40%);
   --oc-outputWindow-head-fg: color-mix(in srgb, var(--oc-surface-canvas) 88%, var(--oc-accent) 12%);
   --oc-outputWindow-body-bg: color-mix(in srgb, var(--oc-accent) 8%, var(--oc-surface-canvas) 92%);
   --oc-outputWindow-body-fg: color-mix(in srgb, var(--oc-accent) 86%, var(--oc-fg-primary) 14%);
-  --oc-outputWindow-toggle-bg: color-mix(in srgb, var(--oc-accent) 70%, var(--oc-surface-block) 30%);
-  --oc-outputWindow-toggle-hover: color-mix(in srgb, var(--oc-accent) 62%, var(--oc-surface-block) 38%);
+  --oc-outputWindow-toggle-bg: color-mix(in srgb, var(--oc-accent) 60%, var(--oc-surface-block) 40%);
+  --oc-outputWindow-toggle-hover: color-mix(in srgb, var(--oc-accent) 50%, var(--oc-surface-block) 50%);
   --oc-md-text: var(--oc-fg-primary);
   --oc-md-heading: var(--oc-fg-primary);
   --oc-md-link: var(--vscode-terminal-ansiBlue);
@@ -1315,6 +1315,34 @@ button {
   border: 0;
   background: transparent;
   color: var(--oc-md-current-code);
+}
+
+.oc-inlineCode-file {
+  text-decoration: none;
+}
+
+.oc-modKey .oc-inlineCode-file {
+  cursor: pointer;
+}
+
+.oc-modKey .oc-inlineCode-file:hover {
+  color: color-mix(in srgb, var(--oc-md-current-code) 82%, var(--oc-bg) 18%);
+}
+
+.oc-fileRefText {
+  color: inherit;
+}
+
+.oc-fileRefText.is-openable {
+  text-decoration: none;
+}
+
+.oc-modKey .oc-fileRefText.is-openable {
+  cursor: pointer;
+}
+
+.oc-modKey .oc-fileRefText.is-openable:hover {
+  color: color-mix(in srgb, currentColor 82%, var(--oc-bg) 18%);
 }
 
 .oc-markdown em {

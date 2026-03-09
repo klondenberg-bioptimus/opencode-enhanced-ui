@@ -1,4 +1,5 @@
 import * as path from "node:path"
+import { fileURLToPath } from "node:url"
 import * as vscode from "vscode"
 import { postToWebview } from "../bridge/host"
 import { SESSION_PANEL_VIEW_TYPE, type SessionBootstrap, type SessionPanelRef, type SessionSnapshot, type WebviewMessage } from "../bridge/types"
@@ -79,6 +80,16 @@ class SessionPanelController implements vscode.Disposable {
 
         if (message?.type === "navigateSession") {
           void vscode.commands.executeCommand("opencode-ui.openSessionById", this.ref.dir, message.sessionID)
+          return
+        }
+
+        if (message?.type === "openFile") {
+          void this.openFile(message.filePath, message.line)
+          return
+        }
+
+        if (message?.type === "resolveFileRefs") {
+          void this.resolveFileRefs(message.refs)
         }
       },
       undefined,
@@ -448,6 +459,78 @@ class SessionPanelController implements vscode.Disposable {
   private log(message: string) {
     this.out.appendLine(`[panel ${this.key}] ${message}`)
   }
+
+  private async openFile(filePath: string, line?: number) {
+    const target = await this.resolveFileUri(filePath)
+    if (!target) {
+      return
+    }
+
+    const document = await vscode.workspace.openTextDocument(target)
+    const editor = await vscode.window.showTextDocument(document, {
+      preview: false,
+      viewColumn: vscode.ViewColumn.Active,
+    })
+
+    if (!line || line < 1) {
+      return
+    }
+
+    const targetLine = Math.min(Math.max(line - 1, 0), Math.max(document.lineCount - 1, 0))
+    const position = new vscode.Position(targetLine, 0)
+    editor.selection = new vscode.Selection(position, position)
+    editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenterIfOutsideViewport)
+  }
+
+  private async resolveFileUri(filePath: string) {
+    const value = filePath.trim()
+    if (!value) {
+      return undefined
+    }
+
+    const target = toFileUri(value, this.ref.dir)
+    if (!target) {
+      return undefined
+    }
+
+    try {
+      const stat = await vscode.workspace.fs.stat(target)
+      if ((stat.type & vscode.FileType.Directory) !== 0) {
+        return undefined
+      }
+      return target
+    } catch {
+      return undefined
+    }
+  }
+
+  private async resolveFileRefs(refs: Array<{ key: string; filePath: string }>) {
+    const resolved = await Promise.all(refs.map(async (item) => ({
+      key: item.key,
+      exists: !!await this.resolveFileUri(item.filePath),
+    })))
+
+    await postToWebview(this.panel.webview, {
+      type: "fileRefsResolved",
+      refs: resolved,
+    })
+  }
+}
+
+function toFileUri(filePath: string, workspaceDir: string) {
+  if (filePath.startsWith("file://")) {
+    try {
+      return vscode.Uri.file(fileURLToPath(filePath))
+    } catch {
+      return undefined
+    }
+  }
+
+  if (path.isAbsolute(filePath)) {
+    return vscode.Uri.file(path.normalize(filePath))
+  }
+
+  return vscode.Uri.file(path.join(workspaceDir, filePath))
 }
 
 export class SessionPanelManager implements vscode.Disposable {

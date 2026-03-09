@@ -49,6 +49,13 @@ export type HostMessage =
       type: "error"
       message: string
     }
+  | {
+      type: "fileRefsResolved"
+      refs: Array<{
+        key: string
+        exists: boolean
+      }>
+    }
 
 export type WebviewMessage =
   | {
@@ -79,4 +86,16 @@ export type WebviewMessage =
   | {
       type: "navigateSession"
       sessionID: string
+    }
+  | {
+      type: "openFile"
+      filePath: string
+      line?: number
+    }
+  | {
+      type: "resolveFileRefs"
+      refs: Array<{
+        key: string
+        filePath: string
+      }>
     }

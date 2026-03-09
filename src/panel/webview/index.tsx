@@ -51,6 +51,7 @@ type AppState = {
 
 const vscode = acquireVsCodeApi()
 const initialRef = window.__OPENCODE_INITIAL_STATE__ ?? null
+const fileRefStatus = new Map<string, boolean>()
 const markdown = new MarkdownIt({
   breaks: true,
   linkify: true,
@@ -161,6 +162,14 @@ function App() {
 
       if (message?.type === "error") {
         setState((current) => ({ ...current, error: message.message || "Unknown error" }))
+        return
+      }
+
+      if (message?.type === "fileRefsResolved") {
+        for (const item of message.refs) {
+          fileRefStatus.set(item.key, item.exists)
+        }
+        window.dispatchEvent(new CustomEvent("oc-file-refs-updated"))
       }
     }
 
@@ -180,6 +189,34 @@ function App() {
   React.useEffect(() => {
     document.title = `OpenCode: ${sessionTitle(state.bootstrap)}`
   }, [state.bootstrap])
+
+  React.useEffect(() => {
+    const syncModifierState = (active: boolean) => {
+      document.body.classList.toggle("oc-modKey", active)
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      syncModifierState(event.metaKey || event.ctrlKey)
+    }
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      syncModifierState(event.metaKey || event.ctrlKey)
+    }
+
+    const onBlur = () => {
+      syncModifierState(false)
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    window.addEventListener("keyup", onKeyUp)
+    window.addEventListener("blur", onBlur)
+    return () => {
+      window.removeEventListener("keydown", onKeyDown)
+      window.removeEventListener("keyup", onKeyUp)
+      window.removeEventListener("blur", onBlur)
+      syncModifierState(false)
+    }
+  }, [])
 
   const submit = React.useCallback(() => {
     const text = state.draft.trim()
@@ -766,8 +803,6 @@ function ToolRow({ part, active = false }: { part: Extract<MessagePart, { type: 
   const details = toolDetails(part)
   const childSessionID = toolChildSessionId(part)
   const workspaceDir = useWorkspaceDir()
-  const title = toolRowTitle(part, details)
-  const subtitle = toolRowSubtitle(part, details, workspaceDir)
   const summary = toolRowSummary(part)
   const extras = toolRowExtras(part)
   return (
@@ -775,11 +810,11 @@ function ToolRow({ part, active = false }: { part: Extract<MessagePart, { type: 
       <div className="oc-toolRow">
         <div className="oc-toolRowMain">
           <span className="oc-kicker">{toolLabel(part.tool)}</span>
-          <span className="oc-toolRowTitle">{title}</span>
+          <span className="oc-toolRowTitle">{renderToolRowTitle(part, details)}</span>
           {part.tool === "task" ? <span className="oc-pill oc-pill-file">Subagent</span> : null}
         </div>
         <div className="oc-toolRowMeta">
-          {subtitle ? <span className="oc-partMeta">{subtitle}</span> : null}
+          {renderToolRowSubtitle(part, details, workspaceDir)}
           {summary ? <span className="oc-toolRowSummary">{summary}</span> : null}
           {childSessionID ? <button type="button" className="oc-inlineLinkBtn" onClick={() => vscode.postMessage({ type: "navigateSession", sessionID: childSessionID })}>Open child</button> : null}
           <ToolStatus state={part.state?.status} />
@@ -787,7 +822,7 @@ function ToolRow({ part, active = false }: { part: Extract<MessagePart, { type: 
       </div>
       {extras.length > 0 ? (
         <div className="oc-toolRowExtras">
-          {extras.map((item) => <div key={item} className="oc-toolRowExtra">↳ {item}</div>)}
+          {extras.map((item) => <div key={item} className="oc-toolRowExtra">↳ {renderToolRowExtra(part, item)}</div>)}
         </div>
       ) : null}
     </section>
@@ -1052,7 +1087,7 @@ function ToolApplyPatchPanel({ part, active = false, diffMode = "unified" }: { p
             <section key={`${item.path}:${item.type}:${item.summary}`} className="oc-patchItem">
               <OutputWindow
                 action={item.type}
-                title={item.path}
+                title={<FileRefText value={item.path} display={item.path} />}
                 running={status === "running"}
                 lineCount={item.diff ? diffOutputLineCount(item.diff, diffMode) : normalizedLineCount(item.summary)}
                 className="oc-outputWindow-patch"
@@ -1248,8 +1283,23 @@ function EmptyState({ title, text }: { title: string; text: string }) {
 
 function MarkdownBlock({ content, className = "" }: { content: string; className?: string }) {
   const html = React.useMemo(() => markdown.render(content || ""), [content])
+  const rootRef = React.useRef<HTMLDivElement | null>(null)
+
+  React.useEffect(() => {
+    const root = rootRef.current
+    if (!root) {
+      return
+    }
+
+    const sync = () => syncMarkdownFileRefs(root)
+    sync()
+    window.addEventListener("oc-file-refs-updated", sync)
+    return () => window.removeEventListener("oc-file-refs-updated", sync)
+  }, [html])
+
   return (
     <div
+      ref={rootRef}
       className={`oc-markdown${className ? ` ${className}` : ""}`}
       dangerouslySetInnerHTML={{ __html: html }}
       onClick={(event) => {
@@ -1257,6 +1307,41 @@ function MarkdownBlock({ content, className = "" }: { content: string; className
         if (!(target instanceof Element)) {
           return
         }
+
+        const link = target.closest("a")
+        if (link instanceof HTMLAnchorElement) {
+          const fileRef = parseFileReference(link.getAttribute("href") || "")
+          if (fileRef && fileRefStatus.get(fileRef.key) !== false) {
+            event.preventDefault()
+            event.stopPropagation()
+            vscode.postMessage({
+              type: "openFile",
+              filePath: fileRef.filePath,
+              line: fileRef.line,
+            })
+          }
+          return
+        }
+
+        const inlineCode = target.closest(".oc-inlineCode")
+        if (inlineCode instanceof HTMLElement) {
+          if (!event.metaKey && !event.ctrlKey) {
+            return
+          }
+          const fileRef = parseFileReference(inlineCode.textContent || "")
+          if (!fileRef || !fileRefStatus.get(fileRef.key)) {
+            return
+          }
+          event.preventDefault()
+          event.stopPropagation()
+          vscode.postMessage({
+            type: "openFile",
+            filePath: fileRef.filePath,
+            line: fileRef.line,
+          })
+          return
+        }
+
         const button = target.closest("[data-copy-code]")
         if (!(button instanceof HTMLButtonElement)) {
           return
@@ -1710,6 +1795,31 @@ function toolRowTitle(part: Extract<MessagePart, { type: "tool" }>, details: Too
   return details.title
 }
 
+function renderToolRowTitle(part: Extract<MessagePart, { type: "tool" }>, details: ToolDetails) {
+  const input = recordValue(part.state?.input)
+  if (part.tool === "read") {
+    const path = stringValue(input.filePath) || stringValue(input.path)
+    const label = fileLabel(path) || details.title
+    const offset = numberValue(input.offset)
+    const limit = numberValue(input.limit)
+    const args: string[] = []
+    if (offset > 0) {
+      args.push(`offset=${offset}`)
+    }
+    if (limit > 0) {
+      args.push(`limit=${limit}`)
+    }
+    return (
+      <>
+        <FileRefText value={path} display={label} />
+        {args.length > 0 ? ` [${args.join(", ")}]` : ""}
+      </>
+    )
+  }
+
+  return toolRowTitle(part, details)
+}
+
 function toolRowSubtitle(part: Extract<MessagePart, { type: "tool" }>, details: ToolDetails, workspaceDir = "") {
   const input = recordValue(part.state?.input)
   if (part.tool === "grep" || part.tool === "glob") {
@@ -1733,6 +1843,29 @@ function toolRowSubtitle(part: Extract<MessagePart, { type: "tool" }>, details: 
     return stringValue(input.path) || details.subtitle
   }
   return details.subtitle
+}
+
+function renderToolRowSubtitle(part: Extract<MessagePart, { type: "tool" }>, details: ToolDetails, workspaceDir = "") {
+  const input = recordValue(part.state?.input)
+  if (part.tool === "grep" || part.tool === "glob") {
+    const rawPath = stringValue(input.path) || stringValue(input.filePath)
+    const relPath = relativeWorkspacePath(rawPath, workspaceDir)
+    if (!relPath) {
+      return null
+    }
+    return <span className="oc-partMeta">in <FileRefText value={rawPath} display={relPath} tone="muted" /></span>
+  }
+
+  if (part.tool === "list") {
+    const value = stringValue(input.path) || details.subtitle
+    if (!value) {
+      return null
+    }
+    return <span className="oc-partMeta"><FileRefText value={value} display={value} tone="muted" /></span>
+  }
+
+  const subtitle = toolRowSubtitle(part, details, workspaceDir)
+  return subtitle ? <span className="oc-partMeta">{subtitle}</span> : null
 }
 
 function toolRowSummary(part: Extract<MessagePart, { type: "tool" }>) {
@@ -1788,6 +1921,14 @@ function toolRowExtras(part: Extract<MessagePart, { type: "tool" }>) {
     return stringList(metadata.loaded).map((item) => `Loaded ${item}`)
   }
   return [] as string[]
+}
+
+function renderToolRowExtra(part: Extract<MessagePart, { type: "tool" }>, item: string) {
+  if (part.tool === "read" && item.startsWith("Loaded ")) {
+    const value = item.slice(7)
+    return <><span>Loaded </span><FileRefText value={value} display={value} /></>
+  }
+  return item
 }
 
 function taskAgentName(part: Extract<MessagePart, { type: "tool" }>) {
@@ -1887,7 +2028,7 @@ function OutputWindow({
   children,
 }: {
   action: string
-  title: string
+  title: React.ReactNode
   running?: boolean
   lineCount: number
   className?: string
@@ -2419,6 +2560,158 @@ function normalizedLines(value: string) {
 
 function codeWindowGutter(value: string) {
   return `calc(${Math.max(String(normalizedLines(value).length).length, 2)}ch + 12px)`
+}
+
+function parseFileReference(value: string) {
+  const input = value.trim()
+  if (!input || isExternalTarget(input)) {
+    return undefined
+  }
+
+  const lineMatch = input.match(/:(\d+)$/)
+  const filePath = lineMatch ? input.slice(0, -lineMatch[0].length) : input
+  const normalized = normalizeFileReference(filePath)
+  if (!normalized || !looksLikeFilePath(normalized)) {
+    return undefined
+  }
+
+  return {
+    key: fileRefKey(normalized),
+    filePath: normalized,
+    line: lineMatch ? Number.parseInt(lineMatch[1] || "", 10) : undefined,
+  }
+}
+
+function FileRefText({
+  value,
+  display,
+  tone = "default",
+}: {
+  value: string
+  display?: string
+  tone?: "default" | "muted"
+}) {
+  const fileRef = React.useMemo(() => parseFileReference(value), [value])
+  const [exists, setExists] = React.useState(() => fileRef ? fileRefStatus.get(fileRef.key) === true : false)
+
+  React.useEffect(() => {
+    if (!fileRef) {
+      setExists(false)
+      return
+    }
+
+    setExists(fileRefStatus.get(fileRef.key) === true)
+    if (!fileRefStatus.has(fileRef.key)) {
+      vscode.postMessage({
+        type: "resolveFileRefs",
+        refs: [{ key: fileRef.key, filePath: fileRef.filePath }],
+      })
+    }
+
+    const sync = () => {
+      setExists(fileRefStatus.get(fileRef.key) === true)
+    }
+
+    window.addEventListener("oc-file-refs-updated", sync)
+    return () => window.removeEventListener("oc-file-refs-updated", sync)
+  }, [fileRef])
+
+  if (!fileRef) {
+    return <>{display || value}</>
+  }
+
+  return (
+    <span
+      className={[
+        "oc-fileRefText",
+        exists ? "is-openable" : "",
+        tone === "muted" ? "is-muted" : "",
+      ].filter(Boolean).join(" ")}
+      onClick={(event) => {
+        if (!exists || (!event.metaKey && !event.ctrlKey)) {
+          return
+        }
+        event.preventDefault()
+        event.stopPropagation()
+        vscode.postMessage({
+          type: "openFile",
+          filePath: fileRef.filePath,
+          line: fileRef.line,
+        })
+      }}
+    >
+      {display || value}
+    </span>
+  )
+}
+
+function fileRefKey(value: string) {
+  return value.startsWith("file://") ? value : value.replace(/\\/g, "/")
+}
+
+function normalizeFileReference(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return ""
+  }
+  if (trimmed.startsWith("file://")) {
+    return trimmed
+  }
+  return trimmed.replace(/^['"]+|['"]+$/g, "")
+}
+
+function looksLikeFilePath(value: string) {
+  return value.startsWith("file://")
+    || /^[A-Za-z]:[\\/]/.test(value)
+    || /^\.{1,2}[\\/]/.test(value)
+    || value.startsWith("/")
+    || value.includes("/")
+    || value.includes("\\")
+    || /^[^\s\\/]+\.[^\s\\/]+$/.test(value)
+}
+
+function isExternalTarget(value: string) {
+  return /^[a-z][a-z0-9+.-]*:/i.test(value) && !value.startsWith("file://")
+}
+
+function syncMarkdownFileRefs(root: HTMLElement) {
+  const refs = new Map<string, string>()
+
+  for (const link of Array.from(root.querySelectorAll("a"))) {
+    const fileRef = parseFileReference(link.getAttribute("href") || "")
+    if (!fileRef) {
+      link.removeAttribute("data-file-ref")
+      continue
+    }
+    link.setAttribute("data-file-ref", fileRef.key)
+    refs.set(fileRef.key, fileRef.filePath)
+  }
+
+  for (const inlineCode of Array.from(root.querySelectorAll(".oc-inlineCode"))) {
+    if (!(inlineCode instanceof HTMLElement)) {
+      continue
+    }
+    const fileRef = parseFileReference(inlineCode.textContent || "")
+    if (!fileRef) {
+      inlineCode.removeAttribute("data-file-ref")
+      inlineCode.classList.remove("oc-inlineCode-file")
+      continue
+    }
+    inlineCode.setAttribute("data-file-ref", fileRef.key)
+    inlineCode.classList.toggle("oc-inlineCode-file", !!fileRefStatus.get(fileRef.key))
+    refs.set(fileRef.key, fileRef.filePath)
+  }
+
+  const unresolved = [...refs.entries()]
+    .filter(([key]) => !fileRefStatus.has(key))
+    .map(([key, filePath]) => ({ key, filePath }))
+
+  if (unresolved.length > 0) {
+    vscode.postMessage({
+      type: "resolveFileRefs",
+      refs: unresolved,
+    })
+  }
 }
 
 function escapeAttribute(value: string) {
