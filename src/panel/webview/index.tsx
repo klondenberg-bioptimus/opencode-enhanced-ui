@@ -1071,15 +1071,17 @@ function ToolTextPanel({ part, active = false }: { part: Extract<MessagePart, { 
 
 function ToolLspPanel({ part, active = false }: { part: Extract<MessagePart, { type: "tool" }>; active?: boolean }) {
   const details = toolDetails(part)
+  const workspaceDir = useWorkspaceDir()
   const body = toolTextBody(part)
   const diagnostics = toolDiagnostics(part)
   const status = part.state?.status || "pending"
+  const hasErrorBody = !diagnostics.length && !!body.trim() && body.trim() !== "No diagnostics found"
   return (
     <section className={`oc-part oc-part-tool oc-toolPanel oc-toolPanel-lsp${active ? " is-active" : ""}${status === "completed" ? " is-completed" : ""}`}>
       <div className="oc-partHeader">
         <div className="oc-toolHeaderMain">
           <span className="oc-kicker">{toolLabel(part.tool)}</span>
-          <span className="oc-toolPanelTitle">{details.title}</span>
+          <span className="oc-toolPanelTitle">{renderLspToolTitle(part, workspaceDir) || details.title}</span>
         </div>
         <div className="oc-toolHeaderMeta">
           {details.subtitle ? <span className="oc-partMeta">{details.subtitle}</span> : null}
@@ -1093,7 +1095,7 @@ function ToolLspPanel({ part, active = false }: { part: Extract<MessagePart, { t
       ) : null}
       {diagnostics.length > 0
         ? <DiagnosticsList items={diagnostics} tone="error" />
-        : body ? <pre className="oc-partTerminal">{body}</pre> : null}
+        : hasErrorBody ? <pre className="oc-errorBlock">{body}</pre> : body ? <pre className="oc-partTerminal">{body}</pre> : null}
     </section>
   )
 }
@@ -2022,16 +2024,7 @@ function renderToolRowTitle(part: Extract<MessagePart, { type: "tool" }>, detail
   }
 
   if (part.tool === "lsp_diagnostics" && lspRendersInline(part)) {
-    const filePath = stringValue(input.filePath)
-    const displayPath = relativeWorkspacePath(filePath, workspaceDir) || filePath
-    const severity = stringValue(input.severity) || "all"
-    return (
-      <>
-        {"lsp_diagnostics [filePath="}
-        <FileRefText value={filePath} display={displayPath} />
-        {`, severity=${severity}]`}
-      </>
-    )
+    return renderLspToolTitle(part, workspaceDir)
   }
 
   return toolRowTitle(part, details)
@@ -2634,6 +2627,23 @@ function lspRendersInline(part: Extract<MessagePart, { type: "tool" }>) {
     return false
   }
   return toolDiagnostics(part).length === 0 && toolTextBody(part).trim() === "No diagnostics found"
+}
+
+function renderLspToolTitle(part: Extract<MessagePart, { type: "tool" }>, workspaceDir = "") {
+  if (part.tool !== "lsp_diagnostics") {
+    return null
+  }
+  const input = recordValue(part.state?.input)
+  const filePath = stringValue(input.filePath)
+  const displayPath = relativeWorkspacePath(filePath, workspaceDir) || filePath
+  const severity = stringValue(input.severity) || "all"
+  return (
+    <>
+      {"lsp_diagnostics [filePath="}
+      <FileRefText value={filePath} display={displayPath} />
+      {`, severity=${severity}]`}
+    </>
+  )
 }
 
 function patchFiles(part: Extract<MessagePart, { type: "tool" }>) {

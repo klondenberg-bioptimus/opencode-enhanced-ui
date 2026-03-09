@@ -71,7 +71,7 @@
   --oc-diff-syntax-operator: #86e1fc;
   --oc-diff-syntax-punctuation: #c8d3f5;
   --oc-warning: var(--vscode-editorWarning-foreground);
-  --oc-error: var(--vscode-errorForeground);
+  --oc-error: var(--vscode-errorForeground, var(--vscode-terminal-ansiRed, #f14c4c));
   --oc-success: var(--vscode-testing-iconPassed, #4caf50);
   --oc-mono: var(--vscode-editor-font-family, monospace);
   --oc-ui: var(--oc-mono);
@@ -444,6 +444,11 @@ button {
   background: transparent;
 }
 
+.oc-toolPanel-lsp .oc-diagnosticItem.is-error,
+.oc-toolPanel-lsp .oc-errorBlock {
+  color: var(--oc-error);
+}
+
 .oc-toolPanel-lsp .oc-partTerminal {
   padding: 0;
   border-left: 0;
@@ -790,6 +795,18 @@ button {
   border-left: 0;
   color: var(--oc-error);
   line-height: 1.5;
+}
+
+.oc-errorBlock {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--oc-error);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+  font-size: var(--oc-font-size);
 }
 
 .oc-entryHeader,
