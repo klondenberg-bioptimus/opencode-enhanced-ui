@@ -341,6 +341,11 @@ button {
   min-width: 0;
 }
 
+.oc-toolRowMain.is-error {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
 .oc-toolRowMain-mcp {
   flex-wrap: nowrap;
   flex: 1 1 auto;
@@ -427,6 +432,12 @@ button {
 .oc-taskSessionTitle {
   font-size: var(--oc-font-size);
   color: var(--oc-fg-primary);
+}
+
+.oc-taskSessionTitle.is-error,
+.oc-taskBody.is-error {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .oc-toolSpinner {
@@ -536,7 +547,6 @@ button {
 .oc-outputWindow {
   display: grid;
   gap: 0;
-  width: 100%;
   border: 1px solid var(--oc-outputWindow-border);
   border-radius: 10px;
   overflow: hidden;
@@ -1114,6 +1124,18 @@ label.oc-questionOption:hover {
 .oc-part-compaction,
 .oc-part-step-start,
 .oc-part-step-finish {
+}
+
+.oc-outputWindow.oc-outputWindow-markdownCode .oc-codeWindowBody {
+  margin-top: 0;
+}
+
+.oc-outputWindow.oc-outputWindow-markdownCode {
+  margin: 0;
+}
+
+.oc-outputWindow {
+  margin: 0 14px;
 }
 
 .oc-partTerminal {
@@ -1798,7 +1820,36 @@ label.oc-questionOption:hover {
 }
 
 .oc-dock-warning {
+  --oc-warning-dock-bg: color-mix(in srgb, var(--oc-warning) 72%, #5a4300 28%);
+  --oc-warning-dock-bg-hover: color-mix(in srgb, var(--oc-warning) 82%, #6a5000 18%);
+  --oc-warning-dock-fg: #fff;
   border-color: color-mix(in srgb, var(--oc-warning) 42%, var(--oc-border) 58%);
+}
+
+.oc-dock-warning .oc-dockHeader {
+  margin: -10px -12px 10px;
+  padding: 8px 12px;
+  background: var(--oc-warning-dock-bg);
+  color: var(--oc-warning-dock-fg);
+}
+
+.oc-dock-warning .oc-kicker,
+.oc-dock-warning .oc-dockTitle {
+  color: var(--oc-warning-dock-fg);
+}
+
+.oc-dock-warning .oc-btn,
+.oc-dock-warning .oc-btn-primary {
+  border-color: transparent;
+  background: var(--oc-warning-dock-bg);
+  color: var(--oc-warning-dock-fg);
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.oc-dock-warning .oc-btn:hover:not(:disabled),
+.oc-dock-warning .oc-btn-primary:hover:not(:disabled) {
+  background: var(--oc-warning-dock-bg-hover);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--oc-warning) 30%, transparent 70%);
 }
 
 .oc-dock-error {
@@ -1809,6 +1860,18 @@ label.oc-questionOption:hover {
 .oc-diffList {
   display: grid;
   gap: 8px;
+}
+
+.oc-patternRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.oc-patternRow .oc-help {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .oc-diffItem {

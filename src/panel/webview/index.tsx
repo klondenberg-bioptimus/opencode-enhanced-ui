@@ -581,8 +581,8 @@ function PermissionDock(props: {
       ) : null}
       {request.patterns?.length ? (
         <div className="oc-detailList">
-          {info.patternTitle ? <div className="oc-help">{info.patternTitle}</div> : null}
-          <div className="oc-pillRow">
+          <div className="oc-patternRow">
+            {info.patternTitle ? <div className="oc-help">{info.patternTitle}</div> : null}
             {request.patterns.map((item) => <span key={item} className="oc-pill">{item}</span>)}
           </div>
         </div>
@@ -990,10 +990,11 @@ function ToolRow({ part, active = false }: { part: Extract<MessagePart, { type: 
   const summary = toolRowSummary(part)
   const extras = toolRowExtras(part)
   const isMcp = isMcpTool(part.tool)
+  const failed = part.state?.status === "error"
   return (
     <section className={`oc-toolRowWrap oc-toolRowWrap-${part.tool}${isMcp ? " oc-toolRowWrap-mcp" : ""}${active ? " is-active" : ""}${part.state?.status === "completed" ? " is-completed" : ""}`}>
       <div className="oc-toolRow">
-        <div className={`oc-toolRowMain${isMcp ? " oc-toolRowMain-mcp" : ""}`}>
+        <div className={`oc-toolRowMain${isMcp ? " oc-toolRowMain-mcp" : ""}${failed ? " is-error" : ""}`}>
           <span className="oc-kicker">{toolLabel(part.tool)}</span>
           <span className={`oc-toolRowTitle${isMcp ? " oc-toolRowTitle-mcp" : ""}`}>{renderToolRowTitle(part, details, workspaceDir)}</span>
           {part.tool === "task" ? <span className="oc-pill oc-pill-file">Subagent</span> : null}
@@ -1022,6 +1023,7 @@ function TaskToolRow({ part, active = false }: { part: Extract<MessagePart, { ty
   const title = taskSessionTitle(part, sessions[childSessionID])
   const body = taskBody(part, child[childSessionID] || [])
   const clickable = !!childSessionID
+  const failed = part.state?.status === "error"
 
   const content = (
     <>
@@ -1029,10 +1031,10 @@ function TaskToolRow({ part, active = false }: { part: Extract<MessagePart, { ty
         <div className="oc-taskLine oc-taskLinePrimary">
           <AgentBadge name={agentName} />
           <span className="oc-taskColon">:</span>
-          <span className="oc-taskSessionTitle">{title}</span>
+          <span className={`oc-taskSessionTitle${failed ? " is-error" : ""}`}>{title}</span>
           <ToolStatus state={part.state?.status} />
         </div>
-        {body ? <div className="oc-taskLine oc-taskLineSecondary"><span className="oc-taskBranch">└</span><span className="oc-taskBody">{body}</span></div> : null}
+        {body ? <div className={`oc-taskLine oc-taskLineSecondary${failed ? " is-error" : ""}`}><span className="oc-taskBranch">└</span><span className={`oc-taskBody${failed ? " is-error" : ""}`}>{body}</span></div> : null}
       </div>
     </>
   )
