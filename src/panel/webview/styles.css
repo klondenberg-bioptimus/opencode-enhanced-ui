@@ -1,3 +1,14 @@
+@counter-style oc-md-ordered {
+  system: extends decimal;
+  suffix: ") ";
+}
+
+@counter-style oc-md-unordered {
+  system: cyclic;
+  symbols: "-";
+  suffix: " ";
+}
+
 :root {
   color-scheme: dark;
   --oc-bg: #000;
@@ -30,10 +41,10 @@
   --oc-md-code: var(--vscode-terminal-ansiGreen);
   --oc-md-quote: var(--vscode-terminal-ansiYellow);
   --oc-md-emph: #ff966c;
-  --oc-md-strong: var(--oc-fg-primary);
+  --oc-md-strong: #ff966c;
   --oc-md-rule: color-mix(in srgb, var(--oc-fg-primary) 32%, transparent 68%);
-  --oc-md-list: var(--vscode-terminal-ansiBlue);
-  --oc-md-list-enum: var(--vscode-terminal-ansiCyan);
+  --oc-md-list: #ff966c;
+  --oc-md-list-enum: #ff966c;
   --oc-md-code-block: var(--oc-fg-primary);
   --oc-md-syntax-comment: color-mix(in srgb, var(--oc-muted) 88%, var(--vscode-terminal-ansiBlack) 12%);
   --oc-md-syntax-keyword: var(--vscode-terminal-ansiMagenta);
@@ -1229,14 +1240,6 @@ button {
   --oc-md-current-syntax-punctuation: color-mix(in srgb, var(--oc-md-syntax-punctuation) 60%, var(--oc-surface-canvas) 40%);
 }
 
-.oc-markdown > :first-child {
-  margin-top: 0;
-}
-
-.oc-markdown > :last-child {
-  margin-bottom: 0;
-}
-
 .oc-markdown p,
 .oc-markdown ul,
 .oc-markdown ol,
@@ -1244,7 +1247,11 @@ button {
 .oc-markdown table,
 .oc-markdown pre,
 .oc-markdown hr {
-  margin: 0 0 10px;
+  margin: 0;
+}
+
+.oc-markdown p {
+  margin: 1em 0;
 }
 
 .oc-markdown h1,
@@ -1253,7 +1260,7 @@ button {
 .oc-markdown h4,
 .oc-markdown h5,
 .oc-markdown h6 {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 13px;
   line-height: 1.45;
   font-weight: 600;
@@ -1273,6 +1280,14 @@ button {
   padding-left: 20px;
 }
 
+.oc-markdown ul {
+  list-style-type: oc-md-unordered;
+}
+
+.oc-markdown ol {
+  list-style-type: oc-md-ordered;
+}
+
 .oc-markdown li {
   color: var(--oc-md-current-text);
 }
@@ -1286,7 +1301,7 @@ button {
 }
 
 .oc-markdown li + li {
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 .oc-markdown blockquote {
@@ -1311,7 +1326,7 @@ button {
 }
 
 .oc-inlineCode {
-  padding: 1px 5px;
+  padding: 0;
   border: 0;
   background: transparent;
   color: var(--oc-md-current-code);
