@@ -19,6 +19,98 @@
   position: relative;
 }
 
+.oc-composerAutocomplete {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--oc-border-strong);
+  background: var(--oc-status-popover-bg);
+  z-index: 3;
+}
+
+.oc-composerAutocompleteHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--oc-fg-muted);
+  font-size: var(--oc-font-size-sm);
+  line-height: 1.45;
+}
+
+.oc-composerAutocompleteTrigger {
+  color: var(--oc-accent);
+  font-weight: 700;
+}
+
+.oc-composerAutocompleteList {
+  display: grid;
+  gap: 0;
+}
+
+.oc-composerAutocompleteItem,
+.oc-composerAutocompleteEmpty {
+  padding: 5px 8px;
+  border: 1px solid var(--oc-border);
+  background: color-mix(in srgb, var(--oc-surface-control) 82%, transparent 18%);
+}
+
+.oc-composerAutocompleteItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+}
+
+.oc-composerAutocompleteItem.is-active {
+  border-color: var(--oc-border-strong);
+  background: color-mix(in srgb, var(--oc-accent) 18%, var(--oc-surface-control) 82%);
+}
+
+.oc-composerAutocompleteLabel {
+  color: var(--oc-fg-primary);
+  font-size: var(--oc-font-size);
+  line-height: 1.45;
+  flex: 0 0 auto;
+}
+
+.oc-composerAutocompleteLabelWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+}
+
+.oc-composerAutocompleteKind {
+  color: var(--oc-fg-muted);
+  font-size: var(--oc-font-size-sm);
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.oc-composerAutocompleteDetail,
+.oc-composerAutocompleteEmpty {
+  color: var(--oc-fg-muted);
+  font-size: var(--oc-font-size-sm);
+  line-height: 1.5;
+}
+
+.oc-composerAutocompleteDetail {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .oc-answerInput {
   min-height: 70px;
 }

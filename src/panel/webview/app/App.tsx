@@ -7,6 +7,7 @@ import { createInitialState, type AppState, type VsCodeApi } from "./state"
 import { Timeline } from "./timeline"
 import { AgentBadge, CompactionDivider, EmptyState, MarkdownBlock, PartView, WebviewBindingsProvider } from "./webview-bindings"
 import { resizeComposer, useComposerResize } from "../hooks/useComposer"
+import { useComposerAutocomplete, type ComposerAutocompleteItem, type ComposerAutocompleteState } from "../hooks/useComposerAutocomplete"
 import { useHostMessages } from "../hooks/useHostMessages"
 import { useModifierState } from "../hooks/useModifierState"
 import { useTimelineScroll } from "../hooks/useTimelineScroll"
@@ -33,6 +34,8 @@ export function App() {
   const [pendingMcpActions, setPendingMcpActions] = React.useState<Record<string, boolean>>({})
   const timelineRef = React.useRef<HTMLDivElement | null>(null)
   const composerRef = React.useRef<HTMLTextAreaElement | null>(null)
+  const composerMenuItems = React.useMemo(() => buildComposerMenuItems(state), [state])
+  const composerAutocomplete = useComposerAutocomplete(composerMenuItems)
 
   const blocked = state.snapshot.permissions.length > 0 || state.snapshot.questions.length > 0
   const isChildSession = !!state.bootstrap.session?.parentID
@@ -55,7 +58,7 @@ export function App() {
       return
     }
 
-    const selection = composerSelection(state.snapshot)
+    const selection = composerSelection({ ...state.snapshot, composerAgentOverride: state.composerAgentOverride })
     vscode.postMessage({
       type: "submit",
       text,
@@ -65,9 +68,57 @@ export function App() {
     setState((current) => ({
       ...current,
       draft: "",
+      composerAgentOverride: undefined,
       error: "",
     }))
-  }, [blocked, state.draft, state.snapshot])
+  }, [blocked, state.composerAgentOverride, state.draft, state.snapshot])
+
+  const acceptComposerAutocomplete = React.useCallback((item: ComposerAutocompleteItem) => {
+    if (item.kind === "action") {
+      if (item.id === "slash-clear") {
+        setState((current) => ({ ...current, draft: "", error: "" }))
+        composerAutocomplete.close()
+        return
+      }
+
+      if (item.id === "slash-reset-agent") {
+        setState((current) => ({
+          ...current,
+          draft: "",
+          composerAgentOverride: undefined,
+          error: "",
+        }))
+        composerAutocomplete.close()
+        return
+      }
+
+      if (item.id === "slash-refresh") {
+        vscode.postMessage({ type: "composerAction", action: "refreshSession" })
+        composerAutocomplete.close()
+        return
+      }
+    }
+
+    if (item.kind === "agent") {
+      setState((current) => ({
+        ...current,
+        draft: removeComposerMentionToken(current.draft, composerRef.current?.selectionStart),
+        composerAgentOverride: item.id.slice("agent:".length),
+        error: "",
+      }))
+      composerAutocomplete.close()
+      window.setTimeout(() => {
+        const next = composerRef.current
+        if (!next) {
+          return
+        }
+        next.focus()
+        const end = next.value.length
+        next.setSelectionRange(end, end)
+        resizeComposer(next)
+      }, 0)
+    }
+  }, [composerAutocomplete, setState])
 
   const sendQuestionReply = React.useCallback((request: QuestionRequest) => {
     const answers = request.questions.map((_item, index) => {
@@ -188,27 +239,66 @@ export function App() {
 
           {!blocked && !isChildSession ? (
             <section className="oc-composer">
-            <div className="oc-composerInputWrap">
-              <textarea
-                ref={composerRef}
-                className="oc-composerInput"
-                rows={1}
-                value={state.draft}
-                onChange={(event) => {
-                  const value = event.currentTarget.value
-                  setState((current) => ({ ...current, draft: value }))
-                }}
-                onInput={(event) => resizeComposer(event.currentTarget)}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) {
-                    return
-                  }
-                  event.preventDefault()
-                  submit()
+              <div className="oc-composerInputWrap">
+                <textarea
+                  ref={composerRef}
+                  className="oc-composerInput"
+                  rows={1}
+                  value={state.draft}
+                  onChange={(event) => {
+                    const value = event.currentTarget.value
+                    composerAutocomplete.sync(value, event.currentTarget.selectionStart)
+                    setState((current) => ({ ...current, draft: value }))
+                  }}
+                  onInput={(event) => resizeComposer(event.currentTarget)}
+                  onSelect={(event) => {
+                    composerAutocomplete.sync(event.currentTarget.value, event.currentTarget.selectionStart)
+                  }}
+                  onFocus={(event) => {
+                    composerAutocomplete.sync(event.currentTarget.value, event.currentTarget.selectionStart)
+                  }}
+                  onBlur={() => {
+                    window.setTimeout(() => composerAutocomplete.close(), 0)
+                  }}
+                  onKeyDown={(event) => {
+                    if (composerAutocomplete.state) {
+                      if (event.key === "ArrowDown") {
+                        event.preventDefault()
+                        composerAutocomplete.move(1)
+                        return
+                      }
+
+                      if (event.key === "ArrowUp") {
+                        event.preventDefault()
+                        composerAutocomplete.move(-1)
+                        return
+                      }
+
+                      if (event.key === "Escape") {
+                        event.preventDefault()
+                        composerAutocomplete.close()
+                        return
+                      }
+
+                      if ((event.key === "Enter" && !(event.metaKey || event.ctrlKey)) || event.key === "Tab") {
+                        event.preventDefault()
+                        if (composerAutocomplete.currentItem) {
+                          acceptComposerAutocomplete(composerAutocomplete.currentItem)
+                        }
+                        return
+                      }
+                    }
+
+                    if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) {
+                      return
+                    }
+                    event.preventDefault()
+                    submit()
                 }}
                 placeholder="Ask OpenCode to inspect, explain, or change this workspace."
                 disabled={state.bootstrap.status !== "ready" || blocked}
               />
+              {composerAutocomplete.state ? <ComposerAutocompletePopup state={composerAutocomplete.state} onSelect={acceptComposerAutocomplete} /> : null}
               <ComposerInfo state={state} />
             </div>
             <div className="oc-composerActions">
@@ -232,8 +322,44 @@ export function App() {
   )
 }
 
+function ComposerAutocompletePopup({ state, onSelect }: { state: ComposerAutocompleteState; onSelect: (item: ComposerAutocompleteItem) => void }) {
+  if (!state) {
+    return null
+  }
+
+  return (
+    <div className="oc-composerAutocomplete" role="listbox" aria-label={`${state.trigger} suggestions`}>
+      <div className="oc-composerAutocompleteHeader">
+        <span className="oc-composerAutocompleteTrigger">{state.trigger === "slash" ? "/" : "@"}</span>
+        <span>{state.query ? `Filter: ${state.query}` : "Start typing to filter"}</span>
+      </div>
+      <div className="oc-composerAutocompleteList">
+        {state.items.length > 0 ? state.items.map((item, index) => (
+          <button
+            type="button"
+            key={item.id}
+            className={`oc-composerAutocompleteItem${index === state.selectedIndex ? " is-active" : ""}`}
+            role="option"
+            aria-selected={index === state.selectedIndex}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => onSelect(item)}
+          >
+            <div className="oc-composerAutocompleteLabelWrap">
+              <div className="oc-composerAutocompleteLabel">{item.label}</div>
+              <div className="oc-composerAutocompleteDetail" title={item.detail}>{item.detail}</div>
+              <div className="oc-composerAutocompleteKind">{item.kind}</div>
+            </div>
+          </button>
+        )) : (
+          <div className="oc-composerAutocompleteEmpty">No matches</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function ComposerInfo({ state }: { state: AppState }) {
-  const info = composerIdentity(state.snapshot)
+  const info = composerIdentity({ ...state.snapshot, composerAgentOverride: state.composerAgentOverride })
   const running = isSessionRunning(state.snapshot.sessionStatus)
   return (
     <div className="oc-composerInfo" aria-hidden="true">
@@ -248,6 +374,73 @@ function ComposerInfo({ state }: { state: AppState }) {
       </div>
     </div>
   )
+}
+
+function buildComposerMenuItems(state: AppState): ComposerAutocompleteItem[] {
+  const slashItems: ComposerAutocompleteItem[] = [
+    {
+      id: "slash-refresh",
+      label: "refresh",
+      detail: "Ask the host to reload the current session snapshot.",
+      keywords: ["reload", "snapshot", "panel", "host"],
+      trigger: "slash",
+      kind: "action",
+    },
+    {
+      id: "slash-clear",
+      label: "clear",
+      detail: "Clear the current composer draft locally.",
+      keywords: ["reset", "draft", "composer"],
+      trigger: "slash",
+      kind: "action",
+    },
+  ]
+
+  if (state.composerAgentOverride) {
+    slashItems.push({
+      id: "slash-reset-agent",
+      label: "reset-agent",
+      detail: "Return the composer to the default agent selection.",
+      keywords: ["agent", "default", "override"],
+      trigger: "slash",
+      kind: "action",
+    })
+  }
+
+  const agentItems = state.snapshot.agents.map((agent) => ({
+    id: `agent:${agent.name}`,
+    label: agent.name,
+    detail: agent.mode === "subagent" ? "Subagent" : agent.mode === "primary" ? "Primary agent" : "Agent",
+    keywords: [agent.mode, agent.variant ?? ""].filter(Boolean),
+    trigger: "mention" as const,
+    kind: "agent" as const,
+  }))
+
+  return [...slashItems, ...agentItems]
+}
+
+function removeComposerMentionToken(value: string, cursor: number | null | undefined) {
+  if (typeof cursor !== "number" || cursor < 1) {
+    return value
+  }
+
+  let start = cursor - 1
+  while (start >= 0) {
+    const char = value[start]
+    if (char === "@") {
+      const prev = start === 0 ? "" : value[start - 1]
+      if (prev && !/\s/.test(prev)) {
+        return value
+      }
+      return `${value.slice(0, start)}${value.slice(cursor)}`.replace(/ {2,}/g, " ").trimStart()
+    }
+    if (/\s/.test(char)) {
+      return value
+    }
+    start -= 1
+  }
+
+  return value
 }
 
 function ComposerRunningIndicator({ running }: { running: boolean }) {

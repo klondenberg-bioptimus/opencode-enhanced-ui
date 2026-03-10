@@ -42,6 +42,7 @@ export type AppState = {
     }
   }
   draft: string
+  composerAgentOverride?: string
   error: string
   form: FormState
 }
@@ -75,6 +76,7 @@ export function createInitialState(initialRef: SessionBootstrap["sessionRef"] | 
       navigation: {},
     },
     draft: "",
+    composerAgentOverride: undefined,
     error: "",
     form: {
       selected: {},

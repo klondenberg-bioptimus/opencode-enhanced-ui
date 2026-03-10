@@ -123,3 +123,7 @@ export type WebviewMessage =
       name: string
       action: "connect" | "disconnect" | "reconnect"
     }
+  | {
+      type: "composerAction"
+      action: "refreshSession"
+    }

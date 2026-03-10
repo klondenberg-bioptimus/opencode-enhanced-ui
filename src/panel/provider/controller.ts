@@ -4,7 +4,7 @@ import type { SessionPanelRef, SessionSnapshot, WebviewMessage } from "../../bri
 import { EventHub } from "../../core/events"
 import type { SessionEvent } from "../../core/sdk"
 import { WorkspaceManager } from "../../core/workspace"
-import { rejectQuestion, replyPermission, replyQuestion, submit, toggleMcp, type PanelActionState } from "./actions"
+import { rejectQuestion, replyPermission, replyQuestion, runComposerAction, submit, toggleMcp, type PanelActionState } from "./actions"
 import { openFile, resolveFileRefs } from "./files"
 import { needsRefresh, reduce } from "./reducer"
 import { buildSessionSnapshot, patch } from "./snapshot"
@@ -88,6 +88,11 @@ export class SessionPanelController implements vscode.Disposable {
 
         if (message?.type === "toggleMcp") {
           void toggleMcp(this.actionContext(), message.name, message.action)
+          return
+        }
+
+        if (message?.type === "composerAction") {
+          void runComposerAction(this.actionContext(), message.action)
         }
       },
       undefined,

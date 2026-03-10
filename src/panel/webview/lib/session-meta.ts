@@ -245,6 +245,7 @@ export function composerIdentity(snapshot: {
     modelID: string
   }
   agentMode: "build" | "plan"
+  composerAgentOverride?: string
 }) {
   const selection = composerSelection(snapshot)
   const lastUser = lastUserMessage(snapshot.messages)
@@ -265,16 +266,17 @@ export function composerSelection(snapshot: {
     providerID: string
     modelID: string
   }
+  composerAgentOverride?: string
 }) {
   const lastUser = lastUserMessage(snapshot.messages)
-  if (lastUser?.info.agent?.trim() || lastUser?.info.model) {
+  if (!snapshot.composerAgentOverride && (lastUser?.info.agent?.trim() || lastUser?.info.model)) {
     return {
       agent: lastUser?.info.agent?.trim() || undefined,
       model: lastUser?.info.model,
     }
   }
 
-  const agent = primaryAgent(snapshot.agents, snapshot.defaultAgent)
+  const agent = primaryAgent(snapshot.agents, snapshot.composerAgentOverride || snapshot.defaultAgent)
   const model = agent?.model && providerModelById(providerById(snapshot.providers, agent.model.providerID), agent.model.modelID)
     ? agent.model
     : undefined

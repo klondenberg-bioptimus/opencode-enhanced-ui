@@ -96,6 +96,28 @@ export async function toggleMcp(ctx: ActionContext, name: string, action: "conne
   }
 }
 
+export async function runComposerAction(ctx: ActionContext, action: "refreshSession") {
+  if (ctx.state.disposed) {
+    return
+  }
+
+  try {
+    if (action === "refreshSession") {
+      await ctx.push(true)
+      return
+    }
+  } catch (err) {
+    const message = textError(err)
+    ctx.log(`composer action failed: ${action} ${message}`)
+    await fail(ctx.panel.webview, message)
+    return
+  }
+
+  const message = `Unsupported composer action: ${action}`
+  ctx.log(message)
+  await fail(ctx.panel.webview, message)
+}
+
 export async function replyPermission(ctx: ActionContext, requestID: string, reply: PermissionReply, message?: string) {
   const rt = ctx.mgr.get(ctx.ref.dir)
 
