@@ -158,6 +158,20 @@ button {
   padding: 10px 12px;
 }
 
+.oc-composer {
+  border-color: color-mix(in srgb, var(--oc-border-strong) 44%, transparent 56%);
+  background: var(--oc-surface-block);
+  display: grid;
+  gap: 0;
+}
+
+.oc-list {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.6;
+  font-size: var(--oc-font-size);
+}
+
 .oc-pill,
 .oc-chip {
   border: 1px solid var(--oc-border-strong);

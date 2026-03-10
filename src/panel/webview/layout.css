@@ -7,6 +7,8 @@
 
 .oc-footer {
   padding: 8px 0 12px;
+  border-top: 1px solid color-mix(in srgb, var(--oc-border-strong) 52%, var(--oc-border) 48%);
+  background: var(--oc-surface-canvas);
 }
 
 .oc-transcript {

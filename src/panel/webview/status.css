@@ -15,6 +15,10 @@
   padding-bottom: calc(10px + (1.65em * 2));
 }
 
+.oc-composerInputWrap {
+  position: relative;
+}
+
 .oc-answerInput {
   min-height: 70px;
 }
