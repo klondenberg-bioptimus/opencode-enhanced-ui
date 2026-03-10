@@ -912,14 +912,23 @@ button {
 }
 
 .oc-composerContextWrap {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .oc-contextRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
   color: var(--oc-fg-muted);
   font-size: var(--oc-font-size-sm);
   line-height: 1.5;
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .oc-entryTime {
@@ -1060,10 +1069,12 @@ label.oc-questionOption:hover {
 .oc-composer {
   border-color: color-mix(in srgb, var(--oc-border-strong) 44%, transparent 56%);
   background: var(--oc-surface-block);
+  display: grid;
+  gap: 0;
 }
 
-.oc-composerHeader {
-  justify-content: flex-end;
+.oc-composerInputWrap {
+  position: relative;
 }
 
 .oc-part-text {
@@ -2011,7 +2022,6 @@ label.oc-questionOption:hover {
 .oc-composerInput,
 .oc-answerInput {
   width: 100%;
-  resize: vertical;
   border: 1px solid var(--oc-border-strong);
   background: color-mix(in srgb, var(--oc-accent) 10%, var(--oc-surface-control) 90%);
   color: var(--oc-fg-primary);
@@ -2019,7 +2029,11 @@ label.oc-questionOption:hover {
 }
 
 .oc-composerInput {
-  min-height: 116px;
+  min-height: 0;
+  max-height: 50vh;
+  overflow-y: hidden;
+  resize: none;
+  padding-bottom: calc(10px + (1.65em * 2));
 }
 
 .oc-answerInput {
@@ -2028,6 +2042,156 @@ label.oc-questionOption:hover {
 
 .oc-composer.is-blocked {
   opacity: 0.8;
+}
+
+.oc-composerInfo {
+  pointer-events: none;
+  position: absolute;
+  inset: auto 1px 1px 1px;
+  padding: 0 12px 10px;
+  display: grid;
+  grid-template-rows: 1.65em 1.65em;
+}
+
+.oc-composerInfoSpacer {
+  min-height: 0;
+}
+
+.oc-composerInfoRow,
+.oc-composerBadgeRow,
+.oc-statusPopoverItem,
+.oc-statusBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.oc-composerInfoRow {
+  min-width: 0;
+  font-size: var(--oc-font-size-sm);
+  line-height: 1.65;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.oc-composerAgent,
+.oc-statusPopoverName {
+  color: var(--oc-accent);
+}
+
+.oc-composerAgent {
+  font-weight: 600;
+}
+
+.oc-composerModel {
+  color: var(--oc-accent);
+}
+
+.oc-composerProvider,
+.oc-statusPopoverValue {
+  color: color-mix(in srgb, var(--oc-accent) 58%, var(--oc-surface-canvas) 42%);
+}
+
+.oc-composerActions {
+  align-items: flex-end;
+  flex-wrap: nowrap;
+}
+
+.oc-composerErrorText {
+  margin: 0;
+  color: var(--oc-error);
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 100%;
+  max-width: min(100%, 28rem);
+}
+
+.oc-composerBadgeRow {
+  justify-content: flex-end;
+  position: relative;
+}
+
+.oc-statusBadgeWrap {
+  position: relative;
+}
+
+.oc-statusBadgeWrap::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 8px;
+}
+
+.oc-statusBadge {
+  padding: 4px 8px;
+  border: 1px solid var(--oc-border-strong);
+  color: var(--oc-fg-primary);
+  font-size: var(--oc-font-size-sm);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.oc-statusLight {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.oc-statusLight.is-green {
+  color: #9ece6a;
+  background: #9ece6a;
+}
+
+.oc-statusLight.is-orange {
+  color: #ffb454;
+  background: #ffb454;
+}
+
+.oc-statusLight.is-red {
+  color: #f7768e;
+  background: #f7768e;
+}
+
+.oc-statusLight.is-gray {
+  color: color-mix(in srgb, var(--oc-fg-muted) 72%, transparent 28%);
+  background: color-mix(in srgb, var(--oc-fg-muted) 72%, transparent 28%);
+  box-shadow: none;
+}
+
+.oc-statusPopover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: none;
+  min-width: 220px;
+  padding: 8px 10px;
+  border: 1px solid var(--oc-border-strong);
+  background: color-mix(in srgb, var(--oc-surface-block) 92%, #5a5a5a 8%);
+  z-index: 2;
+}
+
+.oc-statusBadgeWrap:hover .oc-statusPopover,
+.oc-statusBadgeWrap:focus-within .oc-statusPopover {
+  display: grid;
+  gap: 6px;
+}
+
+.oc-statusPopoverItem {
+  gap: 6px;
+  font-size: var(--oc-font-size-sm);
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.oc-statusPopoverName,
+.oc-statusPopoverValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .oc-emptyWrap {

@@ -1,4 +1,4 @@
-import type { FileDiff, PermissionRequest, QuestionRequest, SessionInfo, SessionMessage, SessionStatus, Todo } from "../core/sdk"
+import type { FileDiff, LspStatus, McpStatus, PermissionRequest, ProviderInfo, QuestionRequest, SessionInfo, SessionMessage, SessionStatus, Todo } from "../core/sdk"
 
 export const SESSION_PANEL_VIEW_TYPE = "opencode-ui.session"
 
@@ -27,6 +27,9 @@ export type SessionSnapshot = SessionBootstrap & {
   diff: FileDiff[]
   permissions: PermissionRequest[]
   questions: QuestionRequest[]
+  providers: ProviderInfo[]
+  mcp: Record<string, McpStatus>
+  lsp: LspStatus[]
   relatedSessionIds: string[]
   agentMode: "build" | "plan"
   navigation: {

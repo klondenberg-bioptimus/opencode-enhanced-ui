@@ -3,7 +3,7 @@ import hljs from "highlight.js"
 import MarkdownIt from "markdown-it"
 import { createRoot } from "react-dom/client"
 import type { HostMessage, SessionBootstrap, WebviewMessage } from "../../bridge/types"
-import type { FileDiff, FilePart, MessageInfo, MessagePart, PermissionRequest, QuestionInfo, QuestionRequest, SessionInfo, SessionMessage, SessionStatus, TextPart, Todo } from "../../core/sdk"
+import type { FileDiff, FilePart, LspStatus, McpStatus, MessageInfo, MessagePart, PermissionRequest, ProviderInfo, QuestionInfo, QuestionRequest, SessionInfo, SessionMessage, SessionStatus, TextPart, Todo } from "../../core/sdk"
 import "./styles.css"
 
 declare global {
@@ -37,6 +37,9 @@ type AppState = {
     diff: FileDiff[]
     permissions: PermissionRequest[]
     questions: QuestionRequest[]
+    providers: ProviderInfo[]
+    mcp: Record<string, McpStatus>
+    lsp: LspStatus[]
     agentMode: "build" | "plan"
     navigation: {
       parent?: { id: string; title: string }
@@ -103,6 +106,9 @@ const initialState: AppState = {
     diff: [],
     permissions: [],
     questions: [],
+    providers: [],
+    mcp: {},
+    lsp: [],
     agentMode: "build",
     navigation: {},
   },
@@ -118,14 +124,10 @@ const initialState: AppState = {
 function App() {
   const [state, setState] = React.useState(initialState)
   const timelineRef = React.useRef<HTMLDivElement | null>(null)
+  const composerRef = React.useRef<HTMLTextAreaElement | null>(null)
 
   const blocked = state.snapshot.permissions.length > 0 || state.snapshot.questions.length > 0
   const isChildSession = !!state.bootstrap.session?.parentID
-  const busy = state.bootstrap.status !== "ready"
-    || state.snapshot.submitting
-    || state.snapshot.sessionStatus?.type === "busy"
-    || state.snapshot.sessionStatus?.type === "retry"
-
   const firstPermission = state.snapshot.permissions[0]
   const firstQuestion = state.snapshot.questions[0]
 
@@ -157,6 +159,9 @@ function App() {
             diff: Array.isArray(message.payload.diff) ? message.payload.diff : [],
             permissions: Array.isArray(message.payload.permissions) ? message.payload.permissions : [],
             questions: Array.isArray(message.payload.questions) ? message.payload.questions : [],
+            providers: Array.isArray(message.payload.providers) ? message.payload.providers : [],
+            mcp: recordValue(message.payload.mcp) as Record<string, McpStatus>,
+            lsp: Array.isArray(message.payload.lsp) ? message.payload.lsp : [],
             agentMode: message.payload.agentMode === "plan" ? "plan" : "build",
             navigation: message.payload.navigation || {},
           },
@@ -181,6 +186,16 @@ function App() {
     window.addEventListener("message", handler)
     vscode.postMessage({ type: "ready" })
     return () => window.removeEventListener("message", handler)
+  }, [])
+
+  React.useEffect(() => {
+    resizeComposer(composerRef.current)
+  }, [state.draft])
+
+  React.useEffect(() => {
+    const onResize = () => resizeComposer(composerRef.current)
+    window.addEventListener("resize", onResize)
+    return () => window.removeEventListener("resize", onResize)
   }, [])
 
   React.useEffect(() => {
@@ -355,59 +370,35 @@ function App() {
 
           {!blocked && !isChildSession ? (
             <section className="oc-composer">
-            <div className="oc-composerHeader">
-              <div className="oc-composerMeta">
-                <span className={`oc-modeBadge oc-mode-${state.snapshot.agentMode}`}>{state.snapshot.agentMode}</span>
-                <span className="oc-help">
-                  {busy
-                    ? "Waiting for the current response to settle. Ctrl or Cmd plus Enter sends when ready."
-                    : "Enter for newline. Ctrl or Cmd plus Enter to send."}
-                </span>
-              </div>
+            <div className="oc-composerInputWrap">
+              <textarea
+                ref={composerRef}
+                className="oc-composerInput"
+                rows={1}
+                value={state.draft}
+                onChange={(event) => {
+                  const value = event.currentTarget.value
+                  setState((current) => ({ ...current, draft: value }))
+                }}
+                onInput={(event) => resizeComposer(event.currentTarget)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) {
+                    return
+                  }
+                  event.preventDefault()
+                  submit()
+                }}
+                placeholder="Ask OpenCode to inspect, explain, or change this workspace."
+                disabled={state.bootstrap.status !== "ready" || state.snapshot.submitting || blocked}
+              />
+              <ComposerInfo state={state} />
             </div>
-            <textarea
-              className="oc-composerInput"
-              value={state.draft}
-              onChange={(event) => {
-                const value = event.currentTarget.value
-                setState((current) => ({ ...current, draft: value }))
-              }}
-              onKeyDown={(event) => {
-                if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) {
-                  return
-                }
-                event.preventDefault()
-                submit()
-              }}
-              placeholder="Ask OpenCode to inspect, explain, or change this workspace."
-              disabled={state.bootstrap.status !== "ready" || state.snapshot.submitting || blocked}
-            />
             <div className="oc-composerActions">
               <div className="oc-composerContextWrap">
-                <div className="oc-errorText">{state.error}</div>
-                <div className="oc-contextRow">{contextSummary(state)}</div>
+                <ComposerMetrics state={state} />
+                {state.error ? <div className="oc-errorText oc-composerErrorText">{state.error}</div> : null}
               </div>
-              <div className="oc-actionRow">
-                <button
-                  type="button"
-                  className="oc-btn"
-                  disabled={state.bootstrap.status !== "ready"}
-                  onClick={() => {
-                    vscode.postMessage({ type: "refresh" })
-                    setState((current) => ({ ...current, error: "" }))
-                  }}
-                >
-                  Refresh
-                </button>
-                <button
-                  type="button"
-                  className="oc-btn oc-btn-primary"
-                  disabled={state.bootstrap.status !== "ready" || state.snapshot.submitting || blocked || !state.draft.trim()}
-                  onClick={submit}
-                >
-                  Send
-                </button>
-              </div>
+              <ComposerStatusBadges state={state} />
             </div>
             </section>
           ) : null}
@@ -419,6 +410,85 @@ function App() {
         </ChildSessionsContext.Provider>
       </ChildMessagesContext.Provider>
     </WorkspaceDirContext.Provider>
+  )
+}
+
+function resizeComposer(node: HTMLTextAreaElement | null) {
+  if (!node) {
+    return
+  }
+
+  node.style.height = "auto"
+  const maxHeight = Math.max(120, Math.floor(window.innerHeight * 0.5))
+  const next = Math.min(node.scrollHeight, maxHeight)
+  node.style.height = `${next}px`
+  node.style.overflowY = node.scrollHeight > maxHeight ? "auto" : "hidden"
+}
+
+function ComposerInfo({ state }: { state: AppState }) {
+  const info = composerIdentity(state)
+  return (
+    <div className="oc-composerInfo" aria-hidden="true">
+      <div className="oc-composerInfoSpacer" />
+      <div className="oc-composerInfoRow">
+        <span className="oc-composerAgent" style={{ color: agentColor(info.agent) }}>{info.agent}</span>
+        {info.model ? <span className="oc-composerModel">{info.model}</span> : null}
+        {info.provider ? <span className="oc-composerProvider">{info.provider}</span> : null}
+      </div>
+    </div>
+  )
+}
+
+function ComposerMetrics({ state }: { state: AppState }) {
+  const metrics = composerMetrics(state)
+  const items = [
+    `${metrics.tokens.toLocaleString()} tokens`,
+    typeof metrics.percent === "number" ? `${metrics.percent}%` : "",
+    formatUsd(metrics.cost),
+  ].filter(Boolean)
+  return (
+    <div className="oc-contextRow">
+      {items.map((item, index) => (
+        <React.Fragment key={item}>
+          {index > 0 ? <span aria-hidden="true">·</span> : null}
+          <span>{item}</span>
+        </React.Fragment>
+      ))}
+    </div>
+  )
+}
+
+function ComposerStatusBadges({ state }: { state: AppState }) {
+  const mcp = overallMcpStatus(state.snapshot.mcp)
+  const lsp = overallLspStatus(state.snapshot.lsp)
+  return (
+    <div className="oc-actionRow oc-composerBadgeRow">
+      <StatusBadge label="MCP" tone={mcp.tone} items={mcp.items} />
+      <StatusBadge label="LSP" tone={lsp.tone} items={lsp.items} />
+    </div>
+  )
+}
+
+function StatusBadge(props: { label: string; tone: StatusTone; items: StatusItem[] }) {
+  const { label, tone, items } = props
+  return (
+    <div className="oc-statusBadgeWrap">
+      <div className="oc-statusBadge">
+        <span className={`oc-statusLight is-${tone}`} />
+        <span>{label}</span>
+      </div>
+      {items.length > 0 ? (
+        <div className="oc-statusPopover">
+          {items.map((item) => (
+            <div key={`${label}-${item.name}`} className="oc-statusPopoverItem">
+              <span className={`oc-statusLight is-${item.tone}`} />
+              <span className="oc-statusPopoverName">{item.name}</span>
+              <span className="oc-statusPopoverValue">{item.value}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -3384,10 +3454,6 @@ function CompactionDivider() {
   )
 }
 
-function activeTodos(todos: Todo[]) {
-  return todos.filter((item) => item.status !== "completed")
-}
-
 type PermissionInfo = {
   label: string
   intro: string
@@ -3668,39 +3734,174 @@ function formatDuration(seconds: number) {
   return `${minutes}m ${rest}s`
 }
 
-function contextSummary(state: AppState) {
-  const metrics = usage(state.snapshot.messages)
-  const parts = [
-    `${state.snapshot.messages.length} msgs`,
-    `${activeTodos(state.snapshot.todos).length} todos`,
-    `${state.snapshot.diff.length} files`,
-  ]
+type StatusTone = "green" | "orange" | "red" | "gray"
 
-  if (metrics.tokens > 0) {
-    parts.unshift(`${metrics.tokens.toLocaleString()} tokens`)
-  }
-
-  if (metrics.cost > 0) {
-    parts.push(`$${metrics.cost.toFixed(2)}`)
-  }
-
-  return parts.join(" • ")
+type StatusItem = {
+  name: string
+  tone: Exclude<StatusTone, "gray">
+  value: string
 }
 
-function usage(messages: SessionMessage[]) {
-  return messages.reduce((acc, item) => {
-    if (item.info.role !== "assistant") {
-      return acc
-    }
+function composerIdentity(state: AppState) {
+  const lastAssistant = lastAssistantMessage(state.snapshot.messages)
+  const lastMessage = state.snapshot.messages[state.snapshot.messages.length - 1]
+  const fallbackProvider = providerById(state.snapshot.providers, lastMessage?.info.model?.providerID)
+  return {
+    agent: lastAssistant?.info.agent?.trim() || "main",
+    model: displayModel(lastAssistant?.info, state.snapshot.providers) || fallbackProvider?.models?.[0]?.name || fallbackProvider?.models?.[0]?.id || "",
+    provider: displayProvider(lastAssistant?.info, state.snapshot.providers) || fallbackProvider?.name || fallbackProvider?.id || "",
+  }
+}
 
-    const tokens = item.info.tokens
-    return {
-      cost: acc.cost + (item.info.cost ?? 0),
-      tokens: acc.tokens + (tokens
-        ? tokens.input + tokens.output + tokens.reasoning + tokens.cache.read + tokens.cache.write
-        : 0),
+function composerMetrics(state: AppState) {
+  const context = contextUsage(state.snapshot.messages, state.snapshot.providers)
+  return {
+    tokens: context?.tokens ?? 0,
+    percent: context?.percent,
+    cost: sessionCost(state.snapshot.messages),
+  }
+}
+
+function contextUsage(messages: SessionMessage[], providers: ProviderInfo[]) {
+  const info = lastAssistantWithOutput(messages)?.info
+  const tokens = totalTokens(info)
+  if (!info || tokens <= 0) {
+    return undefined
+  }
+
+  const limit = modelContextLimit(info, providers)
+  return {
+    tokens,
+    percent: typeof limit === "number" && limit > 0 ? Math.round(tokens / limit * 100) : undefined,
+  }
+}
+
+function sessionCost(messages: SessionMessage[]) {
+  return messages.reduce((acc, item) => item.info.role === "assistant" ? acc + (item.info.cost ?? 0) : acc, 0)
+}
+
+function totalTokens(info?: MessageInfo) {
+  const tokens = info?.tokens
+  if (!tokens) {
+    return 0
+  }
+  return tokens.input + tokens.output + tokens.reasoning + tokens.cache.read + tokens.cache.write
+}
+
+function modelContextLimit(info: MessageInfo | undefined, providers: ProviderInfo[]) {
+  const providerID = info?.model?.providerID?.trim()
+  const modelID = info?.model?.modelID?.trim()
+  if (!providerID || !modelID) {
+    return undefined
+  }
+
+  const provider = providerById(providers, providerID)
+  const model = provider?.models?.find((item) => item.id === modelID)
+  return model?.limit?.context
+}
+
+function providerById(providers: ProviderInfo[], providerID?: string) {
+  return providers.find((item) => item.id === providerID)
+}
+
+function displayModel(info: MessageInfo | undefined, providers: ProviderInfo[]) {
+  const providerID = info?.model?.providerID?.trim()
+  const modelID = info?.model?.modelID?.trim()
+  if (!modelID) {
+    return ""
+  }
+  const provider = providerById(providers, providerID)
+  return provider?.models?.find((item) => item.id === modelID)?.name || modelID
+}
+
+function displayProvider(info: MessageInfo | undefined, providers: ProviderInfo[]) {
+  const providerID = info?.model?.providerID?.trim()
+  if (!providerID) {
+    return ""
+  }
+  return providerById(providers, providerID)?.name || providerID
+}
+
+function lastAssistantMessage(messages: SessionMessage[]) {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i]?.info.role === "assistant") {
+      return messages[i]
     }
-  }, { cost: 0, tokens: 0 })
+  }
+}
+
+function lastAssistantWithOutput(messages: SessionMessage[]) {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const item = messages[i]
+    if (item?.info.role === "assistant" && (item.info.tokens?.output ?? 0) > 0) {
+      return item
+    }
+  }
+}
+
+function formatUsd(value: number) {
+  return `$${value.toFixed(4)}`
+}
+
+function overallMcpStatus(statuses: Record<string, McpStatus>) {
+  const items = Object.entries(statuses)
+    .filter(([, status]) => status.status !== "disabled")
+    .map(([name, status]) => statusItemForMcp(name, status))
+
+  if (items.length === 0) {
+    return { tone: "gray" as const, items: [] }
+  }
+
+  const ok = items.filter((item) => item.tone === "green").length
+  const warn = items.filter((item) => item.tone === "orange").length
+  const err = items.filter((item) => item.tone === "red").length
+  if (ok === items.length) {
+    return { tone: "green" as const, items }
+  }
+  if (err > 0 && ok === 0 && warn === 0) {
+    return { tone: "red" as const, items }
+  }
+  return { tone: "orange" as const, items }
+}
+
+function overallLspStatus(statuses: LspStatus[]) {
+  const items = statuses.map(statusItemForLsp)
+  if (items.length === 0) {
+    return { tone: "gray" as const, items: [] }
+  }
+
+  const ok = items.filter((item) => item.tone === "green").length
+  if (ok === items.length) {
+    return { tone: "green" as const, items }
+  }
+  if (ok === 0) {
+    return { tone: "red" as const, items }
+  }
+  return { tone: "orange" as const, items }
+}
+
+function statusItemForMcp(name: string, status: McpStatus): StatusItem {
+  if (status.status === "connected") {
+    return { name, tone: "green", value: "Connected" }
+  }
+  if (status.status === "disabled") {
+    return { name, tone: "red", value: "Disabled" }
+  }
+  if (status.status === "needs_auth") {
+    return { name, tone: "orange", value: "Needs authentication" }
+  }
+  if (status.status === "needs_client_registration") {
+    return { name, tone: "red", value: status.error || "Client registration required" }
+  }
+  return { name, tone: "red", value: status.error || "Error" }
+}
+
+function statusItemForLsp(status: LspStatus): StatusItem {
+  return {
+    name: status.name,
+    tone: status.status === "connected" ? "green" : "red",
+    value: status.root || ".",
+  }
 }
 
 function retryText(value: unknown) {

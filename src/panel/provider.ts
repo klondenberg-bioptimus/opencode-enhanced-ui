@@ -7,9 +7,12 @@ import { EventHub } from "../core/events"
 import type {
   Client,
   FileDiff,
+  LspStatus,
   MessagePart,
+  McpStatus,
   PermissionReply,
   PermissionRequest,
+  ProviderInfo,
   QuestionRequest,
   SessionEvent,
   SessionMessage,
@@ -189,6 +192,9 @@ class SessionPanelController implements vscode.Disposable {
         diff: [],
         permissions: [],
         questions: [],
+        providers: [],
+        mcp: {},
+        lsp: [],
         relatedSessionIds: [this.ref.sessionId],
         agentMode: "build",
         navigation: {},
@@ -209,6 +215,9 @@ class SessionPanelController implements vscode.Disposable {
         diff: [],
         permissions: [],
         questions: [],
+        providers: [],
+        mcp: {},
+        lsp: [],
         relatedSessionIds: [this.ref.sessionId],
         agentMode: "build",
         navigation: {},
@@ -229,6 +238,9 @@ class SessionPanelController implements vscode.Disposable {
         diff: [],
         permissions: [],
         questions: [],
+        providers: [],
+        mcp: {},
+        lsp: [],
         relatedSessionIds: [this.ref.sessionId],
         agentMode: "build",
         navigation: {},
@@ -236,7 +248,7 @@ class SessionPanelController implements vscode.Disposable {
     }
 
     try {
-      const [sessionRes, sessionsRes, rootMessageRes, statusRes, todoRes, diffRes, permissionRes, questionRes] = await Promise.all([
+      const [sessionRes, sessionsRes, rootMessageRes, statusRes, todoRes, diffRes, permissionRes, questionRes, providerRes, mcpRes, lspRes] = await Promise.all([
         rt.sdk.session.get({
           sessionID: this.ref.sessionId,
           directory: rt.dir,
@@ -266,6 +278,15 @@ class SessionPanelController implements vscode.Disposable {
         rt.sdk.question.list({
           directory: rt.dir,
         }),
+        rt.sdk.provider.list({
+          directory: rt.dir,
+        }),
+        rt.sdk.mcp.status({
+          directory: rt.dir,
+        }),
+        rt.sdk.lsp.status({
+          directory: rt.dir,
+        }),
       ])
 
       const session = sessionRes.data
@@ -284,6 +305,9 @@ class SessionPanelController implements vscode.Disposable {
           diff: [],
           permissions: [],
           questions: [],
+          providers: [],
+          mcp: {},
+          lsp: [],
           relatedSessionIds: [this.ref.sessionId],
           agentMode: "build",
           navigation: {},
@@ -309,6 +333,9 @@ class SessionPanelController implements vscode.Disposable {
         diff: sortDiff(diffRes.data ?? []),
         permissions: filterPermission(permissionRes.data ?? [], relatedSessionIds),
         questions: filterQuestion(questionRes.data ?? [], relatedSessionIds),
+        providers: providerList(providerRes.data),
+        mcp: mcpStatusMap(mcpRes.data),
+        lsp: lspStatuses(lspRes.data ?? [], rt.dir),
         relatedSessionIds,
         agentMode: agentMode(messages),
         navigation,
@@ -328,6 +355,9 @@ class SessionPanelController implements vscode.Disposable {
         diff: [],
         permissions: [],
         questions: [],
+        providers: [],
+        mcp: {},
+        lsp: [],
         relatedSessionIds: [this.ref.sessionId],
         agentMode: "build",
         navigation: {},
@@ -711,6 +741,33 @@ function boot(payload: SessionSnapshot): SessionBootstrap {
 
 function idle(): SessionStatus {
   return { type: "idle" }
+}
+
+function providerList(data?: { all?: ProviderInfo[] }) {
+  return Array.isArray(data?.all) ? data.all : []
+}
+
+function mcpStatusMap(data?: Record<string, McpStatus>) {
+  return data && typeof data === "object" ? data : {}
+}
+
+function lspStatuses(items: LspStatus[], workspaceDir: string) {
+  return items.map((item) => ({
+    ...item,
+    root: relativeLspRoot(item.root, workspaceDir),
+  }))
+}
+
+function relativeLspRoot(root: string, workspaceDir: string) {
+  if (!root) {
+    return "."
+  }
+
+  const relative = path.relative(workspaceDir, root)
+  if (!relative || relative === ".") {
+    return "."
+  }
+  return relative
 }
 
 function patch(payload: Omit<SessionSnapshot, "message">): SessionSnapshot {

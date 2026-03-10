@@ -73,6 +73,43 @@ export type FileDiff = {
   status?: "added" | "deleted" | "modified"
 }
 
+export type ProviderModel = {
+  id: string
+  name?: string
+  limit?: {
+    context?: number
+  }
+}
+
+export type ProviderInfo = {
+  id: string
+  name?: string
+  models?: ProviderModel[]
+}
+
+export type ProviderList = {
+  all?: ProviderInfo[]
+  connected?: ProviderInfo[]
+  default?: {
+    provider?: string
+    model?: string
+  }
+}
+
+export type McpStatus =
+  | { status: "connected" }
+  | { status: "disabled" }
+  | { status: "failed"; error?: string }
+  | { status: "needs_auth"; error?: string }
+  | { status: "needs_client_registration"; error?: string }
+
+export type LspStatus = {
+  id: string
+  name: string
+  root: string
+  status: "connected" | "error"
+}
+
 export type MessageInfo = {
   id: string
   sessionID: string
@@ -272,6 +309,24 @@ export type SessionEvent =
     }
 
 export type Client = {
+  provider: {
+    list(input?: {
+      directory?: string
+      workspace?: string
+    }): Promise<{ data?: ProviderList }>
+  }
+  mcp: {
+    status(input?: {
+      directory?: string
+      workspace?: string
+    }): Promise<{ data?: Record<string, McpStatus> }>
+  }
+  lsp: {
+    status(input?: {
+      directory?: string
+      workspace?: string
+    }): Promise<{ data?: LspStatus[] }>
+  }
   session: {
     list(input?: {
       directory?: string
