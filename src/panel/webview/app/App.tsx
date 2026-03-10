@@ -395,13 +395,13 @@ function ComposerAutocompletePopup({ state, fileSearch, onSelect }: { state: Com
     return null
   }
 
-  const groups = state.trigger === "mention"
-    ? [
-        { title: "Agents", items: state.items.filter((item) => item.kind === "agent") },
-        { title: "Files", items: state.items.filter((item) => item.kind === "file") },
-      ].filter((group) => group.items.length > 0)
-    : []
   const empty = popupEmptyText(state, fileSearch)
+  const itemRefs = React.useRef<Array<HTMLButtonElement | null>>([])
+
+  React.useEffect(() => {
+    const item = itemRefs.current[state.selectedIndex]
+    item?.scrollIntoView({ block: "nearest" })
+  }, [state.selectedIndex, state.items])
 
   return (
     <div className="oc-composerAutocomplete" role="listbox" aria-label={`${state.trigger} suggestions`}>
@@ -410,18 +410,7 @@ function ComposerAutocompletePopup({ state, fileSearch, onSelect }: { state: Com
         <span>{popupHeaderText(state, fileSearch)}</span>
       </div>
       <div className="oc-composerAutocompleteList">
-        {state.items.length > 0 ? (
-          state.trigger === "mention"
-            ? groups.map((group) => (
-                <div key={group.title} className="oc-composerAutocompleteSection">
-                  <div className="oc-composerAutocompleteSectionTitle">{group.title}</div>
-                  <div className="oc-composerAutocompleteSectionItems">
-                    {group.items.map((item) => renderComposerAutocompleteItem(state, item, onSelect))}
-                  </div>
-                </div>
-              ))
-            : state.items.map((item) => renderComposerAutocompleteItem(state, item, onSelect))
-        ) : (
+        {state.items.length > 0 ? state.items.map((item, index) => renderComposerAutocompleteItem(state, item, index, itemRefs, onSelect)) : (
           <div className="oc-composerAutocompleteEmpty">{empty}</div>
         )}
       </div>
@@ -429,12 +418,14 @@ function ComposerAutocompletePopup({ state, fileSearch, onSelect }: { state: Com
   )
 }
 
-function renderComposerAutocompleteItem(state: ComposerAutocompleteState, item: ComposerAutocompleteItem, onSelect: (item: ComposerAutocompleteItem) => void) {
-  const index = state.items.findIndex((entry) => entry.id === item.id)
+function renderComposerAutocompleteItem(state: ComposerAutocompleteState, item: ComposerAutocompleteItem, index: number, itemRefs: React.RefObject<Array<HTMLButtonElement | null>>, onSelect: (item: ComposerAutocompleteItem) => void) {
   return (
     <button
       type="button"
       key={item.id}
+      ref={(node) => {
+        itemRefs.current[index] = node
+      }}
       className={`oc-composerAutocompleteItem${index === state.selectedIndex ? " is-active" : ""}`}
       role="option"
       aria-selected={index === state.selectedIndex}
@@ -442,14 +433,33 @@ function renderComposerAutocompleteItem(state: ComposerAutocompleteState, item: 
       onClick={() => onSelect(item)}
     >
       <div className="oc-composerAutocompleteLabelWrap">
-        <div className="oc-composerAutocompleteTopline">
-          <div className="oc-composerAutocompleteLabel">{item.label}</div>
-          <div className="oc-composerAutocompleteKind">{item.kind}</div>
-        </div>
-        <div className="oc-composerAutocompleteDetail" title={item.detail}>{item.detail}</div>
+        <div className="oc-composerAutocompleteLabel">{highlightAutocompleteText(item.label, state.query)}</div>
+        <div className="oc-composerAutocompleteDetail" title={item.detail}>{highlightAutocompleteText(item.detail, state.query)}</div>
+        <div className="oc-composerAutocompleteKind">{item.kind}</div>
       </div>
     </button>
   )
+}
+
+function highlightAutocompleteText(value: string, query: string) {
+  const needle = query.trim()
+  if (!needle) {
+    return value
+  }
+
+  const pattern = new RegExp(`(${escapeAutocompletePattern(needle)})`, "ig")
+  const parts = value.split(pattern)
+  if (parts.length === 1) {
+    return value
+  }
+
+  return parts.map((part, index) => part.toLowerCase() === needle.toLowerCase()
+    ? <mark key={`${part}-${index}`} className="oc-composerAutocompleteMatch">{part}</mark>
+    : <React.Fragment key={`${part}-${index}`}>{part}</React.Fragment>)
+}
+
+function escapeAutocompletePattern(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
 function popupHeaderText(state: ComposerAutocompleteState, fileSearch: { status: "idle" | "searching" | "done"; query: string }) {
