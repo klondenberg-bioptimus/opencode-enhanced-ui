@@ -27,7 +27,7 @@ type SessionPanelState = SessionPanelRef
 class SessionPanelController implements vscode.Disposable {
   private ready = false
   private disposed = false
-  private submitting = false
+  private pendingSubmitCount = 0
   private pending: Promise<void> | undefined
   private current: SessionSnapshot | undefined
   private run = 0
@@ -187,7 +187,7 @@ class SessionPanelController implements vscode.Disposable {
         messages: [],
         childMessages: {},
         childSessions: {},
-        submitting: this.submitting,
+        submitting: this.isSubmitting(),
         todos: [],
         diff: [],
         permissions: [],
@@ -210,7 +210,7 @@ class SessionPanelController implements vscode.Disposable {
         messages: [],
         childMessages: {},
         childSessions: {},
-        submitting: this.submitting,
+        submitting: this.isSubmitting(),
         todos: [],
         diff: [],
         permissions: [],
@@ -233,7 +233,7 @@ class SessionPanelController implements vscode.Disposable {
         messages: [],
         childMessages: {},
         childSessions: {},
-        submitting: this.submitting,
+        submitting: this.isSubmitting(),
         todos: [],
         diff: [],
         permissions: [],
@@ -300,7 +300,7 @@ class SessionPanelController implements vscode.Disposable {
           messages: [],
           childMessages: {},
           childSessions: {},
-          submitting: this.submitting,
+          submitting: this.isSubmitting(),
           todos: [],
           diff: [],
           permissions: [],
@@ -328,7 +328,7 @@ class SessionPanelController implements vscode.Disposable {
         messages,
         childMessages,
         childSessions,
-        submitting: this.submitting,
+        submitting: this.isSubmitting(),
         todos: todoRes.data ?? [],
         diff: sortDiff(diffRes.data ?? []),
         permissions: filterPermission(permissionRes.data ?? [], relatedSessionIds),
@@ -350,7 +350,7 @@ class SessionPanelController implements vscode.Disposable {
         messages: [],
         childMessages: {},
         childSessions: {},
-        submitting: this.submitting,
+        submitting: this.isSubmitting(),
         todos: [],
         diff: [],
         permissions: [],
@@ -368,7 +368,7 @@ class SessionPanelController implements vscode.Disposable {
   private async submit(textValue: string) {
     const text = textValue.trim()
 
-    if (!text || this.disposed || this.submitting) {
+    if (!text || this.disposed) {
       return
     }
 
@@ -380,7 +380,7 @@ class SessionPanelController implements vscode.Disposable {
     }
 
     const run = ++this.run
-    this.submitting = true
+    this.pendingSubmitCount += 1
     await this.push(true)
 
     try {
@@ -404,11 +404,13 @@ class SessionPanelController implements vscode.Disposable {
       await vscode.window.showErrorMessage(`OpenCode message send failed for ${rt.name}: ${message}`)
       await this.fail(message)
     } finally {
-      if (run === this.run) {
-        this.submitting = false
-      }
+      this.pendingSubmitCount = Math.max(0, this.pendingSubmitCount - 1)
       await this.push(true)
     }
+  }
+
+  private isSubmitting() {
+    return this.pendingSubmitCount > 0
   }
 
   private async handle(event: SessionEvent) {

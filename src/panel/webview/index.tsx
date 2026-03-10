@@ -125,6 +125,7 @@ function App() {
   const [state, setState] = React.useState(initialState)
   const timelineRef = React.useRef<HTMLDivElement | null>(null)
   const composerRef = React.useRef<HTMLTextAreaElement | null>(null)
+  const stickToBottomRef = React.useRef(true)
 
   const blocked = state.snapshot.permissions.length > 0 || state.snapshot.questions.length > 0
   const isChildSession = !!state.bootstrap.session?.parentID
@@ -203,8 +204,24 @@ function App() {
     if (!node) {
       return
     }
+
+    const updateStickiness = () => {
+      stickToBottomRef.current = isNearBottom(node)
+    }
+
+    updateStickiness()
+    node.addEventListener("scroll", updateStickiness)
+    return () => node.removeEventListener("scroll", updateStickiness)
+  }, [])
+
+  React.useLayoutEffect(() => {
+    const node = timelineRef.current
+    if (!node || !stickToBottomRef.current) {
+      return
+    }
+
     node.scrollTop = node.scrollHeight
-  }, [state.snapshot.messages.length, state.snapshot.submitting, state.snapshot.permissions.length, state.snapshot.questions.length])
+  }, [state.snapshot.messages, state.snapshot.submitting, state.snapshot.permissions, state.snapshot.questions])
 
   React.useEffect(() => {
     document.title = `OpenCode: ${sessionTitle(state.bootstrap)}`
@@ -389,7 +406,7 @@ function App() {
                   submit()
                 }}
                 placeholder="Ask OpenCode to inspect, explain, or change this workspace."
-                disabled={state.bootstrap.status !== "ready" || state.snapshot.submitting || blocked}
+                disabled={state.bootstrap.status !== "ready" || blocked}
               />
               <ComposerInfo state={state} />
             </div>
@@ -427,16 +444,28 @@ function resizeComposer(node: HTMLTextAreaElement | null) {
 
 function ComposerInfo({ state }: { state: AppState }) {
   const info = composerIdentity(state)
+  const running = isSessionRunning(state.snapshot.sessionStatus)
   return (
     <div className="oc-composerInfo" aria-hidden="true">
       <div className="oc-composerInfoSpacer" />
       <div className="oc-composerInfoRow">
-        <span className="oc-composerAgent" style={{ color: agentColor(info.agent) }}>{info.agent}</span>
+        <span className="oc-composerAgentWrap">
+          <span className="oc-composerAgent" style={{ color: agentColor(info.agent) }}>{info.agent}</span>
+          <ComposerRunningIndicator running={running} />
+        </span>
         {info.model ? <span className="oc-composerModel">{info.model}</span> : null}
         {info.provider ? <span className="oc-composerProvider">{info.provider}</span> : null}
       </div>
     </div>
   )
+}
+
+function ComposerRunningIndicator({ running }: { running: boolean }) {
+  if (!running) {
+    return null
+  }
+
+  return <span className="oc-composerRunBar" aria-label="running" />
 }
 
 function ComposerMetrics({ state }: { state: AppState }) {
@@ -492,6 +521,24 @@ function StatusBadge(props: { label: string; tone: StatusTone; items: StatusItem
   )
 }
 
+function isNearBottom(node: HTMLElement) {
+  const threshold = scrollBottomThreshold(node)
+  const remaining = node.scrollHeight - node.clientHeight - node.scrollTop
+  return remaining <= threshold
+}
+
+function scrollBottomThreshold(node: HTMLElement) {
+  const lineHeight = Number.parseFloat(window.getComputedStyle(node).lineHeight)
+  if (Number.isFinite(lineHeight) && lineHeight > 0) {
+    return lineHeight
+  }
+  return 16
+}
+
+function isSessionRunning(status?: SessionStatus) {
+  return status?.type === "busy" || status?.type === "retry"
+}
+
 function Timeline({ state }: { state: AppState }) {
   const messages = state.snapshot.messages
   const [showThinking, setShowThinking] = React.useState(true)
@@ -542,7 +589,7 @@ function Timeline({ state }: { state: AppState }) {
 }
 
 type TimelineBlock =
-  | { kind: "user-message"; key: string; message: SessionMessage }
+  | { kind: "user-message"; key: string; message: SessionMessage; queued: boolean }
   | { kind: "assistant-part"; key: string; part: MessagePart }
   | { kind: "assistant-meta"; key: string; messages: SessionMessage[] }
 
@@ -579,7 +626,7 @@ function TimelineBlockView({ block, activeToolID, diffMode }: { block: TimelineB
         <section className="oc-turnUser">
           <div className="oc-entryHeader">
             <div className="oc-entryRole">You</div>
-            <div className="oc-entryTime">{formatTime(block.message.info.time?.created)}</div>
+            {block.queued ? <div className="oc-queuedBadge">QUEUED</div> : <div className="oc-entryTime">{formatTime(block.message.info.time?.created)}</div>}
           </div>
           {userText ? <MarkdownBlock content={userText.text || ""} /> : <div className="oc-partEmpty">No visible prompt text.</div>}
           {userFiles.length > 0 ? (
@@ -1063,7 +1110,7 @@ function ToolRow({ part, active = false }: { part: Extract<MessagePart, { type: 
   const failed = part.state?.status === "error"
   return (
     <section className={`oc-toolRowWrap oc-toolRowWrap-${part.tool}${isMcp ? " oc-toolRowWrap-mcp" : ""}${active ? " is-active" : ""}${part.state?.status === "completed" ? " is-completed" : ""}`}>
-      <div className="oc-toolRow">
+      <div className={`oc-toolRow${isMcp ? " oc-toolRow-mcp" : ""}`}>
         <div className={`oc-toolRowMain${isMcp ? " oc-toolRowMain-mcp" : ""}${failed ? " is-error" : ""}`}>
           <span className="oc-kicker">{toolLabel(part.tool)}</span>
           <span className={`oc-toolRowTitle${isMcp ? " oc-toolRowTitle-mcp" : ""}`}>{renderToolRowTitle(part, details, workspaceDir)}</span>
@@ -1707,6 +1754,7 @@ function AssistantTurnMeta({ messages }: { messages: SessionMessage[] }) {
 function buildTimelineBlocks(messages: SessionMessage[], options: { showThinking: boolean; showInternals: boolean }) {
   const blocks: TimelineBlock[] = []
   let assistants: SessionMessage[] = []
+  const pendingAssistantIndex = lastPendingAssistantIndex(messages)
 
   const flush = () => {
     if (assistantTurnMeta(assistants)) {
@@ -1719,13 +1767,14 @@ function buildTimelineBlocks(messages: SessionMessage[], options: { showThinking
     assistants = []
   }
 
-  for (const message of messages) {
+  for (const [index, message] of messages.entries()) {
     if (message.info.role === "user") {
       flush()
       blocks.push({
         kind: "user-message",
         key: `user:${message.info.id}`,
         message,
+        queued: pendingAssistantIndex >= 0 && index > pendingAssistantIndex,
       })
       continue
     }
@@ -1744,6 +1793,16 @@ function buildTimelineBlocks(messages: SessionMessage[], options: { showThinking
   flush()
 
   return blocks
+}
+
+function lastPendingAssistantIndex(messages: SessionMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index]
+    if (message?.info.role === "assistant" && !message.info.time.completed) {
+      return index
+    }
+  }
+  return -1
 }
 
 function primaryUserText(message: SessionMessage) {
