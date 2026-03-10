@@ -38,6 +38,7 @@ type AppState = {
     permissions: PermissionRequest[]
     questions: QuestionRequest[]
     providers: ProviderInfo[]
+    providerDefault?: Record<string, string>
     mcp: Record<string, McpStatus>
     lsp: LspStatus[]
     agentMode: "build" | "plan"
@@ -107,6 +108,7 @@ const initialState: AppState = {
     permissions: [],
     questions: [],
     providers: [],
+    providerDefault: undefined,
     mcp: {},
     lsp: [],
     agentMode: "build",
@@ -161,6 +163,7 @@ function App() {
             permissions: Array.isArray(message.payload.permissions) ? message.payload.permissions : [],
             questions: Array.isArray(message.payload.questions) ? message.payload.questions : [],
             providers: Array.isArray(message.payload.providers) ? message.payload.providers : [],
+            providerDefault: message.payload.providerDefault,
             mcp: recordValue(message.payload.mcp) as Record<string, McpStatus>,
             lsp: Array.isArray(message.payload.lsp) ? message.payload.lsp : [],
             agentMode: message.payload.agentMode === "plan" ? "plan" : "build",
@@ -449,23 +452,19 @@ function ComposerInfo({ state }: { state: AppState }) {
     <div className="oc-composerInfo" aria-hidden="true">
       <div className="oc-composerInfoSpacer" />
       <div className="oc-composerInfoRow">
-        <span className="oc-composerAgentWrap">
+        <span className="oc-composerIdentityStart">
           <span className="oc-composerAgent" style={{ color: agentColor(info.agent) }}>{info.agent}</span>
           <ComposerRunningIndicator running={running} />
         </span>
-        {info.model ? <span className="oc-composerModel">{info.model}</span> : null}
-        {info.provider ? <span className="oc-composerProvider">{info.provider}</span> : null}
+        {info.model ? <span className="oc-composerModel" title={info.model}>{info.model}</span> : null}
+        {info.provider ? <span className="oc-composerProvider" title={info.provider}>{info.provider}</span> : null}
       </div>
     </div>
   )
 }
 
 function ComposerRunningIndicator({ running }: { running: boolean }) {
-  if (!running) {
-    return null
-  }
-
-  return <span className="oc-composerRunBar" aria-label="running" />
+  return <span className={`oc-composerRunBar${running ? " is-running" : ""}`} aria-label="running" />
 }
 
 function ComposerMetrics({ state }: { state: AppState }) {
@@ -1412,9 +1411,25 @@ function ToolEditPanel({ part, active = false, diffMode = "unified" }: { part: E
 function ToolApplyPatchPanel({ part, active = false, diffMode = "unified" }: { part: Extract<MessagePart, { type: "tool" }>; active?: boolean; diffMode?: "unified" | "split" }) {
   const status = part.state?.status || "pending"
   const files = patchFiles(part)
+  const details = toolDetails(part)
 
   return (
     <section className={`oc-patchPanel${active ? " is-active" : ""}${status === "completed" ? " is-completed" : ""}`}>
+      {files.length === 0 ? (
+        <section className={`oc-part oc-part-tool oc-toolPanel${active ? " is-active" : ""}${status === "completed" ? " is-completed" : ""}`}>
+          <div className="oc-partHeader">
+            <div className="oc-toolHeaderMain">
+              <span className="oc-kicker">{toolLabel(part.tool)}</span>
+              <span className="oc-toolPanelTitle">{details.title}</span>
+            </div>
+            <div className="oc-toolHeaderMeta">
+              {details.subtitle ? <span className="oc-partMeta">{details.subtitle}</span> : null}
+              <ToolStatus state={part.state?.status} />
+            </div>
+          </div>
+          <ToolFallbackText part={part} body={toolTextBody(part)} />
+        </section>
+      ) : null}
       {files.length > 0 ? (
         <div className="oc-patchList">
           {files.map((item) => (
@@ -1434,7 +1449,6 @@ function ToolApplyPatchPanel({ part, active = false, diffMode = "unified" }: { p
           ))}
         </div>
       ) : null}
-      {files.length === 0 ? <ToolFallbackText part={part} body={toolTextBody(part)} /> : null}
       {toolDiagnostics(part).length > 0 ? <DiagnosticsList items={toolDiagnostics(part)} /> : null}
     </section>
   )
@@ -2545,11 +2559,11 @@ function childDuration(messages: SessionMessage[]) {
 }
 
 function ToolStatus({ state }: { state?: string }) {
-  if (state !== "running") {
+  if (state !== "running" && state !== "pending") {
     return null
   }
   return (
-    <span className="oc-toolSpinner" aria-label="running">
+    <span className="oc-toolSpinner" aria-label={state}>
       <svg viewBox="0 0 16 16" aria-hidden="true">
         <circle cx="8" cy="8" r="6" className="oc-toolSpinnerTrack" />
         <path d="M 8 2 A 6 6 0 0 1 14 8" className="oc-toolSpinnerHead" />
@@ -3802,13 +3816,12 @@ type StatusItem = {
 }
 
 function composerIdentity(state: AppState) {
-  const lastAssistant = lastAssistantMessage(state.snapshot.messages)
-  const lastMessage = state.snapshot.messages[state.snapshot.messages.length - 1]
-  const fallbackProvider = providerById(state.snapshot.providers, lastMessage?.info.model?.providerID)
+  const lastUser = lastUserMessage(state.snapshot.messages)
+  const fallback = fallbackModelRef(state.snapshot.providers, state.snapshot.providerDefault)
   return {
-    agent: lastAssistant?.info.agent?.trim() || "main",
-    model: displayModel(lastAssistant?.info, state.snapshot.providers) || fallbackProvider?.models?.[0]?.name || fallbackProvider?.models?.[0]?.id || "",
-    provider: displayProvider(lastAssistant?.info, state.snapshot.providers) || fallbackProvider?.name || fallbackProvider?.id || "",
+    agent: lastUser?.info.agent?.trim() || "main",
+    model: displayModelRef(lastUser?.info.model, state.snapshot.providers) || displayModelRef(fallback, state.snapshot.providers) || "",
+    provider: displayProviderRef(lastUser?.info.model, state.snapshot.providers) || displayProviderRef(fallback, state.snapshot.providers) || "",
   }
 }
 
@@ -3855,7 +3868,7 @@ function modelContextLimit(info: MessageInfo | undefined, providers: ProviderInf
   }
 
   const provider = providerById(providers, providerID)
-  const model = provider?.models?.find((item) => item.id === modelID)
+  const model = providerModelById(provider, modelID)
   return model?.limit?.context
 }
 
@@ -3863,30 +3876,62 @@ function providerById(providers: ProviderInfo[], providerID?: string) {
   return providers.find((item) => item.id === providerID)
 }
 
-function displayModel(info: MessageInfo | undefined, providers: ProviderInfo[]) {
-  const providerID = info?.model?.providerID?.trim()
-  const modelID = info?.model?.modelID?.trim()
+function displayModelRef(model: MessageInfo["model"] | undefined, providers: ProviderInfo[]) {
+  const providerID = model?.providerID?.trim()
+  const modelID = model?.modelID?.trim()
   if (!modelID) {
     return ""
   }
   const provider = providerById(providers, providerID)
-  return provider?.models?.find((item) => item.id === modelID)?.name || modelID
+  return providerModelById(provider, modelID)?.name || modelID
 }
 
-function displayProvider(info: MessageInfo | undefined, providers: ProviderInfo[]) {
-  const providerID = info?.model?.providerID?.trim()
+function displayProviderRef(model: MessageInfo["model"] | undefined, providers: ProviderInfo[]) {
+  const providerID = model?.providerID?.trim()
   if (!providerID) {
     return ""
   }
   return providerById(providers, providerID)?.name || providerID
 }
 
-function lastAssistantMessage(messages: SessionMessage[]) {
+function fallbackModelRef(providers: ProviderInfo[], defaults?: Record<string, string>) {
+  const provider = providers[0]
+  if (!provider?.id) {
+    return undefined
+  }
+
+  const modelID = defaults?.[provider.id]?.trim()
+  const model = modelID ? providerModelById(provider, modelID) : firstProviderModel(provider)
+  if (!provider?.id || !model?.id) {
+    return undefined
+  }
+
+  return {
+    providerID: provider.id,
+    modelID: model.id,
+  }
+}
+
+function lastUserMessage(messages: SessionMessage[]) {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
-    if (messages[i]?.info.role === "assistant") {
+    if (messages[i]?.info.role === "user") {
       return messages[i]
     }
   }
+}
+
+function providerModelById(provider: ProviderInfo | undefined, modelID: string) {
+  if (!provider?.models || !modelID) {
+    return undefined
+  }
+  return provider.models[modelID]
+}
+
+function firstProviderModel(provider: ProviderInfo | undefined) {
+  if (!provider?.models) {
+    return undefined
+  }
+  return Object.values(provider.models)[0]
 }
 
 function lastAssistantWithOutput(messages: SessionMessage[]) {

@@ -28,6 +28,7 @@ export type SessionSnapshot = SessionBootstrap & {
   permissions: PermissionRequest[]
   questions: QuestionRequest[]
   providers: ProviderInfo[]
+  providerDefault?: Record<string, string>
   mcp: Record<string, McpStatus>
   lsp: LspStatus[]
   relatedSessionIds: string[]

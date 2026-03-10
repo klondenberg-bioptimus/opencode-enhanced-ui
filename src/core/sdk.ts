@@ -84,16 +84,13 @@ export type ProviderModel = {
 export type ProviderInfo = {
   id: string
   name?: string
-  models?: ProviderModel[]
+  models?: Record<string, ProviderModel>
 }
 
 export type ProviderList = {
   all?: ProviderInfo[]
-  connected?: ProviderInfo[]
-  default?: {
-    provider?: string
-    model?: string
-  }
+  connected?: string[]
+  default?: Record<string, string>
 }
 
 export type McpStatus =
