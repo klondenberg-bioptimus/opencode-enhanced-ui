@@ -1,0 +1,192 @@
+.oc-turnUser {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  justify-self: stretch;
+}
+
+.oc-turnUser {
+  position: relative;
+  padding: 10px 12px 10px 14px;
+  border: 0;
+  background: var(--oc-surface-block);
+}
+
+.oc-turnUser::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--oc-rail-user);
+  border-radius: 1px;
+}
+
+.oc-turnUser .oc-entryRole {
+  font-size: var(--oc-font-size);
+  font-weight: 500;
+}
+
+.oc-turnMeta {
+  padding: 0 12px 10px;
+  color: var(--oc-fg-muted);
+  font-size: var(--oc-font-size-sm);
+  line-height: 1.5;
+  font-family: var(--oc-ui);
+}
+
+.oc-turnMetaContent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.oc-turnMetaSep {
+  color: var(--oc-fg-muted);
+}
+
+.oc-turnUser,
+.oc-turnMeta,
+.oc-toolRowWrap,
+.oc-dividerPart,
+.oc-part,
+.oc-dock,
+.oc-composer,
+.oc-questionCard,
+.oc-emptyState {
+  width: 100%;
+  margin: 0;
+  justify-self: stretch;
+}
+
+.oc-attachmentRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.oc-part-text {
+  padding: 10px 12px;
+  border: 0;
+}
+
+.oc-partText,
+.oc-partTerminal,
+.oc-codeBlock,
+.oc-diffBlock,
+.oc-composerInput,
+.oc-answerInput {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.65;
+  font-size: var(--oc-font-size);
+}
+
+.oc-partText,
+.oc-partTerminal {
+  overflow-x: auto;
+}
+
+.oc-part-inline {
+  padding: 10px 12px;
+  border: 0;
+}
+
+.oc-part-compact {
+  padding: 10px 12px;
+  border: 0;
+}
+
+.oc-part-reasoning {
+  padding: 8px 12px;
+  border: 0;
+  border-left: 1px solid color-mix(in srgb, var(--oc-border-strong) 82%, transparent 18%);
+}
+
+@keyframes oc-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes oc-runBar {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.oc-part-tool,
+.oc-part-file,
+.oc-part-patch,
+.oc-part-retry,
+.oc-part-snapshot,
+.oc-part-agent,
+.oc-part-subtask,
+.oc-part-compaction,
+.oc-part-step-start,
+.oc-part-step-finish {
+}
+
+.oc-outputWindow.oc-outputWindow-markdownCode .oc-codeWindowBody {
+  margin-top: 0;
+}
+
+.oc-dividerPart {
+  display: grid;
+  grid-template-columns: minmax(16px, 1fr) auto minmax(16px, 1fr);
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--oc-fg-muted);
+  font-size: var(--oc-font-size-sm);
+  line-height: 1.4;
+}
+
+.oc-dividerPart-compaction {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+  text-align: center;
+}
+
+.oc-dividerCompactionLine {
+  position: absolute;
+  top: 16px;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: color-mix(in srgb, var(--oc-accent) 56%, var(--oc-border) 44%);
+}
+
+.oc-dividerPart-compaction .oc-dividerText {
+  position: relative;
+  display: inline-block;
+  padding: 0 8px;
+  background: var(--oc-surface-canvas);
+  color: color-mix(in srgb, var(--oc-accent) 24%, var(--oc-fg-muted) 76%);
+}
+
+.oc-dividerText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.oc-dividerLine {
+  height: 1px;
+  background: color-mix(in srgb, var(--oc-border-strong) 65%, transparent 35%);
+}

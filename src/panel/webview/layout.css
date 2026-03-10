@@ -1,0 +1,64 @@
+.oc-shell {
+  height: 100%;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  background: var(--oc-surface-canvas);
+}
+
+.oc-footer {
+  padding: 8px 0 12px;
+}
+
+.oc-transcript {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 0 18px;
+}
+
+.oc-transcriptInner {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.oc-log,
+.oc-footerInner,
+.oc-questionList,
+.oc-todoList,
+.oc-parts {
+  display: grid;
+  gap: 12px;
+}
+
+.oc-transcriptTools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.oc-transcriptToggleGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.oc-emptyWrap {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px 0;
+}
+
+@media (max-width: 720px) {
+  .oc-footer,
+  .oc-transcript {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .oc-composerActions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

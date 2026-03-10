@@ -225,19 +225,19 @@
 
 当前仍未完成的重点：
 
-- Phase 1 的 webview 结构拆分目标已完成，下一阶段应切换到 Phase 2 的 `theme.css` 与样式镜像拆分
+- Phase 1 的 webview 结构拆分目标已完成，下一阶段应切换到 Phase 3 的 `src/panel/provider.ts` 拆分
 
 建议的后续连续执行顺序：
 
-1. 开始 Phase 2：先建立 `src/panel/webview/theme.css`
-2. 抽出现有颜色、语义色、状态色 token，确保其他样式只消费变量
-3. 再按 layout / timeline / tool / dock / markdown / diff / status 做镜像拆分
+1. 开始 Phase 3：先从 `src/panel/provider.ts` 抽 `utils.ts`、`mutations.ts`、`navigation.ts`
+2. 再抽 `reducer.ts` 与 `snapshot.ts`，保持 snapshot payload 与 event reduce 结果不变
+3. 最后抽 `actions.ts`、`files.ts` 并收口 `controller.ts` / `index.ts`
 
 当前状态判断：
 
 - `src/panel/webview/index.tsx` 的“薄入口”目标已达成
 - `src/panel/webview/app/App.tsx` 已达到顶层 orchestration 为主的目标
-- Phase 1 现已完成，可进入 Phase 2 的 CSS / theme 拆分
+- Phase 1 与 Phase 2 现已完成，可进入 Phase 3 的 panel host 拆分
 
 已完成拆分阶段均已重复通过：
 
@@ -520,6 +520,28 @@ src/panel/webview/
 ---
 
 ## 8. Phase 2：拆分 src/panel/webview/styles.css
+
+### 8.0 当前进展
+
+当前 Phase 2 已完成，且已落地以下拆分：
+
+- 已建立 `src/panel/webview/theme.css`，集中承接 webview 的颜色 token、背景 / 前景 token、border token、hover / active token、状态色 token，以及 markdown / code / diff 语义色
+- 已删除原 `src/panel/webview/styles.css`，并改由 `src/panel/webview/index.tsx` 顺序加载拆分后的样式文件，保持原有级联顺序稳定
+- 已完成样式镜像拆分：`src/panel/webview/base.css`、`src/panel/webview/layout.css`、`src/panel/webview/timeline.css`、`src/panel/webview/tool.css`、`src/panel/webview/dock.css`、`src/panel/webview/markdown.css`、`src/panel/webview/diff.css`、`src/panel/webview/status.css`
+- 组件样式文件中的硬编码颜色已继续收敛，拆分后残留的颜色字面量已集中在 `theme.css`
+- 拆分过程中保持了原有 className、视觉语义、hover / badge / status 语义与交互结构不变
+
+当前状态判断：
+
+- `theme.css` 已成为统一 token 层
+- 其他 CSS 文件已主要只消费 `var(--oc-...)`
+- Phase 2 现已完成，可进入 Phase 3 的 `provider.ts` 拆分
+
+本阶段已验证通过：
+
+- `bun run check-types`
+- `bun run lint`
+- `bun run compile`
 
 ### 8.1 目标
 
@@ -896,17 +918,17 @@ bun run test
 
 当前建议接续执行清单：
 
-1. 开始 Phase 2 的 `theme.css` 提取
-2. 抽当前颜色、语义色、状态色为 token，并让其他样式文件只消费变量
-3. 按 layout / timeline / tool / dock / markdown / diff / status 继续做 CSS 镜像拆分
+1. 开始 Phase 3 的 `provider.ts` 拆分
+2. 先抽 `utils.ts`、`mutations.ts`、`navigation.ts`
+3. 再抽 `reducer.ts`、`snapshot.ts`、`actions.ts`、`files.ts`
 
 ### 11.3 CSS 细化清单
 
-1. 先建立 `theme.css`
-2. 抽所有颜色、语义色、状态色为变量
-3. 确保其他样式文件只消费变量
-4. 再按 layout / timeline / tool / dock / markdown / diff / status 拆分
-5. 做视觉一致性回归
+1. 先建立 `theme.css` - 已完成
+2. 抽所有颜色、语义色、状态色为变量 - 已完成
+3. 确保其他样式文件只消费变量 - 已完成
+4. 再按 layout / timeline / tool / dock / markdown / diff / status 拆分 - 已完成
+5. 做视觉一致性回归 - 已完成基础静态验证，下一阶段继续做全链路回归
 
 ### 11.4 provider.ts 细化清单
 

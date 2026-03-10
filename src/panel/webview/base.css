@@ -1,0 +1,262 @@
+@counter-style oc-md-ordered {
+  system: extends decimal;
+  suffix: ") ";
+}
+
+@counter-style oc-md-unordered {
+  system: cyclic;
+  symbols: "-";
+  suffix: " ";
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: var(--oc-surface-canvas);
+  color: var(--oc-fg-primary);
+}
+
+body,
+button {
+  font-family: var(--oc-ui);
+  font-size: var(--oc-font-size);
+}
+
+textarea {
+  font-family: var(--oc-mono);
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+button {
+  appearance: none;
+}
+
+.oc-sessionBlock,
+.oc-turnUser,
+.oc-dock,
+.oc-composer,
+.oc-questionCard,
+.oc-emptyState,
+.oc-part {
+  border: 1px solid var(--oc-border);
+  background: var(--oc-surface-block);
+}
+
+.oc-kicker,
+.oc-partMeta,
+.oc-entryTime,
+.oc-help,
+.oc-dockText,
+.oc-emptyText,
+.oc-errorText,
+.oc-partEmpty {
+  color: var(--oc-fg-muted);
+}
+
+.oc-kicker,
+.oc-partMeta {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--oc-font-size-sm);
+}
+
+.oc-emptyTitle {
+  margin: 6px 0 0;
+  font-size: var(--oc-font-size-xl);
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.oc-emptyText,
+.oc-dockText,
+.oc-errorText {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: var(--oc-font-size);
+}
+
+.oc-entryHeader,
+.oc-partHeader,
+.oc-dockHeader,
+.oc-composerHeader,
+.oc-composerMeta,
+.oc-composerActions,
+.oc-actionRow,
+.oc-pillRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.oc-entryRole,
+.oc-dockTitle,
+.oc-inlineValue {
+  font-size: var(--oc-font-size-lg);
+  font-weight: 600;
+}
+
+.oc-composerMeta {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.oc-composerContextWrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.oc-contextRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+  color: var(--oc-fg-muted);
+  font-size: var(--oc-font-size-sm);
+  line-height: 1.5;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.oc-entryTime {
+  font-size: var(--oc-font-size-sm);
+}
+
+.oc-queuedBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--oc-warning) 70%, transparent 30%);
+  color: var(--oc-warning);
+  font-size: var(--oc-font-size-sm);
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.oc-part,
+.oc-dock,
+.oc-composer,
+.oc-questionCard,
+.oc-emptyState {
+  padding: 10px 12px;
+}
+
+.oc-pill,
+.oc-chip {
+  border: 1px solid var(--oc-border-strong);
+  background: var(--oc-surface-control);
+  color: var(--oc-fg-primary);
+  padding: 5px 9px;
+  font-size: var(--oc-font-size-sm);
+}
+
+.oc-pill-file {
+  color: var(--oc-fg-muted);
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.oc-pillFileType {
+  display: inline-flex;
+  align-items: center;
+  align-self: stretch;
+  padding: 4px 6px;
+  background: var(--vscode-terminal-ansiBlue);
+  color: var(--oc-fg-primary);
+  flex: 0 0 auto;
+  font-weight: 700;
+}
+
+.oc-pillFilePath {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 5px 9px;
+}
+
+.oc-chip {
+  cursor: pointer;
+}
+
+.oc-chip.is-active,
+.oc-btn-primary {
+  background: var(--oc-accent);
+  color: var(--oc-accent-text);
+  border-color: transparent;
+}
+
+.oc-btn {
+  border: 1px solid var(--oc-border-strong);
+  background: var(--oc-surface-control);
+  color: var(--oc-fg-primary);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.oc-toolTrigger,
+.oc-inlineLinkBtn {
+  appearance: none;
+  border: 0;
+  color: inherit;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+}
+
+.oc-toolTrigger {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.oc-inlineLinkBtn {
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+  font-size: var(--oc-font-size-sm);
+}
+
+.oc-inlineLinkBtn:hover {
+  text-decoration: underline;
+}
+
+.oc-toggleBtn {
+  border: 1px solid var(--oc-border-strong);
+  color: var(--oc-fg-muted);
+  padding: 4px 8px;
+  font-size: var(--oc-font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.oc-toggleBtn.is-active {
+  color: var(--oc-fg-primary);
+  background: var(--oc-surface-control);
+}
+
+.oc-btn:disabled,
+.oc-composerInput:disabled,
+.oc-answerInput:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
