@@ -203,4 +203,24 @@ describe("composer integration visibility", () => {
     assert.ok(recentIdx < searchIdx, "recent comes before search in host results")
     assert.equal(result.hostResults.filter((item) => item.path === "src/panel/webview/app/App.tsx").length, 1, "deduped: App.tsx appears only once even though it is in both recent and workspace")
   })
+
+  test("recent directory path gets kind directory not file", () => {
+    const result = runComposerIntegration({
+      name: "recent directory kind",
+      draft: "@panel/we",
+      cursor: 9,
+      host: {
+        recent: ["src/panel/webview/"],
+        workspace: [],
+      },
+    })
+
+    assert.equal(result.trigger, "mention")
+    assert.equal(result.hostResults.length, 1)
+    assert.equal(result.hostResults[0].path, "src/panel/webview/")
+    assert.equal(result.hostResults[0].kind, "directory", "trailing slash path in recent should be kind directory")
+    assert.equal(result.hostResults[0].source, "recent")
+    assert.equal(result.items[0].kind, "recent")
+    assert.equal(result.items[0].id, "recent:directory:src/panel/webview/::")
+  })
 })

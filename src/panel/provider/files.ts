@@ -149,7 +149,7 @@ function recentFileResults(workspaceDir: string, query: string): ComposerPathRes
   const matched = paths.filter((item) => !value || matchesPath(item, value))
   const ranked = value ? sortPaths(matched, query) : matched
 
-  return ranked.map((item) => ({ path: item, kind: "file" as const, source: "recent" as const }))
+  return ranked.map((item) => ({ path: item, kind: item.endsWith("/") ? "directory" as const : "file" as const, source: "recent" as const }))
 }
 
 export function toFileUri(filePath: string, workspaceDir: string) {

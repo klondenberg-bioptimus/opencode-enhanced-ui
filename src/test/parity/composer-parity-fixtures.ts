@@ -96,6 +96,40 @@ export const composerParityFixtures: ComposerParityFixture[] = [
     },
   },
   {
+    name: "mention recent directory preserves directory kind",
+    draft: "@panel/we",
+    cursor: 9,
+    files: {
+      recent: ["src/panel/webview/"],
+      workspace: [],
+    },
+    expected: {
+      trigger: "mention",
+      query: "panel/we",
+      items: [
+        { id: "recent:directory:src/panel/webview/::", kind: "recent", label: "webview/", detail: "src/panel/webview/" },
+      ],
+      accepted: {
+        draft: "@src/panel/webview/ ",
+        submitParts: [
+          { type: "text", text: "@src/panel/webview/ " },
+          {
+            type: "file",
+            path: "src/panel/webview/",
+            kind: "directory",
+            selection: undefined,
+            source: {
+              value: "@src/panel/webview/",
+              start: 0,
+              end: 19,
+            },
+          },
+        ],
+      },
+    },
+    acceptIndex: 0,
+  },
+  {
     name: "mention directory query returns directory result",
     draft: "@panel/we",
     cursor: 9,

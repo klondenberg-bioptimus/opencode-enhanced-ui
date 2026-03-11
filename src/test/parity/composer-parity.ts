@@ -143,7 +143,7 @@ function fixtureFiles(query: string, data?: ComposerParityFixture["files"]) {
   const recent = data.recent ?? []
   const recentPaths = recent.filter((item) => !base || matchesPath(item, base))
   const recentRanked = base ? sortPaths(recentPaths, base) : recentPaths
-  out.push(...recentRanked.map((path) => ({ path, kind: "file" as const, source: "recent" as const })))
+  out.push(...recentRanked.map((path) => ({ path, kind: path.endsWith("/") ? "directory" as const : "file" as const, source: "recent" as const })))
 
   const workspace = data.workspace ?? []
   if (base.trim()) {

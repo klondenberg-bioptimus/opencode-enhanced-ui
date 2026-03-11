@@ -60,7 +60,7 @@ function hostResults(query: string, host?: ComposerIntegrationFixture["host"]) {
   const recentPaths = (host.recent ?? []).filter((item) => !query || matchesPath(item, query))
   const recent = (query ? sortPaths(recentPaths, query) : recentPaths).map((path) => ({
     path,
-    kind: "file" as const,
+    kind: path.endsWith("/") ? "directory" as const : "file" as const,
     source: "recent" as const,
   }))
 
