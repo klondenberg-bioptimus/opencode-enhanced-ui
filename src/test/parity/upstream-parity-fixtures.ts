@@ -41,4 +41,11 @@ export const upstreamParityFixtures: UpstreamFixture[] = [
     cursor: 36,
     files: ["src/panel/webview/app/App.tsx", "src/panel/webview/", "src/panel/webview/app/"],
   },
+  {
+    name: "tui mention mixed file and directory ranking",
+    target: "tui",
+    draft: "@web",
+    cursor: 4,
+    files: ["src/web.ts", "src/panel/webview/", "src/panel/webview/app.tsx"],
+  },
 ]

@@ -131,6 +131,26 @@ export const composerParityFixtures: ComposerParityFixture[] = [
     acceptIndex: 0,
   },
   {
+    name: "mention search mixes files and directories by shared path ranking",
+    draft: "@web",
+    cursor: 4,
+    files: {
+      workspace: [
+        "src/web.ts",
+        "src/panel/webview/app.tsx",
+      ],
+    },
+    expected: {
+      trigger: "mention",
+      query: "web",
+      items: [
+        { id: "search:file:src/web.ts::", kind: "file", label: "web.ts", detail: "src/web.ts" },
+        { id: "search:directory:src/panel/webview/::", kind: "directory", label: "webview/", detail: "src/panel/webview/" },
+        { id: "search:file:src/panel/webview/app.tsx::", kind: "file", label: "app.tsx", detail: "src/panel/webview/app.tsx" },
+      ],
+    },
+  },
+  {
     name: "mention file range query preserves selected lines in submit parts",
     draft: "open @src/panel/webview/app/App.tsx#12-20",
     cursor: 41,

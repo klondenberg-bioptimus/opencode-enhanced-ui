@@ -147,10 +147,15 @@ function fixtureFiles(query: string, data?: ComposerParityFixture["files"]) {
 
   const workspace = data.workspace ?? []
   if (base.trim()) {
-    const files = sortPaths(workspace, base)
-    out.push(...files.map((path) => ({ path, kind: "file" as const, source: "search" as const })))
-    const dirs = sortPaths(collectDirectoryResults(parentDirs(workspace), base).map((item) => item.path), base)
-    out.push(...dirs.map((path) => ({ path, kind: "directory" as const, source: "search" as const })))
+    const ranked = sortPaths([
+      ...workspace,
+      ...collectDirectoryResults(parentDirs(workspace), base).map((item) => item.path),
+    ], base)
+    out.push(...ranked.map((path) => ({
+      path,
+      kind: path.endsWith("/") ? "directory" as const : "file" as const,
+      source: "search" as const,
+    })))
   }
 
   return dedupe(out)

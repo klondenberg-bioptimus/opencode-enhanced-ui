@@ -47,8 +47,10 @@ describe("composer integration visibility", () => {
 
     assert.equal(result.trigger, "mention")
     assert.equal(result.hostResults.length, 24, "host returns exactly FILE_SEARCH_LIMIT=24 results")
-    assert.equal(result.hostResults.every((item) => item.kind === "file"), true, "all host results are files because files exhaust the 24-item limit before directories")
-    assert.equal(result.items.some((item) => item.kind === "directory"), false, "no directory is visible to the user")
+    assert.ok(result.hostResults.some((item) => item.kind === "directory"), "directories now compete with files before FILE_SEARCH_LIMIT is applied")
+    assert.ok(result.hostResults.some((item) => item.kind === "file"), "files still remain visible in the mixed ranked list")
+    assert.equal(result.hostResults[0]?.path, "src/", "root src directory ranks first for @src")
+    assert.ok(result.items.some((item) => item.kind === "directory"), "directories are visible to the user")
   })
 
   test("@src can show directories when recents and files do not exhaust host limit", () => {
@@ -96,6 +98,26 @@ describe("composer integration visibility", () => {
     assert.ok(result.items.some((item) => item.kind === "file"), "files also visible")
     const dirLabels = result.items.filter((item) => item.kind === "directory").map((item) => item.detail)
     assert.ok(dirLabels.some((d) => d.startsWith("src/panel/")), "src/panel/ subdirectories present")
+  })
+
+  test("search results can interleave files and directories by shared path ranking", () => {
+    const result = runComposerIntegration({
+      name: "mixed file directory ranking",
+      draft: "@web",
+      cursor: 4,
+      host: {
+        workspace: [
+          "src/web.ts",
+          "src/panel/webview/app.tsx",
+        ],
+      },
+    })
+
+    assert.deepEqual(result.items.slice(0, 3), [
+      { id: "search:file:src/web.ts::", kind: "file", label: "web.ts", detail: "src/web.ts" },
+      { id: "search:directory:src/panel/webview/::", kind: "directory", label: "webview/", detail: "src/panel/webview/" },
+      { id: "search:file:src/panel/webview/app.tsx::", kind: "file", label: "app.tsx", detail: "src/panel/webview/app.tsx" },
+    ])
   })
 
   test("empty @ returns agents, resources, selection, and recents in kind-group order", () => {

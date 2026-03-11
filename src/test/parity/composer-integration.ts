@@ -67,18 +67,14 @@ function hostResults(query: string, host?: ComposerIntegrationFixture["host"]) {
   const files = host.workspace ?? []
   const search = !query
     ? []
-    : [
-        ...sortPaths(files, query).map((path) => ({
-          path,
-          kind: "file" as const,
-          source: "search" as const,
-        })),
-        ...sortPaths(collectDirectoryResults(parentDirs(files), query).map((item) => item.path), query).map((path) => ({
-          path,
-          kind: "directory" as const,
-          source: "search" as const,
-        })),
-      ]
+    : sortPaths([
+        ...files,
+        ...collectDirectoryResults(parentDirs(files), query).map((item) => item.path),
+      ], query).map((path) => ({
+        path,
+        kind: path.endsWith("/") ? "directory" as const : "file" as const,
+        source: "search" as const,
+      }))
 
   return dedupe([...selected, ...recent, ...search]).slice(0, FILE_SEARCH_LIMIT)
 }

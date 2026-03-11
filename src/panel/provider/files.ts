@@ -119,22 +119,12 @@ async function searchWorkspacePaths(workspaceDir: string, value: string): Promis
   const filePaths = files
     .map((uri) => path.relative(workspaceDir, uri.fsPath).replace(/\\/g, "/"))
     .filter((item) => item && !item.startsWith(".."))
-  const directories = collectDirectoryResults(await listWorkspaceDirectories(workspaceDir), value)
-  const paths = sortPaths(filePaths, value)
-  const rankedDirectories = sortPaths(directories.map((item) => item.path), value)
-
-  const results: ComposerPathResult[] = paths.map((item) => ({
+  const directoryPaths = collectDirectoryResults(await listWorkspaceDirectories(workspaceDir), value).map((item) => item.path)
+  return sortPaths([...filePaths, ...directoryPaths], value).map((item) => ({
     path: item,
-    kind: "file",
-    source: "search",
-  }))
-
-  results.push(...rankedDirectories.map((item) => ({
-    path: item,
-    kind: "directory" as const,
+    kind: item.endsWith("/") ? "directory" as const : "file" as const,
     source: "search" as const,
-  })))
-  return results
+  }))
 }
 
 function recentFileResults(workspaceDir: string, query: string): ComposerPathResult[] {

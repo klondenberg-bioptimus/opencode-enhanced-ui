@@ -153,5 +153,50 @@
         }
       ]
     }
+  },
+  {
+    "name": "tui mention mixed file and directory ranking",
+    "target": "tui",
+    "trigger": "mention",
+    "query": "web",
+    "items": [
+      {
+        "kind": "file",
+        "label": "@src/web.ts",
+        "detail": "src/web.ts",
+        "insertText": "@src/web.ts"
+      },
+      {
+        "kind": "directory",
+        "label": "@src/panel/webview/",
+        "detail": "src/panel/webview/",
+        "insertText": "@src/panel/webview/"
+      },
+      {
+        "kind": "file",
+        "label": "@src/panel/webview/app.tsx",
+        "detail": "src/panel/webview/app.tsx",
+        "insertText": "@src/panel/webview/app.tsx"
+      }
+    ],
+    "accepted": {
+      "draft": "@src/web.ts ",
+      "submitParts": [
+        {
+          "type": "text",
+          "text": "@src/web.ts "
+        },
+        {
+          "type": "file",
+          "path": "src/web.ts",
+          "kind": "file",
+          "source": {
+            "value": "@src/web.ts",
+            "start": 0,
+            "end": 11
+          }
+        }
+      ]
+    }
   }
 ]

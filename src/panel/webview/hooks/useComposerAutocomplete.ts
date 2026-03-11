@@ -259,7 +259,7 @@ function kindRank(kind: ComposerAutocompleteItem["kind"]) {
       return 4
     case "file":
     case "directory":
-      return 5
+      return 4
   }
 }
 
