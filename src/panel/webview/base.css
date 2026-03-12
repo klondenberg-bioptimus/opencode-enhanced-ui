@@ -118,6 +118,14 @@ button {
   align-items: center;
   gap: 12px;
   min-width: 0;
+  flex: 0 1 auto;
+}
+
+.oc-composerActionsMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
   flex: 1 1 auto;
 }
 

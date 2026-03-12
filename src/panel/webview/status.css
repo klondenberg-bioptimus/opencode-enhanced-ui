@@ -306,8 +306,8 @@
 .oc-composerRunBar {
   position: relative;
   display: inline-flex;
-  width: 26px;
-  min-width: 26px;
+  width: 52px;
+  min-width: 52px;
   height: 8px;
   border-radius: 999px;
   overflow: hidden;
@@ -354,8 +354,64 @@
 }
 
 .oc-composerActions {
-  align-items: flex-end;
+  align-items: center;
   flex-wrap: nowrap;
+}
+
+.oc-composerActionsMain {
+  justify-content: flex-start;
+}
+
+.oc-composerHintRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--oc-fg-muted);
+  font-size: var(--oc-font-size-sm);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.oc-composerShortcutGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.oc-composerHintText {
+  letter-spacing: 0.01em;
+  text-transform: lowercase;
+}
+
+.oc-keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid color-mix(in srgb, var(--oc-border-strong) 82%, transparent 18%);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--oc-surface-control) 88%, transparent 12%);
+  color: var(--oc-fg-primary);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--oc-border-strong) 45%, transparent 55%);
+}
+
+.oc-keycap svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+  overflow: visible;
+}
+
+.oc-keycapPath {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  shape-rendering: geometricPrecision;
 }
 
 .oc-composerErrorText {
@@ -372,6 +428,7 @@
 .oc-composerBadgeRow {
   justify-content: flex-end;
   position: relative;
+  flex: 0 0 auto;
 }
 
 .oc-statusBadgeWrap {

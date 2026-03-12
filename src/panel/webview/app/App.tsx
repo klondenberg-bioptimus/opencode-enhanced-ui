@@ -834,11 +834,14 @@ export function App() {
                 {composerAutocomplete.state ? <ComposerAutocompletePopup state={composerAutocomplete.state} fileSearch={fileSearch} onSelect={acceptComposerAutocomplete} /> : null}
               </div>
             <div className="oc-composerActions">
-              <div className="oc-composerContextWrap">
-                <ComposerMetrics state={state} />
+              <div className="oc-composerActionsMain">
+                <ComposerRunHints state={state} />
                 {state.error ? <div className="oc-errorText oc-composerErrorText">{state.error}</div> : null}
               </div>
-          <ComposerStatusBadges state={state} pendingMcpActions={pendingMcpActions} onMcpActionStart={(name) => setPendingMcpActions((current) => ({ ...current, [name]: true }))} />
+              <div className="oc-composerContextWrap">
+                <ComposerMetrics state={state} />
+                <ComposerStatusBadges state={state} pendingMcpActions={pendingMcpActions} onMcpActionStart={(name) => setPendingMcpActions((current) => ({ ...current, [name]: true }))} />
+              </div>
             </div>
             </section>
           ) : null}
@@ -957,14 +960,12 @@ function ComposerInfo({ state, leaderPending: _leaderPending }: { state: AppStat
     composerAgentOverride: state.composerAgentOverride,
     composerMentionAgentOverride: state.composerMentionAgentOverride,
   })
-  const running = isSessionRunning(state.snapshot.sessionStatus)
   return (
     <div className="oc-composerInfo" aria-hidden="true">
       <div className="oc-composerInfoSpacer" />
       <div className="oc-composerInfoRow">
         <span className="oc-composerIdentityStart">
           <span className="oc-composerAgent" style={{ color: agentColor(info.agent) }}>{info.agent}</span>
-          <ComposerRunningIndicator running={running} />
         </span>
         {info.model ? <span className="oc-composerModel" title={info.model}>{info.model}</span> : null}
         {info.provider ? <span className="oc-composerProvider" title={info.provider}>{info.provider}</span> : null}
@@ -1112,6 +1113,36 @@ function ComposerRunningIndicator({ running }: { running: boolean }) {
   return <span className={`oc-composerRunBar${running ? " is-running" : ""}`} aria-label="running" />
 }
 
+function ComposerRunHints({ state }: { state: AppState }) {
+  const running = isSessionRunning(state.snapshot.sessionStatus)
+  const modifierLabel = useModifierKeyLabel()
+
+  if (running) {
+    return (
+      <div className="oc-composerHintRow" aria-hidden="true">
+        <ComposerRunningIndicator running />
+        <span className="oc-composerHintText">esc interrupt</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="oc-composerHintRow" aria-hidden="true">
+      <span className="oc-composerShortcutGroup">
+        <Keycap icon={<EnterKeyIcon />} label="Enter" />
+        <span>newline</span>
+      </span>
+      <span aria-hidden="true">·</span>
+      <span className="oc-composerShortcutGroup">
+        <Keycap icon={modifierLabel === "Cmd" ? <CommandKeyIcon /> : <CtrlKeyIcon />} label={modifierLabel} />
+        <span>+</span>
+        <Keycap icon={<EnterKeyIcon />} label="Enter" />
+        <span>submit</span>
+      </span>
+    </div>
+  )
+}
+
 function ComposerMetrics({ state }: { state: AppState }) {
   const metrics = composerMetrics(state.snapshot)
   const items = [
@@ -1139,6 +1170,54 @@ function ComposerStatusBadges({ state, pendingMcpActions, onMcpActionStart }: { 
       <StatusBadge label="MCP" tone={mcp.tone} items={mcp.items} pendingActions={pendingMcpActions} onActionStart={onMcpActionStart} />
       <StatusBadge label="LSP" tone={lsp.tone} items={lsp.items} />
     </div>
+  )
+}
+
+function useModifierKeyLabel() {
+  return React.useMemo(() => {
+    if (typeof navigator === "undefined") {
+      return "Ctrl"
+    }
+
+    const platform = ((navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform) || navigator.platform || navigator.userAgent
+    return /mac|iphone|ipad|ipod/i.test(platform) ? "Cmd" : "Ctrl"
+  }, [])
+}
+
+function Keycap({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <span className="oc-keycap" aria-label={label} title={label}>
+      {icon}
+    </span>
+  )
+}
+
+function EnterKeyIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M11.75 3.75v4.5a2 2 0 0 1-2 2H4.5" className="oc-keycapPath" />
+      <path d="M6.75 7.75 4.25 10l2.5 2.25" className="oc-keycapPath" />
+    </svg>
+  )
+}
+
+function CtrlKeyIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M4.25 10.75 8 6.25l3.75 4.5" className="oc-keycapPath" />
+    </svg>
+  )
+}
+
+function CommandKeyIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M6 6V4.75a1.75 1.75 0 1 0-1.75 1.75H6" className="oc-keycapPath" />
+      <path d="M10 6V4.75a1.75 1.75 0 1 1 1.75 1.75H10" className="oc-keycapPath" />
+      <path d="M6 10v1.25a1.75 1.75 0 1 1-1.75-1.75H6" className="oc-keycapPath" />
+      <path d="M10 10v1.25a1.75 1.75 0 1 0 1.75-1.75H10" className="oc-keycapPath" />
+      <path d="M6 6h4v4H6z" className="oc-keycapPath" />
+    </svg>
   )
 }
 
