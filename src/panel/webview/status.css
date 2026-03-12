@@ -513,6 +513,16 @@
   z-index: 30;
 }
 
+.oc-modelPickerTop {
+  position: sticky;
+  top: -10px;
+  z-index: 1;
+  margin: -10px -10px 10px;
+  padding: 10px;
+  background: var(--oc-status-popover-bg);
+  border-bottom: 1px solid color-mix(in srgb, var(--oc-border) 82%, transparent 18%);
+}
+
 .oc-modelPickerHeader {
   display: flex;
   align-items: baseline;
@@ -538,7 +548,6 @@
   padding: 8px 10px;
 }
 
-.oc-modelPickerToolbarAction,
 .oc-modelPickerAction {
   appearance: none;
   border: 1px solid var(--oc-border-strong);
@@ -549,7 +558,6 @@
   cursor: pointer;
 }
 
-.oc-modelPickerToolbarAction:hover,
 .oc-modelPickerAction:hover {
   border-color: color-mix(in srgb, var(--oc-accent) 34%, var(--oc-border-strong) 66%);
 }

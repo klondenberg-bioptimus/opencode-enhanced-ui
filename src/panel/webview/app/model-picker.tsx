@@ -236,20 +236,21 @@ export function ModelPicker({
 
   return (
     <div className="oc-modelPicker" role="dialog" aria-label="Switch model" onKeyDown={onKeyDown}>
-      <div className="oc-modelPickerHeader">
-        <span className="oc-modelPickerTitle">Switch model</span>
-        <span className="oc-modelPickerMeta">{currentAgent || "No agent"}</span>
-      </div>
-      <div className="oc-modelPickerToolbar">
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          className="oc-modelPickerSearch"
-          placeholder="Filter models"
-          aria-label="Filter models"
-        />
-        <button type="button" className="oc-modelPickerToolbarAction" onClick={onOpenProviderDocs}>Docs</button>
+      <div className="oc-modelPickerTop">
+        <div className="oc-modelPickerHeader">
+          <span className="oc-modelPickerTitle">Switch model</span>
+          <span className="oc-modelPickerMeta">{currentAgent || "No agent"}</span>
+        </div>
+        <div className="oc-modelPickerToolbar">
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className="oc-modelPickerSearch"
+            placeholder="Filter models"
+            aria-label="Filter models"
+          />
+        </div>
       </div>
       <div className="oc-modelPickerSections" ref={listRef}>
         {filteredSections.length > 0 ? filteredSections.map((section) => {
