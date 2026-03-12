@@ -159,13 +159,16 @@ async function sessionTree(sdk: Client, dir: string, session: SessionInfo): Prom
       loadChildren(sdk, dir, session.parentID),
     ])
 
+    const descendants = await loadTree(sdk, dir, session.id)
+
     const parentSession = parent.data
     const navSessions = parentSession ? [parentSession, ...siblings] : [session, ...siblings]
+    const sessions = [session, ...descendants]
 
     return {
-      sessions: navSessions,
+      sessions,
       navSessions,
-      relatedSessionIds: [session.id],
+      relatedSessionIds: subtreeSessionIds(session.id, sessions),
       requestSessionIds: [session.id],
     }
   }

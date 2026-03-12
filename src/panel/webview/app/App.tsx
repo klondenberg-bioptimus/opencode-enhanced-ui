@@ -608,7 +608,7 @@ export function App() {
     }
 
     if (action === "childFirst") {
-      const childSessionID = activeChildSessionId(state.snapshot.messages, state.snapshot.childSessions)
+      const childSessionID = activeChildSessionId(state.snapshot.messages, state.snapshot.childMessages, state.snapshot.childSessions)
       if (!childSessionID) {
         return false
       }
@@ -634,7 +634,7 @@ export function App() {
     clearComposerDraft()
     postComposerAction("undoSession")
     return true
-  }, [clearComposerDraft, navigateSession, postComposerAction, postNewSession, state.snapshot.childSessions, state.snapshot.messages, state.snapshot.session])
+  }, [clearComposerDraft, navigateSession, postComposerAction, postNewSession, state.snapshot.childMessages, state.snapshot.childSessions, state.snapshot.messages, state.snapshot.session])
 
   React.useEffect(() => () => clearLeaderPending(), [clearLeaderPending])
   React.useEffect(() => () => clearEscPending(), [clearEscPending])

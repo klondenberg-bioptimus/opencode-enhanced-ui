@@ -215,9 +215,9 @@ export function needsRefresh(event: SessionEvent, payload: SessionSnapshot) {
       return false
     }
     if (payload.session?.parentID) {
-      return false
+      return props.info.parentID === payload.session.parentID || props.info.parentID === payload.sessionRef.sessionId || props.info.id === payload.session.parentID
     }
-    return props.info.parentID === payload.sessionRef.sessionId || payload.relatedSessionIds.includes(props.info.id)
+    return payload.relatedSessionIds.includes(props.info.parentID ?? "") || payload.relatedSessionIds.includes(props.info.id)
   }
 
   return false

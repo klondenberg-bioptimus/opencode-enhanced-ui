@@ -51,7 +51,7 @@ describe("session navigation", () => {
       message(task("two", "child-b", "pending")),
     ]
 
-    assert.equal(activeChildSessionId(messages, {
+    assert.equal(activeChildSessionId(messages, {}, {
       "child-a": child("child-a"),
       "child-b": child("child-b"),
     }), "child-b")
@@ -63,8 +63,39 @@ describe("session navigation", () => {
       message(task("two", "child-a", "completed")),
     ]
 
-    assert.equal(activeChildSessionId(messages, {
+    assert.equal(activeChildSessionId(messages, {}, {
       "child-a": child("child-a"),
     }), undefined)
+  })
+
+  test("finds active grandchild tasks from child messages", () => {
+    const messages = [message(task("one", "child-a", "running"))]
+    const childThread = [
+      {
+        info: {
+          id: "msg-child",
+          sessionID: "child-a",
+          role: "assistant" as const,
+          time: { created: 0 },
+        },
+        parts: [
+          {
+            ...task("two", "grandchild-a", "running"),
+            sessionID: "child-a",
+            messageID: "msg-child",
+          },
+        ],
+      },
+    ]
+
+    assert.equal(activeChildSessionId(messages, {
+      "child-a": childThread,
+    }, {
+      "child-a": child("child-a"),
+      "grandchild-a": {
+        ...child("grandchild-a"),
+        parentID: "child-a",
+      },
+    }), "grandchild-a")
   })
 })

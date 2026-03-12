@@ -1,9 +1,15 @@
 import type { SessionInfo, SessionMessage, ToolPart } from "../../../core/sdk"
 import { toolChildSessionId } from "../lib/tool-meta"
 
-export function activeChildSessionId(messages: SessionMessage[], childSessions: Record<string, SessionInfo>) {
-  for (let messageIndex = messages.length - 1; messageIndex >= 0; messageIndex -= 1) {
-    const message = messages[messageIndex]
+export function activeChildSessionId(
+  messages: SessionMessage[],
+  childMessages: Record<string, SessionMessage[]>,
+  childSessions: Record<string, SessionInfo>,
+) {
+  const all = [...messages, ...Object.values(childMessages).flat()]
+
+  for (let messageIndex = all.length - 1; messageIndex >= 0; messageIndex -= 1) {
+    const message = all[messageIndex]
     if (!message) {
       continue
     }
