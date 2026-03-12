@@ -5,6 +5,7 @@
 html, body, #root {
   margin: 0;
   height: 100%;
+  padding: 0;
 }
 
 body {
@@ -12,6 +13,10 @@ body {
   color: var(--vscode-sideBar-foreground);
   font-family: var(--vscode-font-family);
   font-size: 13px;
+}
+
+.sv-group {
+  margin: 8px 0;
 }
 
 .sv-shell,
@@ -37,7 +42,7 @@ body {
 .sv-diff {
   width: 100%;
   border: 0;
-  padding: 4px 0;
+  padding: 2px 8px;
   margin: 0;
   border-radius: 0;
   background: transparent;
@@ -57,7 +62,7 @@ body {
 
 .sv-todo {
   width: 100%;
-  padding: 0;
+  padding: 2px 8px;
   border-radius: 0;
 }
 
@@ -118,7 +123,7 @@ body {
 .sv-empty {
   display: grid;
   gap: 6px;
-  padding: 4px 0;
+  padding: 4px 8px;
 }
 
 .sv-emptyTitle {
