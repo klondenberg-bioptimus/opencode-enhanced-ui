@@ -92,7 +92,7 @@ export class SessionPanelController implements vscode.Disposable {
         }
 
         if (message?.type === "searchFiles") {
-          void searchFiles(this.panel.webview, this.ref.dir, message.requestID, message.query)
+          void searchFiles(this.panel.webview, this.mgr, this.ref.dir, message.requestID, message.query)
           return
         }
 

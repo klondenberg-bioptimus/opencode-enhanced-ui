@@ -2,14 +2,9 @@ import * as path from "node:path"
 import { fileURLToPath } from "node:url"
 import * as vscode from "vscode"
 import type { ComposerPathResult } from "../../bridge/types"
+import { WorkspaceManager } from "../../core/workspace"
 import { postToWebview } from "../../bridge/host"
-import { collectDirectoryResults, matchesPath, sortPaths, trimDirectorySuffix } from "./file-search"
-
-const FILE_SEARCH_LIMIT = 24
-const FILE_SEARCH_POOL = 2000
-const DIRECTORY_SEARCH_LIMIT = 400
-const FILE_SEARCH_EXCLUDE = "{**/.git/**,**/node_modules/**,**/dist/**,**/.memory/**,**/opencode/**}"
-const EXCLUDED_PATH_PARTS = new Set([".git", "node_modules", "dist", ".memory", "opencode"])
+import { trimDirectorySuffix } from "./file-search"
 
 export async function openFile(workspaceDir: string, filePath: string, line?: number) {
   const target = await resolveFileUri(workspaceDir, filePath)
@@ -76,12 +71,14 @@ export async function resolveFileRefs(webview: vscode.Webview, workspaceDir: str
   })
 }
 
-export async function searchFiles(webview: vscode.Webview, workspaceDir: string, requestID: string, query: string) {
-  const value = query.trim()
-  const selection = selectedFileResults(workspaceDir, value)
-  const recent = recentFileResults(workspaceDir, value)
-  const search = value ? await searchWorkspacePaths(workspaceDir, value) : []
-  const results = dedupeResults([...selection, ...recent, ...search]).slice(0, FILE_SEARCH_LIMIT)
+export async function searchFiles(webview: vscode.Webview, mgr: WorkspaceManager, workspaceDir: string, requestID: string, query: string) {
+  const rt = mgr.get(workspaceDir)
+  const results = rt?.state === "ready" && rt.sdk
+    ? mapSearchResults((await rt.sdk.find.files({
+      directory: rt.dir,
+      query,
+    })).data)
+    : []
 
   await postToWebview(webview, {
     type: "fileSearchResults",
@@ -89,67 +86,6 @@ export async function searchFiles(webview: vscode.Webview, workspaceDir: string,
     query,
     results,
   })
-}
-
-function selectedFileResults(workspaceDir: string, query: string): ComposerPathResult[] {
-  const editor = vscode.window.activeTextEditor
-  const filePath = toWorkspacePath(workspaceDir, editor?.document.uri)
-  if (!editor || !filePath || editor.selection.isEmpty) {
-    return []
-  }
-
-  if (query && !matchesPath(filePath, query)) {
-    return []
-  }
-
-  const startLine = Math.min(editor.selection.start.line, editor.selection.end.line) + 1
-  const endLine = Math.max(editor.selection.start.line, editor.selection.end.line) + 1
-  return [{
-    path: filePath,
-    kind: "file",
-    source: "selection",
-    selection: startLine === endLine ? { startLine } : { startLine, endLine },
-  }]
-}
-
-async function searchWorkspacePaths(workspaceDir: string, value: string): Promise<ComposerPathResult[]> {
-  const base = vscode.Uri.file(workspaceDir)
-  const pattern = new vscode.RelativePattern(base, "**/*")
-  const files = await vscode.workspace.findFiles(pattern, FILE_SEARCH_EXCLUDE, FILE_SEARCH_POOL)
-  const filePaths = files
-    .map((uri) => path.relative(workspaceDir, uri.fsPath).replace(/\\/g, "/"))
-    .filter((item) => item && !item.startsWith(".."))
-  const directoryPaths = collectDirectoryResults(await listWorkspaceDirectories(workspaceDir), value).map((item) => item.path)
-  return sortPaths([...filePaths, ...directoryPaths], value).map((item) => ({
-    path: item,
-    kind: item.endsWith("/") ? "directory" as const : "file" as const,
-    source: "search" as const,
-  }))
-}
-
-function recentFileResults(workspaceDir: string, query: string): ComposerPathResult[] {
-  const candidates = [
-    vscode.window.activeTextEditor?.document.uri,
-    ...vscode.window.visibleTextEditors.map((editor) => editor.document.uri),
-    ...vscode.workspace.textDocuments.map((document) => document.uri),
-  ]
-
-  const seen = new Set<string>()
-  const paths: string[] = []
-  for (const uri of candidates) {
-    const relative = toWorkspacePath(workspaceDir, uri)
-    if (!relative || seen.has(relative)) {
-      continue
-    }
-    seen.add(relative)
-    paths.push(relative)
-  }
-
-  const value = query.trim().toLowerCase()
-  const matched = paths.filter((item) => !value || matchesPath(item, value))
-  const ranked = value ? sortPaths(matched, query) : matched
-
-  return ranked.map((item) => ({ path: item, kind: item.endsWith("/") ? "directory" as const : "file" as const, source: "recent" as const }))
 }
 
 export function toFileUri(filePath: string, workspaceDir: string) {
@@ -168,73 +104,10 @@ export function toFileUri(filePath: string, workspaceDir: string) {
   return vscode.Uri.file(path.join(workspaceDir, filePath))
 }
 
-function dedupeResults(items: ComposerPathResult[]) {
-  const seen = new Set<string>()
-  const results: ComposerPathResult[] = []
-  for (const item of items) {
-    const key = `${item.kind}:${item.path}`
-    if (seen.has(key)) {
-      continue
-    }
-    seen.add(key)
-    results.push(item)
-  }
-  return results
-}
-
-function toWorkspacePath(workspaceDir: string, uri: vscode.Uri | undefined) {
-  if (!uri || uri.scheme !== "file") {
-    return undefined
-  }
-
-  const relative = path.relative(workspaceDir, uri.fsPath).replace(/\\/g, "/")
-  if (!relative || relative.startsWith("..")) {
-    return undefined
-  }
-
-  const parts = relative.split("/")
-  if (parts.some((part) => EXCLUDED_PATH_PARTS.has(part))) {
-    return undefined
-  }
-
-  return relative
-}
-
-async function listWorkspaceDirectories(workspaceDir: string) {
-  const results: string[] = []
-  const queue = [vscode.Uri.file(workspaceDir)]
-
-  while (queue.length > 0 && results.length < DIRECTORY_SEARCH_LIMIT) {
-    const current = queue.shift()
-    if (!current) {
-      continue
-    }
-
-    let entries: [string, vscode.FileType][]
-    try {
-      entries = await vscode.workspace.fs.readDirectory(current)
-    } catch {
-      continue
-    }
-
-    for (const [name, type] of entries) {
-      if ((type & vscode.FileType.Directory) === 0 || EXCLUDED_PATH_PARTS.has(name)) {
-        continue
-      }
-
-      const next = vscode.Uri.joinPath(current, name)
-      const relative = path.relative(workspaceDir, next.fsPath).replace(/\\/g, "/")
-      if (!relative || relative.startsWith("..")) {
-        continue
-      }
-
-      results.push(`${relative}/`)
-      if (results.length >= DIRECTORY_SEARCH_LIMIT) {
-        break
-      }
-      queue.push(next)
-    }
-  }
-
-  return results
+function mapSearchResults(items: string[] | undefined): ComposerPathResult[] {
+  return (items ?? []).map((item) => ({
+    path: item,
+    kind: item.endsWith("/") ? "directory" as const : "file" as const,
+    source: "search" as const,
+  }))
 }

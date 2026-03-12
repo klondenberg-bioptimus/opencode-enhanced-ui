@@ -1229,7 +1229,7 @@ function popupHeaderText(state: ComposerAutocompleteState, fileSearch: { status:
 
   const query = parseComposerFileQuery(state.query).baseQuery.trim()
   if (!state.query) {
-    return "Agents, resources, selected lines, and recent files"
+    return "Agents, resources, and project paths"
   }
 
   if (fileSearch.status === "searching" && fileSearch.query === query) {
@@ -1246,7 +1246,7 @@ function popupEmptyText(state: ComposerAutocompleteState, fileSearch: { status: 
 
   const query = parseComposerFileQuery(state.query).baseQuery.trim()
   if (!state.query) {
-    return "Type an agent, resource, file path, or path#12-20"
+    return "Type an agent, resource, path, or path#12-20"
   }
 
   if (fileSearch.status === "searching" && fileSearch.query === query) {

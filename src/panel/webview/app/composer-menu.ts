@@ -1,7 +1,7 @@
 import type { ComposerPathResult } from "../../../bridge/types"
 import type { AppState } from "./state"
 import type { ComposerAutocompleteItem } from "../hooks/useComposerAutocomplete"
-import { describeComposerFileSelection, formatComposerFileContent, formatComposerFileDisplay, parseComposerFileQuery } from "../lib/composer-file-selection"
+import { formatComposerFileContent, formatComposerFileDisplay, parseComposerFileQuery } from "../lib/composer-file-selection"
 
 export function buildComposerMenuItems(state: AppState, files: ComposerPathResult[]): ComposerAutocompleteItem[] {
   const slashItems: ComposerAutocompleteItem[] = [
@@ -75,11 +75,14 @@ export function buildComposerMenuItems(state: AppState, files: ComposerPathResul
       }
     })
 
-  const agentItems = state.snapshot.agents.map((agent) => ({
+  const agentItems = state.snapshot.agents
+    .filter((agent) => !agent.hidden && agent.mode !== "primary")
+    .map((agent) => ({
     id: `agent:${agent.name}`,
-    label: agent.name,
-    detail: agent.mode === "subagent" ? "Subagent" : agent.mode === "primary" ? "Primary agent" : "Agent",
+    label: `@${agent.name}`,
+    detail: "",
     keywords: [agent.mode, agent.variant ?? ""].filter(Boolean),
+    value: `@${agent.name}`,
     trigger: "mention" as const,
     kind: "agent" as const,
     mention: {
@@ -91,9 +94,10 @@ export function buildComposerMenuItems(state: AppState, files: ComposerPathResul
 
   const resourceItems = Object.values(state.snapshot.mcpResources).map((resource) => ({
     id: `resource:${resource.client}:${resource.uri}`,
-    label: resource.name,
-    detail: `${resource.client} - ${resource.uri}`,
+    label: `@${resource.name}`,
+    detail: `${resource.name} (${resource.uri})`,
     keywords: [resource.client, resource.uri, resource.description ?? ""].filter(Boolean),
+    value: `${resource.name} (${resource.uri})`,
     trigger: "mention" as const,
     kind: "resource" as const,
     mention: {
@@ -108,9 +112,10 @@ export function buildComposerMenuItems(state: AppState, files: ComposerPathResul
 
   const fileItems = files.map((item) => ({
     id: `${item.source}:${item.kind}:${item.path}:${item.selection?.startLine ?? ""}:${item.selection?.endLine ?? ""}`,
-    label: item.kind === "directory" ? `${item.path.split("/").filter(Boolean).pop() || item.path}/` : item.path.split("/").pop() || item.path,
-    detail: item.source === "selection" ? describeComposerFileSelection(item.selection) || item.path : item.path,
+    label: `@${item.path}`,
+    detail: item.path,
     keywords: item.path.split("/").filter(Boolean).concat(item.source, item.kind, item.selection ? [String(item.selection.startLine), String(item.selection.endLine ?? "")] : []),
+    value: item.path,
     trigger: "mention" as const,
     kind: item.source === "selection" ? "selection" as const : item.source === "recent" ? "recent" as const : item.kind === "directory" ? "directory" as const : "file" as const,
     mention: {
@@ -122,7 +127,7 @@ export function buildComposerMenuItems(state: AppState, files: ComposerPathResul
     },
   }))
 
-  return [...slashItems, ...commandItems, ...agentItems, ...resourceItems, ...fileItems]
+  return [...slashItems, ...commandItems, ...agentItems, ...fileItems, ...resourceItems]
 }
 
 export function mentionForQuery(mention: Extract<NonNullable<ComposerAutocompleteItem["mention"]>, { type: "file" }>, query: string): Extract<NonNullable<ComposerAutocompleteItem["mention"]>, { type: "file" }> {
@@ -156,10 +161,6 @@ export function autocompleteItemView(query: string, item: ComposerAutocompleteIt
   const label = next.selection
     ? formatComposerFileDisplay(item.label, next.selection)
     : item.label
-  const detail = item.kind === "selection"
-    ? `${mention.path}${next.selection ? ` - ${describeComposerFileSelection(next.selection)}` : ""}`
-    : item.detail === mention.path && next.selection
-      ? formatComposerFileDisplay(item.detail, next.selection)
-      : item.detail
+  const detail = item.detail
   return { label, detail, kind: item.kind }
 }

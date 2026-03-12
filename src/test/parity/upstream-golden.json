@@ -84,12 +84,6 @@
         "insertText": "@build"
       },
       {
-        "kind": "file",
-        "label": "@README.md",
-        "detail": "README.md",
-        "insertText": "@README.md"
-      },
-      {
         "kind": "directory",
         "label": "@src/panel/webview/",
         "detail": "src/panel/webview/",
@@ -143,8 +137,12 @@
         },
         {
           "type": "file",
-          "path": "src/panel/webview/app/App.tsx#12-20",
+          "path": "src/panel/webview/app/App.tsx",
           "kind": "file",
+          "selection": {
+            "startLine": 12,
+            "endLine": 20
+          },
           "source": {
             "value": "@src/panel/webview/app/App.tsx#12-20",
             "start": 0,

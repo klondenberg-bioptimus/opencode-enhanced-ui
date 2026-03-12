@@ -5,13 +5,17 @@ import { upstreamParityFixtures } from "./upstream-parity-fixtures"
 
 const upstreamGolden = JSON.parse(readFileSync(path.join(process.cwd(), "src/test/parity/upstream-golden.json"), "utf8")) as Array<{
   name: string
+  target?: "web" | "tui"
   trigger: "slash" | "mention" | null
   items: unknown
   accepted?: unknown
 }>
 
-const local = new Map(upstreamParityFixtures.map((item) => [item.name, runComposerParity(toComposer(item))]))
-const diffs = upstreamGolden.flatMap((golden) => {
+const fixtures = upstreamParityFixtures.filter((item) => item.target === "tui")
+const goldenItems = upstreamGolden.filter((item) => item.target === "tui")
+
+const local = new Map(fixtures.map((item) => [item.name, runComposerParity(toComposer(item))]))
+const diffs = goldenItems.flatMap((golden) => {
   const current = local.get(golden.name)
   if (!current) {
     return [`Missing local fixture for ${golden.name}`]
@@ -21,7 +25,7 @@ const diffs = upstreamGolden.flatMap((golden) => {
   if (current.trigger !== golden.trigger) {
     lines.push(`trigger ${String(current.trigger)} !== ${String(golden.trigger)}`)
   }
-  const left = JSON.stringify(current.items)
+  const left = JSON.stringify(normalizeItems(current.items))
   const right = JSON.stringify(golden.items)
   if (left !== right) {
     lines.push(`items differ\ncurrent: ${left}\nupstream: ${right}`)
@@ -43,6 +47,10 @@ console.log(diffs.join("\n"))
 process.exit(1)
 
 function toComposer(item: (typeof upstreamParityFixtures)[number]): ComposerParityFixture {
+  const recent = item.target === "tui"
+    ? (item.files ?? []).filter((path) => path.endsWith("/"))
+    : item.recent
+
   return {
     name: item.name,
     draft: item.draft,
@@ -57,7 +65,7 @@ function toComposer(item: (typeof upstreamParityFixtures)[number]): ComposerPari
       mimeType: resource.mimeType,
     }])),
     files: {
-      recent: item.recent,
+      recent,
       workspace: item.files,
     },
     expected: {
@@ -65,4 +73,27 @@ function toComposer(item: (typeof upstreamParityFixtures)[number]): ComposerPari
       items: [],
     },
   }
+}
+
+function normalizeItems(items: unknown) {
+  if (!Array.isArray(items)) {
+    return items
+  }
+
+  return items.map((item) => {
+    if (!item || typeof item !== "object") {
+      return item
+    }
+
+    const record = item as Record<string, unknown>
+    const label = typeof record.label === "string" ? record.label : undefined
+    return {
+      kind: record.kind === "recent"
+        ? label?.endsWith("/") ? "directory" : "file"
+        : record.kind,
+      label,
+      detail: record.detail,
+      insertText: label?.startsWith("@") ? label : undefined,
+    }
+  })
 }

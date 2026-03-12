@@ -8,6 +8,7 @@ export type ComposerAutocompleteItem = {
   id: string
   label: string
   detail: string
+  value?: string
   keywords?: string[]
   trigger: ComposerAutocompleteTrigger
   kind: "action" | "agent" | "resource" | "selection" | "recent" | "file" | "directory" | "command"
@@ -230,10 +231,11 @@ export function filterItems(items: ComposerAutocompleteItem[], trigger: Composer
     .map((item, index) => ({
       item: withMatch(item, normalized),
       index,
-      rank: matchRank(item, normalized),
+      rank: matchRankMention(item, normalized),
     }))
     .filter((item): item is { item: ComposerAutocompleteItem; index: number; rank: number } => item.rank !== undefined)
-    .sort((a, b) => kindRank(a.item.kind) - kindRank(b.item.kind) || a.rank - b.rank || a.index - b.index)
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .slice(0, 10)
     .map((item) => item.item)
 }
 
@@ -267,27 +269,29 @@ function matchRankSlash(item: ComposerAutocompleteItem, query: string) {
   return item.label.startsWith(query) ? best / 2 : best
 }
 
-function matchRank(item: ComposerAutocompleteItem, query: string) {
-  const normalized = item.mention?.type === "file"
-    ? parseComposerFileQuery(query).baseQuery.trim().toLowerCase()
-    : query
+function matchRankMention(item: ComposerAutocompleteItem, query: string) {
+  const normalized = mentionQuery(item, query)
   if (!normalized) {
     return 0
   }
 
   const fields = [
-    fuzzyScore(item.label, normalized, 0),
+    fuzzyScore(primaryValue(item, query), normalized, 0),
     fuzzyScore(item.detail, normalized, 40),
     ...(item.keywords ?? []).map((value) => fuzzyScore(value, normalized, 70)),
   ].filter((value): value is number => typeof value === "number")
 
-  return fields.length > 0 ? Math.min(...fields) : undefined
+  if (fields.length === 0) {
+    return undefined
+  }
+
+  const best = Math.min(...fields)
+  const visible = prefixValue(item)
+  return primaryValue(item, query).startsWith(visible + normalized) ? best / 2 : best
 }
 
 function withMatch(item: ComposerAutocompleteItem, query: string): ComposerAutocompleteItem {
-  const normalized = item.mention?.type === "file"
-    ? parseComposerFileQuery(query).baseQuery.trim().toLowerCase()
-    : query
+  const normalized = mentionQuery(item, query)
   return {
     ...item,
     match: {
@@ -297,24 +301,45 @@ function withMatch(item: ComposerAutocompleteItem, query: string): ComposerAutoc
   }
 }
 
-function kindRank(kind: ComposerAutocompleteItem["kind"]) {
-  switch (kind) {
-    case "action":
-      return 0
-    case "command":
-      return 1
-    case "agent":
-      return 2
-    case "selection":
-      return 3
-    case "resource":
-      return 4
-    case "recent":
-      return 5
-    case "file":
-    case "directory":
-      return 5
+function mentionQuery(item: ComposerAutocompleteItem, query: string) {
+  return item.mention?.type === "file"
+    ? parseComposerFileQuery(query).baseQuery.trim().toLowerCase()
+    : query
+}
+
+function prefixValue(item: ComposerAutocompleteItem) {
+  return item.mention?.type === "agent" ? "@" : ""
+}
+
+function primaryValue(item: ComposerAutocompleteItem, query: string) {
+  if (item.mention?.type === "file") {
+    return mentionValue(item, query)
   }
+
+  return (item.value ?? item.label).trimEnd().toLowerCase()
+}
+
+function mentionValue(item: ComposerAutocompleteItem, query: string) {
+  const mention = item.mention
+  if (!mention || mention.type !== "file") {
+    return (item.value ?? item.label).trimEnd().toLowerCase()
+  }
+
+  const next = mentionForQueryValue(mention.path, mention.kind, query)
+  return next.trimEnd().toLowerCase()
+}
+
+function mentionForQueryValue(path: string, kind: ComposerPathKind | undefined, query: string) {
+  if (kind === "directory") {
+    return path
+  }
+
+  const parsed = parseComposerFileQuery(query)
+  if (!parsed.selection) {
+    return path
+  }
+
+  return `${path}#${parsed.selection.startLine}${parsed.selection.endLine ? `-${parsed.selection.endLine}` : ""}`
 }
 
 function fuzzyIndexes(value: string, query: string) {

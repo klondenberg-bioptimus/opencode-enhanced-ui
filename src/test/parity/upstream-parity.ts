@@ -91,16 +91,15 @@ export function runUpstreamFixture(fix: UpstreamFixture): UpstreamGolden {
     : first.kind === "resource"
       ? {
           type: "resource" as const,
-          uri: first.detail.split(" - ").slice(1).join(" - ") || first.detail,
+          uri: resourceUri(first.detail),
           name: first.label.slice(1),
-          clientName: first.detail.split(" - ")[0] || "",
+          clientName: "",
           mimeType: undefined,
           content: first.insertText,
         }
       : {
+          ...filePart(first.insertText, first.kind === "directory"),
           type: "file" as const,
-          path: first.insertText.slice(1),
-          kind: first.kind === "directory" ? "directory" as const : "file" as const,
           content: first.insertText,
         }
   const start = current.start
@@ -111,6 +110,28 @@ export function runUpstreamFixture(fix: UpstreamFixture): UpstreamGolden {
       draft,
       submitParts: buildComposerSubmitParts(draft, [{ ...kind, start, end } as never]),
     },
+  }
+}
+
+function resourceUri(value: string) {
+  const match = value.match(/\(([^)]+)\)$/)
+  return match?.[1] ?? value
+}
+
+function filePart(value: string, directory: boolean) {
+  if (directory) {
+    return {
+      path: value.slice(1),
+      kind: "directory" as const,
+      selection: undefined,
+    }
+  }
+
+  const parsed = parseComposerFileQuery(value.slice(1))
+  return {
+    path: parsed.baseQuery,
+    kind: "file" as const,
+    selection: parsed.selection,
   }
 }
 
@@ -148,7 +169,9 @@ function webSlash(fix: UpstreamFixture, query: string): UpstreamItem[] {
 
 function tuiAt(fix: UpstreamFixture, query: string): UpstreamItem[] {
   const range = parseComposerFileQuery(query)
-  const files = sortPaths(fix.files ?? [], range.baseQuery)
+  const files = (range.baseQuery.trim()
+    ? sortPaths(fix.files ?? [], range.baseQuery)
+    : (fix.files ?? []).filter((path) => path.endsWith("/")))
     .map((path) => ({
       kind: path.endsWith("/") ? "directory" : "file",
       label: `@${path}${!path.endsWith("/") && range.selection ? `#${range.selection.startLine}${range.selection.endLine ? `-${range.selection.endLine}` : ""}` : ""}`,

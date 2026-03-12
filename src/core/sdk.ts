@@ -399,6 +399,16 @@ export type SessionEvent =
     }
 
 export type Client = {
+  find: {
+    files(input: {
+      query: string
+      directory?: string
+      workspace?: string
+      dirs?: boolean
+      type?: "file" | "directory"
+      limit?: number
+    }): Promise<{ data?: string[] }>
+  }
   command: {
     list(input?: {
       directory?: string
