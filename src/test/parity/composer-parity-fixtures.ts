@@ -189,7 +189,7 @@ export const composerParityFixtures: ComposerParityFixture[] = [
       items: [
         { id: "agent:helper", kind: "agent", label: "@helper", detail: "" },
         { id: "agent:build", kind: "agent", label: "@build", detail: "" },
-        { id: "selection:file:src/panel/webview/app/App.tsx:12:20", kind: "selection", label: "@src/panel/webview/app/App.tsx#12-20", detail: "src/panel/webview/app/App.tsx" },
+        { id: "selection:file:src/panel/webview/app/App.tsx:12:20", kind: "selection", label: "@src/panel/webview/app/App.tsx#12-20", detail: "src/panel/webview/app/App.tsx#12-20" },
         { id: "recent:file:README.md::", kind: "recent", label: "@README.md", detail: "README.md" },
         { id: "resource:reference:mcp://docs/reference", kind: "resource", label: "@docs", detail: "docs (mcp://docs/reference)" },
       ],
@@ -241,7 +241,7 @@ export const composerParityFixtures: ComposerParityFixture[] = [
         { id: "search:directory:src/panel/webview/::", kind: "directory", label: "@src/panel/webview/", detail: "src/panel/webview/" },
         { id: "search:directory:src/panel/webview/app/::", kind: "directory", label: "@src/panel/webview/app/", detail: "src/panel/webview/app/" },
         { id: "search:directory:src/panel/webview/hooks/::", kind: "directory", label: "@src/panel/webview/hooks/", detail: "src/panel/webview/hooks/" },
-        { id: "selection:file:src/panel/webview/app/App.tsx:12:20", kind: "selection", label: "@src/panel/webview/app/App.tsx#12-20", detail: "src/panel/webview/app/App.tsx" },
+        { id: "selection:file:src/panel/webview/app/App.tsx:12:20", kind: "selection", label: "@src/panel/webview/app/App.tsx#12-20", detail: "src/panel/webview/app/App.tsx#12-20" },
         { id: "search:file:src/panel/webview/app/composer-editor.ts::", kind: "file", label: "@src/panel/webview/app/composer-editor.ts", detail: "src/panel/webview/app/composer-editor.ts" },
         { id: "search:file:src/panel/webview/hooks/useComposerAutocomplete.ts::", kind: "file", label: "@src/panel/webview/hooks/useComposerAutocomplete.ts", detail: "src/panel/webview/hooks/useComposerAutocomplete.ts" },
       ],
@@ -298,7 +298,7 @@ export const composerParityFixtures: ComposerParityFixture[] = [
           id: "search:file:src/panel/webview/app/App.tsx::",
           kind: "file",
           label: "@src/panel/webview/app/App.tsx#12-20",
-          detail: "src/panel/webview/app/App.tsx",
+          detail: "src/panel/webview/app/App.tsx#12-20",
         },
       ],
       accepted: {

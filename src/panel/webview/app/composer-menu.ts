@@ -161,6 +161,8 @@ export function autocompleteItemView(query: string, item: ComposerAutocompleteIt
   const label = next.selection
     ? formatComposerFileDisplay(item.label, next.selection)
     : item.label
-  const detail = item.detail
+  const detail = next.selection
+    ? formatComposerFileDisplay(item.detail, next.selection)
+    : item.detail
   return { label, detail, kind: item.kind }
 }

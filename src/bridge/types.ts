@@ -103,6 +103,9 @@ export type HostMessage =
       type: "restoreComposer"
       parts: ComposerPromptPart[]
     }
+  | {
+      type: "shellCommandSucceeded"
+    }
 
 export type ComposerPromptPart =
   | {
@@ -201,6 +204,13 @@ export type WebviewMessage =
       arguments: string
       agent?: string
       model?: string
+      variant?: string
+    }
+  | {
+      type: "runShellCommand"
+      command: string
+      agent?: string
+      model?: { providerID: string; modelID: string }
       variant?: string
     }
   | {

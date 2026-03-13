@@ -111,6 +111,8 @@ function TimelineBlockView({
     const userText = primaryUserText(block.message)
     const userFiles = userAttachments(block.message)
     const hasCompaction = userHasCompaction(block.message)
+    const hasSyntheticText = userHasSyntheticText(block.message)
+    const showEmptyPrompt = !userText && !hasSyntheticText
     if (hasCompaction && !userText && userFiles.length === 0) {
       return <CompactionDivider />
     }
@@ -122,7 +124,7 @@ function TimelineBlockView({
             <div className="oc-entryRole">You</div>
             {block.queued ? <div className="oc-queuedBadge">QUEUED</div> : <div className="oc-entryTime">{formatTime(block.message.info.time?.created)}</div>}
           </div>
-          {userText ? <MarkdownBlock content={userText.text || ""} /> : <div className="oc-partEmpty">No visible prompt text.</div>}
+          {userText ? <MarkdownBlock content={userText.text || ""} /> : (showEmptyPrompt ? <div className="oc-partEmpty">No visible prompt text.</div> : null)}
           {userFiles.length > 0 ? (
             <div className="oc-attachmentRow">
               {userFiles.map((part) => (
@@ -286,6 +288,10 @@ function lastPendingAssistantIndex(messages: SessionMessage[]) {
 
 function primaryUserText(message: SessionMessage) {
   return message.parts.find((part): part is TextPart => part.type === "text" && !part.synthetic && !part.ignored)
+}
+
+function userHasSyntheticText(message: SessionMessage) {
+  return message.parts.some((part) => part.type === "text" && !!part.synthetic)
 }
 
 function userHasCompaction(message: SessionMessage) {

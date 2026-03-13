@@ -75,10 +75,10 @@ describe("composer integration visibility", () => {
     })
 
     assert.deepEqual(result.items.slice(0, 4), [
-      { id: "search:directory:src/::", kind: "directory", label: "src/", detail: "src/" },
-      { id: "search:directory:src/core/::", kind: "directory", label: "core/", detail: "src/core/" },
-      { id: "search:directory:src/panel/::", kind: "directory", label: "panel/", detail: "src/panel/" },
-      { id: "search:file:src/core/sdk.ts::", kind: "file", label: "sdk.ts", detail: "src/core/sdk.ts" },
+      { id: "search:directory:src/::", kind: "directory", label: "@src/", detail: "src/" },
+      { id: "search:directory:src/core/::", kind: "directory", label: "@src/core/", detail: "src/core/" },
+      { id: "search:directory:src/panel/::", kind: "directory", label: "@src/panel/", detail: "src/panel/" },
+      { id: "search:file:src/core/sdk.ts::", kind: "file", label: "@src/core/sdk.ts", detail: "src/core/sdk.ts" },
     ])
   })
 
@@ -121,9 +121,9 @@ describe("composer integration visibility", () => {
     })
 
     assert.deepEqual(result.items.slice(0, 3), [
-      { id: "search:file:src/web.ts::", kind: "file", label: "web.ts", detail: "src/web.ts" },
-      { id: "search:directory:src/panel/webview/::", kind: "directory", label: "webview/", detail: "src/panel/webview/" },
-      { id: "search:file:src/panel/webview/app.tsx::", kind: "file", label: "app.tsx", detail: "src/panel/webview/app.tsx" },
+      { id: "search:file:src/web.ts::", kind: "file", label: "@src/web.ts", detail: "src/web.ts" },
+      { id: "search:directory:src/panel/webview/::", kind: "directory", label: "@src/panel/webview/", detail: "src/panel/webview/" },
+      { id: "search:file:src/panel/webview/app.tsx::", kind: "file", label: "@src/panel/webview/app.tsx", detail: "src/panel/webview/app.tsx" },
     ])
   })
 
@@ -152,9 +152,9 @@ describe("composer integration visibility", () => {
     const resourceIdx = kinds.indexOf("resource")
     const selectionIdx = kinds.indexOf("selection")
     const recentIdx = kinds.indexOf("recent")
-    assert.ok(agentIdx < resourceIdx, "agents before resources")
-    assert.ok(resourceIdx < selectionIdx, "resources before selection")
+    assert.ok(agentIdx < selectionIdx, "agents before selection")
     assert.ok(selectionIdx < recentIdx, "selection before recents")
+    assert.ok(recentIdx < resourceIdx, "recents before resources")
   })
 
   test("@file#12-20 range query result is visible and selection metadata preserved", () => {
@@ -172,7 +172,7 @@ describe("composer integration visibility", () => {
 
     assert.equal(result.trigger, "mention")
     assert.equal(result.items.length, 1)
-    assert.equal(result.items[0].label, "App.tsx#12-20")
+    assert.equal(result.items[0].label, "@src/panel/webview/app/App.tsx#12-20")
     assert.equal(result.items[0].detail, "src/panel/webview/app/App.tsx#12-20")
     assert.equal(result.items[0].kind, "file")
   })
@@ -190,7 +190,7 @@ describe("composer integration visibility", () => {
     assert.equal(result.trigger, "slash")
     assert.equal(result.hostResults.length, 0, "host search not triggered for slash")
     assert.ok(result.items.every((item) => item.kind === "action"), "only actions returned for /")
-    assert.deepEqual(result.items.map((item) => item.label), ["compact", "refresh", "undo"], "built-in slash actions sort alphabetically")
+    assert.deepEqual(result.items.map((item) => item.label), ["compact", "model", "refresh", "undo"], "built-in slash actions sort alphabetically")
   })
 
   test("recent files appear before workspace search results", () => {

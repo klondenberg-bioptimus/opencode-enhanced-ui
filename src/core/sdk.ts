@@ -538,6 +538,16 @@ export type Client = {
       model?: string
       variant?: string
     }): Promise<{ data?: void }>
+    shell(input: {
+      sessionID: string
+      command: string
+      directory?: string
+      workspace?: string
+      messageID?: string
+      agent?: string
+      model?: { providerID: string; modelID: string }
+      variant?: string
+    }): Promise<{ data?: void }>
     summarize(input: {
       sessionID: string
       directory?: string

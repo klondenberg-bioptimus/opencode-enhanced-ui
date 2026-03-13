@@ -17,7 +17,7 @@ import { buildComposerSubmitParts, composerMentionAgentOverride } from "./compos
 import { absorbFileSelectionSuffix, composerMentions as mentionsFromParts, composerPartsEqual, composerText, deleteStructuredRange, emptyComposerParts, ensureTextPart, replaceRangeWithMention, replaceRangeWithText } from "./composer-editor"
 import { getSelectionOffsets, parseComposerEditor, renderComposerEditor, setCursorPosition, syncComposerPillSelection } from "./composer-editor-dom"
 import { autocompleteItemView, buildComposerMenuItems, mentionForQuery } from "./composer-menu"
-import { composerTabIntent, cycleAgentName, isShortcutTarget, leaderAction } from "./keyboard-shortcuts"
+import { composerEnterIntent, composerTabIntent, cycleAgentName, isShortcutTarget, leaderAction, shouldEnterShellMode, shouldExitShellModeOnBackspace, type ComposerMode } from "./keyboard-shortcuts"
 import { buildModelPickerSections, ModelPicker } from "./model-picker"
 import { activeChildSessionId } from "./session-navigation"
 
@@ -44,6 +44,7 @@ function sameAutocompleteMatch(
 
 export function App() {
   const [state, setState] = React.useState(() => createInitialState(initialRef, persistedState))
+  const [composerMode, setComposerMode] = React.useState<ComposerMode>("normal")
   const [composing, setComposing] = React.useState(false)
   const [composerFocused, setComposerFocused] = React.useState(false)
   const [escPending, setEscPending] = React.useState(false)
@@ -75,6 +76,8 @@ export function App() {
   }, [])
   const composerMenuItems = React.useMemo(() => buildComposerMenuItems(state, fileResults), [fileResults, state])
   const composerAutocomplete = useComposerAutocomplete(composerMenuItems)
+  const activeAutocomplete = composerMode === "shell" ? null : composerAutocomplete.state
+  const activeAutocompleteItem = composerMode === "shell" ? undefined : composerAutocomplete.currentItem
   const currentSelection = React.useMemo(() => composerSelection({
     ...state.snapshot,
     composerAgentOverride: state.composerAgentOverride,
@@ -105,10 +108,17 @@ export function App() {
     document.title = `OpenCode: ${sessionTitle(state.bootstrap)}`
   }, [state.bootstrap])
 
-  const autocompleteTrigger = composerAutocomplete.state?.trigger ?? null
-  const autocompleteQuery = composerAutocomplete.state?.query ?? null
+  const autocompleteTrigger = activeAutocomplete?.trigger ?? null
+  const autocompleteQuery = activeAutocomplete?.query ?? null
 
   React.useEffect(() => {
+    if (composerMode === "shell") {
+      searchRef.current = null
+      setFileResults([])
+      setFileSearch({ status: "idle", query: "" })
+      return
+    }
+
     if (autocompleteTrigger !== "mention" || autocompleteQuery === null) {
       searchRef.current = null
       setFileResults([])
@@ -126,7 +136,7 @@ export function App() {
       requestID,
       query,
     })
-  }, [autocompleteTrigger, autocompleteQuery])
+  }, [autocompleteQuery, autocompleteTrigger, composerMode])
 
   const setComposerState = React.useCallback((parts: ComposerEditorPart[], error = "", allowTerminal = false) => {
     const composerParts = ensureTextPart(absorbFileSelectionSuffix(parts, allowTerminal).parts)
@@ -149,6 +159,12 @@ export function App() {
     end: number | null | undefined,
     source: "input" | "passive" = "input",
   ) => {
+    if (composerMode === "shell") {
+      autocompleteDismissedRef.current = null
+      composerAutocomplete.close()
+      return
+    }
+
     const next = matchAutocomplete(value, start, end)
 
     // Upstream only reevaluates autocomplete after content changes. In the webview we
@@ -165,7 +181,36 @@ export function App() {
 
     autocompleteDismissedRef.current = null
     composerAutocomplete.sync(value, start, end)
+  }, [composerAutocomplete, composerMode])
+
+  const enterShellMode = React.useCallback(() => {
+    autocompleteDismissedRef.current = null
+    composerAutocomplete.close()
+    setComposerMode("shell")
   }, [composerAutocomplete])
+
+  const exitShellMode = React.useCallback(() => {
+    autocompleteDismissedRef.current = null
+    composerAutocomplete.close()
+    setComposerMode("normal")
+    setState((current) => ({
+      ...current,
+      draft: "",
+      composerParts: emptyComposerParts(),
+      composerMentions: [],
+      composerMentionAgentOverride: undefined,
+      error: "",
+    }))
+
+    window.setTimeout(() => {
+      const input = composerRef.current
+      if (!input) {
+        return
+      }
+      const selection = getSelectionOffsets(input)
+      syncComposerInput("", selection.start, selection.end, "passive")
+    }, 0)
+  }, [composerAutocomplete, syncComposerInput])
 
   const restoreComposerCursor = React.useCallback((value: string, cursor: number) => {
     composerCursorRef.current = cursor
@@ -183,7 +228,7 @@ export function App() {
   }, [syncComposerInput])
 
   const closeComposerAutocomplete = React.useCallback(() => {
-    const autocomplete = composerAutocomplete.state
+    const autocomplete = activeAutocomplete
     if (!autocomplete) {
       return
     }
@@ -198,7 +243,7 @@ export function App() {
 
     autocompleteDismissedRef.current = autocomplete
     composerAutocomplete.close()
-  }, [composerAutocomplete, restoreComposerCursor, setComposerState, state.composerParts])
+  }, [activeAutocomplete, composerAutocomplete, restoreComposerCursor, setComposerState, state.composerParts])
 
   const onRestoreComposer = React.useCallback((payload: { parts: ComposerPromptPart[] }) => {
     const parts = composerPartsFromPromptParts(payload.parts)
@@ -210,6 +255,7 @@ export function App() {
     fileRefStatus,
     onFileSearchResults,
     onRestoreComposer,
+    onShellCommandSucceeded: exitShellMode,
     setPendingMcpActions,
     setState,
     vscode,
@@ -390,6 +436,26 @@ export function App() {
     const draft = composerText(finalized)
     const selection = currentSelection
 
+    if (composerMode === "shell") {
+      setState((current) => ({
+        ...current,
+        draft: "",
+        composerParts: emptyComposerParts(),
+        composerMentions: [],
+        composerMentionAgentOverride: undefined,
+        error: "",
+      }))
+
+      vscode.postMessage({
+        type: "runShellCommand",
+        command: draft,
+        agent: selection.agent,
+        model: selection.model ? { providerID: selection.model.providerID, modelID: selection.model.modelID } : undefined,
+        variant: selection.variant,
+      })
+      return
+    }
+
     // Check if draft is a slash command invocation: starts with "/" and first token matches a known server command
     const slashMatch = draft.match(/^\/(\S+)(?:\s+([\s\S]*))?$/)
     if (slashMatch) {
@@ -444,7 +510,15 @@ export function App() {
       composerMentionAgentOverride: undefined,
       error: "",
     }))
-  }, [blocked, currentSelection, state.composerParts, state.snapshot.commands])
+  }, [blocked, composerMode, currentSelection, exitShellMode, state.composerParts, state.snapshot.commands])
+
+  const composerPlaceholder = composerMode === "shell"
+    ? "Enter shell command to run in this workspace."
+    : "Ask OpenCode to inspect, explain, or change this workspace."
+
+  const composerAriaLabel = composerMode === "shell"
+    ? "Enter shell command to run in this workspace"
+    : "Ask OpenCode to inspect explain or change this workspace"
 
   const clearComposerDraft = React.useCallback(() => {
     setState((current) => ({
@@ -637,10 +711,10 @@ export function App() {
   React.useEffect(() => () => clearEscPending(), [clearEscPending])
 
   React.useEffect(() => {
-    if (composerAutocomplete.state) {
+    if (activeAutocomplete) {
       clearLeaderPending()
     }
-  }, [clearLeaderPending, composerAutocomplete.state])
+  }, [activeAutocomplete, clearLeaderPending])
 
   React.useEffect(() => {
     if (!isSessionRunning(state.snapshot.sessionStatus)) {
@@ -656,12 +730,12 @@ export function App() {
       }
 
       const targetMatches = isShortcutTarget(event.target, composerRef.current)
-      if (leaderPendingRef.current) {
-        const action = leaderAction(event.key)
-        clearLeaderPending()
-        if (!targetMatches || composerAutocomplete.state) {
-          return
-        }
+        if (leaderPendingRef.current) {
+          const action = leaderAction(event.key)
+          clearLeaderPending()
+          if (!targetMatches || activeAutocomplete) {
+            return
+          }
         event.preventDefault()
         if (!action) {
           return
@@ -673,7 +747,7 @@ export function App() {
       }
 
       if (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "x") {
-        if (!targetMatches || composerAutocomplete.state) {
+        if (!targetMatches || activeAutocomplete) {
           return
         }
         event.preventDefault()
@@ -705,9 +779,14 @@ export function App() {
 
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [clearEscPending, clearLeaderPending, composerAutocomplete.state, isChildSession, navigateSession, runLeaderAction, startLeaderPending, state.bootstrap.status, state.snapshot.navigation.next, state.snapshot.navigation.parent, state.snapshot.navigation.prev])
+  }, [activeAutocomplete, clearEscPending, clearLeaderPending, isChildSession, navigateSession, runLeaderAction, startLeaderPending, state.bootstrap.status, state.snapshot.navigation.next, state.snapshot.navigation.parent, state.snapshot.navigation.prev])
 
   const acceptComposerAutocomplete = React.useCallback((item: ComposerAutocompleteItem, options?: { completeDirectory?: boolean }) => {
+    if (composerMode === "shell") {
+      composerAutocomplete.close()
+      return
+    }
+
     if (item.kind === "action") {
       if (item.id === "slash-undo") {
         clearComposerDraft()
@@ -790,7 +869,7 @@ export function App() {
       composerAutocomplete.close()
       restoreComposerCursor(result.draft, next.cursor)
     }
-  }, [clearComposerDraft, composerAutocomplete, currentSelection.model, openModelPicker, postComposerAction, restoreComposerCursor, setComposerState, state.composerParts, state.snapshot])
+  }, [clearComposerDraft, composerAutocomplete, composerMode, currentSelection.model, openModelPicker, postComposerAction, restoreComposerCursor, setComposerState, state.composerParts, state.snapshot])
 
   const sendQuestionReply = React.useCallback((request: QuestionRequest) => {
     const answers = request.questions.map((_item, index) => {
@@ -910,17 +989,17 @@ export function App() {
           {isChildSession ? <SessionNav navigation={state.snapshot.navigation} onNavigate={(sessionID) => vscode.postMessage({ type: "navigateSession", sessionID })} /> : null}
 
           {!blocked && !isChildSession ? (
-            <section className={`oc-composer${leaderPending ? " is-leaderPending" : ""}`}>
+            <section className={`oc-composer${leaderPending ? " is-leaderPending" : ""}${composerMode === "shell" ? " is-shell" : ""}`}>
               <div className="oc-composerBody">
                 {composerDrag ? <div className="oc-composerDropOverlay">Drop to @mention file</div> : null}
                 <div className="oc-composerInputWrap">
                   {leaderPending ? <div className="oc-composerLeaderOverlay"><span className="oc-composerLeaderOverlayText">Ctrl + X Pressed</span></div> : null}
                   <div
                     ref={composerRef}
-                    className="oc-composerInput"
+                    className={`oc-composerInput${composerMode === "shell" ? " is-shell" : ""}`}
                     role="textbox"
                     aria-multiline="true"
-                    aria-label="Ask OpenCode to inspect explain or change this workspace"
+                    aria-label={composerAriaLabel}
                     contentEditable={state.bootstrap.status === "ready" && !blocked && !leaderPending}
                     suppressContentEditableWarning
                     spellCheck
@@ -1005,6 +1084,45 @@ export function App() {
                       const native = event.nativeEvent as KeyboardEvent & { keyCode?: number }
                       const isImeComposing = native.isComposing || composing || native.keyCode === 229
                       const selection = getSelectionOffsets(event.currentTarget)
+                      const enterIntent = composerEnterIntent({
+                        mode: composerMode,
+                        key: event.key,
+                        metaKey: event.metaKey,
+                        ctrlKey: event.ctrlKey,
+                        shiftKey: event.shiftKey,
+                        hasAutocomplete: !!activeAutocomplete,
+                        isImeComposing,
+                      })
+
+                      if (shouldEnterShellMode({
+                        mode: composerMode,
+                        draft: state.draft,
+                        key: event.key,
+                        start: selection.start,
+                        end: selection.end,
+                        metaKey: event.metaKey,
+                        ctrlKey: event.ctrlKey,
+                        altKey: event.altKey,
+                      })) {
+                        event.preventDefault()
+                        enterShellMode()
+                        return
+                      }
+
+                      if (shouldExitShellModeOnBackspace({
+                        mode: composerMode,
+                        draft: state.draft,
+                        key: event.key,
+                        start: selection.start,
+                        end: selection.end,
+                        metaKey: event.metaKey,
+                        ctrlKey: event.ctrlKey,
+                        altKey: event.altKey,
+                      })) {
+                        event.preventDefault()
+                        exitShellMode()
+                        return
+                      }
 
                       if (!event.metaKey && !event.ctrlKey && !event.altKey && (event.key === "Backspace" || event.key === "Delete")) {
                         const next = deleteStructuredRange(state.composerParts, selection.start, selection.end, event.key)
@@ -1016,19 +1134,11 @@ export function App() {
                         }
                       }
 
-                      if (event.key === "Enter" && isImeComposing) {
+                      if (enterIntent === "ignore") {
                         return
                       }
 
-                      if (event.key === "Enter" && !(event.metaKey || event.ctrlKey) && !composerAutocomplete.state) {
-                        event.preventDefault()
-                        const next = replaceRangeWithText(state.composerParts, selection.start, selection.end, "\n")
-                        const result = setComposerState(next.parts, "")
-                        restoreComposerCursor(result.draft, next.cursor)
-                        return
-                      }
-
-                      if (composerAutocomplete.state) {
+                      if (activeAutocomplete) {
                         if (event.key === "ArrowDown") {
                           event.preventDefault()
                           composerAutocomplete.move(1)
@@ -1047,19 +1157,33 @@ export function App() {
                           return
                         }
 
-                        if (event.key === "Enter") {
+                        if (enterIntent === "acceptAutocomplete") {
                           event.preventDefault()
-                          if (composerAutocomplete.currentItem) {
-                            acceptComposerAutocomplete(composerAutocomplete.currentItem)
+                          if (activeAutocompleteItem) {
+                            acceptComposerAutocomplete(activeAutocompleteItem)
                           }
                           return
                         }
 
-                        if (event.key === "Tab" && composerAutocomplete.currentItem) {
+                        if (event.key === "Tab" && activeAutocompleteItem) {
                           event.preventDefault()
-                          acceptComposerAutocomplete(composerAutocomplete.currentItem, { completeDirectory: composerAutocomplete.currentItem.kind === "directory" })
+                          acceptComposerAutocomplete(activeAutocompleteItem, { completeDirectory: activeAutocompleteItem.kind === "directory" })
                           return
                         }
+                      }
+
+                      if (event.key === "Escape" && composerMode === "shell" && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
+                        event.preventDefault()
+                        exitShellMode()
+                        return
+                      }
+
+                      if (enterIntent === "newline") {
+                        event.preventDefault()
+                        const next = replaceRangeWithText(state.composerParts, selection.start, selection.end, "\n")
+                        const result = setComposerState(next.parts, "")
+                        restoreComposerCursor(result.draft, next.cursor)
+                        return
                       }
 
                       if (event.key === "Escape" && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
@@ -1081,13 +1205,20 @@ export function App() {
                       if (event.key === "Tab") {
                         const nextAgent = cycleAgentName(state.snapshot.agents, currentSelection.agent)
                         const tabIntent = composerTabIntent({
-                          hasAutocomplete: !!composerAutocomplete.state,
-                          hasCurrentItem: !!composerAutocomplete.currentItem,
+                          mode: composerMode,
+                          hasAutocomplete: !!activeAutocomplete,
+                          hasCurrentItem: !!activeAutocompleteItem,
                           metaKey: event.metaKey,
                           ctrlKey: event.ctrlKey,
                           altKey: event.altKey,
                           canCycleAgent: !!nextAgent,
                         })
+
+                        if (tabIntent === "ignore") {
+                          event.preventDefault()
+                          return
+                        }
+
                         if (tabIntent === "cycleAgent" && cycleComposerAgent()) {
                           event.preventDefault()
                           return
@@ -1102,14 +1233,14 @@ export function App() {
                         }
                       }
 
-                      if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) {
+                      if (enterIntent !== "submit") {
                         return
                       }
                       event.preventDefault()
                       submit()
                     }}
                   />
-                  {!state.draft.trim() && !composerFocused ? <div className="oc-composerPlaceholder" aria-hidden="true">Ask OpenCode to inspect, explain, or change this workspace.</div> : null}
+                  {!state.draft.trim() && !composerFocused ? <div className="oc-composerPlaceholder" aria-hidden="true">{composerPlaceholder}</div> : null}
                 </div>
                 <div className="oc-composerInfoWrap" ref={modelPickerRef}>
                   <ComposerInfo state={state} leaderPending={leaderPending} modelPickerOpen={modelPickerOpen} onToggleModelPicker={toggleModelPicker} onCycleVariant={() => cycleComposerVariant()} />
@@ -1125,11 +1256,11 @@ export function App() {
                     />
                   ) : null}
                 </div>
-                {composerAutocomplete.state ? <ComposerAutocompletePopup state={composerAutocomplete.state} fileSearch={fileSearch} onSelect={acceptComposerAutocomplete} /> : null}
+                {activeAutocomplete ? <ComposerAutocompletePopup state={activeAutocomplete} fileSearch={fileSearch} onSelect={acceptComposerAutocomplete} /> : null}
               </div>
             <div className="oc-composerActions">
               <div className="oc-composerActionsMain">
-                <ComposerRunHints state={state} escPending={escPending} />
+                <ComposerRunHints state={state} escPending={escPending} composerMode={composerMode} />
                 {state.error ? <div className="oc-errorText oc-composerErrorText">{state.error}</div> : null}
               </div>
               <div className="oc-composerContextWrap">
@@ -1461,9 +1592,8 @@ function ComposerRunningIndicator({ running }: { running: boolean }) {
   return <span className={`oc-composerRunBar${running ? " is-running" : ""}`} aria-label="running" />
 }
 
-function ComposerRunHints({ state, escPending }: { state: AppState; escPending: boolean }) {
+function ComposerRunHints({ state, escPending, composerMode }: { state: AppState; escPending: boolean; composerMode: ComposerMode }) {
   const running = isSessionRunning(state.snapshot.sessionStatus)
-  const modifierLabel = useModifierKeyLabel()
 
   if (running) {
     return (
@@ -1476,17 +1606,42 @@ function ComposerRunHints({ state, escPending }: { state: AppState; escPending: 
 
   return (
     <div className="oc-composerHintRow" aria-hidden="true">
-      <span className="oc-composerShortcutGroup">
-        <Keycap icon={<EnterKeyIcon />} label="Enter" />
-        <span>newline</span>
-      </span>
-      <span aria-hidden="true">·</span>
-      <span className="oc-composerShortcutGroup">
-        <Keycap icon={modifierLabel === "Cmd" ? <CommandKeyIcon /> : <CtrlKeyIcon />} label={modifierLabel} />
-        <span>+</span>
-        <Keycap icon={<EnterKeyIcon />} label="Enter" />
-        <span>submit</span>
-      </span>
+      {composerMode === "shell" ? (
+        <>
+          <span className="oc-composerModeBadge">shell</span>
+          <span aria-hidden="true">·</span>
+          <span className="oc-composerShortcutGroup">
+            <Keycap icon={<EnterKeyIcon />} label="Enter" />
+            <span>run command</span>
+          </span>
+          <span aria-hidden="true">·</span>
+          <span className="oc-composerShortcutGroup">
+            <Keycap label="Shift" />
+            <span>+</span>
+            <Keycap icon={<EnterKeyIcon />} label="Enter" />
+            <span>newline</span>
+          </span>
+          <span aria-hidden="true">·</span>
+          <span className="oc-composerShortcutGroup">
+            <Keycap label="Esc" />
+            <span>exit shell</span>
+          </span>
+        </>
+      ) : (
+        <>
+          <span className="oc-composerShortcutGroup">
+            <Keycap icon={<EnterKeyIcon />} label="Enter" />
+            <span>submit</span>
+          </span>
+          <span aria-hidden="true">·</span>
+          <span className="oc-composerShortcutGroup">
+            <Keycap label="Shift" />
+            <span>+</span>
+            <Keycap icon={<EnterKeyIcon />} label="Enter" />
+            <span>newline</span>
+          </span>
+        </>
+      )}
     </div>
   )
 }
@@ -1521,21 +1676,11 @@ function ComposerStatusBadges({ state, pendingMcpActions, onMcpActionStart }: { 
   )
 }
 
-function useModifierKeyLabel() {
-  return React.useMemo(() => {
-    if (typeof navigator === "undefined") {
-      return "Ctrl"
-    }
-
-    const platform = ((navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform) || navigator.platform || navigator.userAgent
-    return /mac|iphone|ipad|ipod/i.test(platform) ? "Cmd" : "Ctrl"
-  }, [])
-}
-
-function Keycap({ icon, label }: { icon: React.ReactNode; label: string }) {
+function Keycap({ icon, label }: { icon?: React.ReactNode; label: string }) {
+  const textOnly = !icon
   return (
-    <span className="oc-keycap" aria-label={label} title={label}>
-      {icon}
+    <span className={`oc-keycap${textOnly ? " is-text" : ""}`} aria-label={label} title={label}>
+      {icon || <span className="oc-keycapLabel">{label}</span>}
     </span>
   )
 }
@@ -1545,26 +1690,6 @@ function EnterKeyIcon() {
     <svg viewBox="0 0 16 16" aria-hidden="true">
       <path d="M11.75 3.75v4.5a2 2 0 0 1-2 2H4.5" className="oc-keycapPath" />
       <path d="M6.75 7.75 4.25 10l2.5 2.25" className="oc-keycapPath" />
-    </svg>
-  )
-}
-
-function CtrlKeyIcon() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M4.25 10.75 8 6.25l3.75 4.5" className="oc-keycapPath" />
-    </svg>
-  )
-}
-
-function CommandKeyIcon() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M6 6V4.75a1.75 1.75 0 1 0-1.75 1.75H6" className="oc-keycapPath" />
-      <path d="M10 6V4.75a1.75 1.75 0 1 1 1.75 1.75H10" className="oc-keycapPath" />
-      <path d="M6 10v1.25a1.75 1.75 0 1 1-1.75-1.75H6" className="oc-keycapPath" />
-      <path d="M10 10v1.25a1.75 1.75 0 1 0 1.75-1.75H10" className="oc-keycapPath" />
-      <path d="M6 6h4v4H6z" className="oc-keycapPath" />
     </svg>
   )
 }

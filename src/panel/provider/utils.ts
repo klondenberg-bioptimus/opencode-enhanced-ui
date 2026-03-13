@@ -61,6 +61,78 @@ export function text(err: unknown) {
 }
 
 export function textError(err: unknown) {
-  const message = text(err)
-  return message || "unknown error"
+  if (err instanceof Error) {
+    return err.message || err.name || "unknown error"
+  }
+
+  if (typeof err === "string") {
+    return err || "unknown error"
+  }
+
+  if (err && typeof err === "object") {
+    const record = err as Record<string, unknown>
+    const name = typeof record.name === "string" ? record.name : ""
+
+    const message = typeof record.message === "string" ? record.message : ""
+    if (message) {
+      return name ? `${name}: ${message}` : message
+    }
+
+    const data = record.data
+    if (data && typeof data === "object") {
+      const dataRecord = data as Record<string, unknown>
+      const dataMessage = typeof dataRecord.message === "string" ? dataRecord.message : ""
+      if (dataMessage) {
+        return name ? `${name}: ${dataMessage}` : dataMessage
+      }
+
+      const responseBody = typeof dataRecord.responseBody === "string" ? dataRecord.responseBody : ""
+      if (responseBody) {
+        return responseBody
+      }
+    }
+
+    const errors = record.errors
+    if (Array.isArray(errors) && errors.length > 0) {
+      const first = errors[0]
+      if (first && typeof first === "object") {
+        const firstRecord = first as Record<string, unknown>
+        for (const key of Object.keys(firstRecord)) {
+          const value = firstRecord[key]
+          if (typeof value === "string" && value) {
+            return value
+          }
+        }
+      }
+    }
+
+    const raw = String(err)
+    if (raw && raw !== "[object Object]") {
+      return raw
+    }
+
+    try {
+      const seen = new WeakSet<object>()
+      const json = JSON.stringify(err, (_key, value) => {
+        if (typeof value === "bigint") {
+          return value.toString()
+        }
+        if (!value || typeof value !== "object") {
+          return value
+        }
+        if (seen.has(value as object)) {
+          return "[Circular]"
+        }
+        seen.add(value as object)
+        return value
+      })
+      if (json) {
+        return json.length > 1200 ? `${json.slice(0, 1200)}…` : json
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return String(err) || "unknown error"
 }

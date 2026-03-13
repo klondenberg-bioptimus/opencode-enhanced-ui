@@ -21,6 +21,10 @@
   box-sizing: border-box;
 }
 
+.oc-composerInput.is-shell {
+  font-family: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+}
+
 .oc-composerInput[contenteditable="false"] {
   opacity: 0.55;
   cursor: not-allowed;
@@ -65,6 +69,11 @@
 .oc-composer.is-leaderPending .oc-composerBody {
   border-color: color-mix(in srgb, var(--vscode-focusBorder, var(--oc-accent)) 26%, var(--oc-border-strong) 74%);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, var(--oc-accent)) 8%, transparent 92%);
+}
+
+.oc-composer.is-shell:not(.is-leaderPending) .oc-composerBody {
+  border-color: color-mix(in srgb, var(--oc-warning) 68%, var(--oc-border-strong) 32%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--oc-warning) 18%, transparent 82%);
 }
 
 .oc-composerDropOverlay {
@@ -715,6 +724,19 @@
   background: color-mix(in srgb, var(--oc-surface-control) 88%, transparent 12%);
   color: var(--oc-fg-primary);
   box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--oc-border-strong) 45%, transparent 55%);
+}
+
+.oc-keycap.is-text {
+  width: auto;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.oc-keycapLabel {
+  display: inline-block;
+  line-height: 1;
 }
 
 .oc-keycap svg {

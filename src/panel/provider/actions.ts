@@ -6,6 +6,7 @@ import type { ComposerPromptPart, SessionPanelRef } from "../../bridge/types"
 import type { MessageInfo, MessagePart, PermissionReply, PromptPartInput } from "../../core/sdk"
 import { WorkspaceManager } from "../../core/workspace"
 import { text, textError, wait } from "./utils"
+import { friendlyShellSubmitError } from "./shell-errors"
 import { parseComposerFileQuery } from "../webview/lib/composer-file-selection"
 
 export type PanelActionState = {
@@ -133,6 +134,52 @@ export async function runSlashCommand(ctx: ActionContext, command: string, args:
     await ctx.push(true)
   }
 }
+
+export async function runShellCommand(ctx: ActionContext, command: string, agent?: string, model?: MessageInfo["model"], variant?: string) {
+  if (!command.trim() || ctx.state.disposed) {
+    return
+  }
+
+  const rt = ctx.mgr.get(ctx.ref.workspaceId)
+  if (!rt || rt.state !== "ready" || !rt.sdk) {
+    await fail(ctx.panel.webview, "Workspace server is not ready.")
+    return
+  }
+
+  const run = ++ctx.state.run
+  ctx.state.pendingSubmitCount += 1
+  await ctx.push(true)
+
+  try {
+    await rt.sdk.session.shell({
+      sessionID: ctx.ref.sessionId,
+      directory: rt.dir,
+      command,
+      agent,
+      model: model ? { providerID: model.providerID, modelID: model.modelID } : undefined,
+      variant,
+    })
+
+    ctx.panel.webview.postMessage({ type: "shellCommandSucceeded" })
+    await wait(400)
+    if (!ctx.state.disposed && run === ctx.state.run) {
+      await ctx.push(true)
+    }
+  } catch (err) {
+    const rawMessage = textError(err)
+    const message = friendlyShellSubmitError(rawMessage)
+    ctx.log(`shell command failed: ${rawMessage}`)
+    ctx.panel.webview.postMessage({
+      type: "restoreComposer",
+      parts: [{ type: "text", text: command }],
+    })
+    await vscode.window.showErrorMessage(message)
+  } finally {
+    ctx.state.pendingSubmitCount = Math.max(0, ctx.state.pendingSubmitCount - 1)
+    await ctx.push(true)
+  }
+}
+
 
 export async function runComposerAction(ctx: ActionContext, action: "refreshSession" | "compactSession" | "undoSession" | "redoSession" | "interruptSession", model?: MessageInfo["model"]) {
   if (ctx.state.disposed) {
