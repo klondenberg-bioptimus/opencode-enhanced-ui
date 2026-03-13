@@ -1,5 +1,6 @@
 import * as vscode from "vscode"
 import type { WorkspaceRef } from "../bridge/types"
+import { checkOpencodeAvailable, runtimeNotReadyMessage } from "./runtime-errors"
 import { SessionItem, WorkspaceItem } from "../sidebar/item"
 import type { WorkspaceRuntime } from "./server"
 import { SessionStore } from "./session"
@@ -25,6 +26,17 @@ export function commands(
     vscode.commands.registerCommand("opencode-ui.openProviderDocs", async () => {
       await vscode.env.openExternal(vscode.Uri.parse("https://opencode.ai/docs"))
     }),
+    vscode.commands.registerCommand("opencode-ui.checkEnvironment", async () => {
+      const host = vscode.env.remoteName || "local"
+      const result = await checkOpencodeAvailable()
+
+      if (result.ok) {
+        await vscode.window.showInformationMessage(`opencode is available on the current ${host} host: ${result.output}`)
+        return
+      }
+
+      await vscode.window.showErrorMessage(`OpenCode UI environment check failed on ${host}: ${result.message}`)
+    }),
     vscode.commands.registerCommand("opencode-ui.newSession", async (item?: WorkspaceItem) => {
       const rt = item?.runtime ?? firstRuntime(mgr)
 
@@ -34,7 +46,7 @@ export function commands(
       }
 
       if (!rt || rt.state !== "ready") {
-        await vscode.window.showInformationMessage("Wait for the workspace server to become ready first.")
+        await vscode.window.showErrorMessage(runtimeNotReadyMessage(rt))
         return
       }
 
@@ -50,7 +62,7 @@ export function commands(
       }
 
       if (!rt || rt.state !== "ready") {
-        await vscode.window.showInformationMessage("Wait for the workspace server to become ready first.")
+        await vscode.window.showErrorMessage(runtimeNotReadyMessage(rt))
         return
       }
 
@@ -94,7 +106,7 @@ export function commands(
       const rt = mgr.get(workspace.workspaceId)
 
       if (!rt || rt.state !== "ready" || !rt.sdk) {
-        await vscode.window.showInformationMessage("Wait for the workspace server to become ready first.")
+        await vscode.window.showErrorMessage(runtimeNotReadyMessage(rt))
         return
       }
 

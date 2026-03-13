@@ -1,4 +1,5 @@
 import * as vscode from "vscode"
+import { isMissingOpencodeError, missingOpencodeMessage } from "../core/runtime-errors"
 import { SessionStore } from "../core/session"
 import { WorkspaceManager } from "../core/workspace"
 import { SessionItem, StatusItem, WorkspaceItem } from "./item"
@@ -44,6 +45,10 @@ export class SidebarProvider implements vscode.TreeDataProvider<vscode.TreeItem>
       }
 
       if (rt.state === "error") {
+        if (isMissingOpencodeError(rt.err)) {
+          return [new StatusItem("opencode is not available", missingOpencodeMessage(rt))]
+        }
+
         return [new StatusItem(rt.err ? `Error: ${rt.err}` : "Server failed")]
       }
 

@@ -1,4 +1,5 @@
 import * as vscode from "vscode"
+import { isMissingOpencodeError } from "../core/runtime-errors"
 import type { SessionInfo } from "../core/sdk"
 import type { WorkspaceRuntime } from "../core/server"
 
@@ -50,6 +51,10 @@ function desc(runtime: WorkspaceRuntime) {
   }
 
   if (runtime.state === "error") {
+    if (isMissingOpencodeError(runtime.err)) {
+      return "missing opencode"
+    }
+
     return "error"
   }
 

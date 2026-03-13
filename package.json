@@ -22,6 +22,7 @@
     "onCommand:opencode-ui.openSession",
     "onCommand:opencode-ui.deleteSession",
     "onCommand:opencode-ui.openOutput",
+    "onCommand:opencode-ui.checkEnvironment",
     "onCommand:opencode-ui.refreshWorkspaceSessions",
     "onCommand:opencode-ui.restartWorkspaceServer",
     "onWebviewPanel:opencode-ui.session"
@@ -108,6 +109,11 @@
       {
         "command": "opencode-ui.openOutput",
         "title": "OpenCode: Open Output"
+      },
+      {
+        "command": "opencode-ui.checkEnvironment",
+        "title": "OpenCode: Check Environment",
+        "icon": "$(debug-alt)"
       },
       {
         "command": "opencode-ui.refreshWorkspaceSessions",
