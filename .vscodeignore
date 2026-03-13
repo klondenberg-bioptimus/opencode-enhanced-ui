@@ -1,12 +1,14 @@
 src/**
 .vscode/**
 .memory/**
+node_modules/**
+opencode
 opencode/**
+.gitignore
 tsconfig.json
 eslint.config.mjs
 esbuild.js
-*.map
+**/*.map
 PLAN.md
 AGENTS.md
-README.md
 bun.lock
