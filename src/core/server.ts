@@ -1,6 +1,7 @@
 import * as cp from "node:child_process"
 import * as net from "node:net"
-import type { Client, SessionInfo } from "./sdk"
+import { getHttpProxy } from "./settings"
+import type { Client, SessionInfo, SessionStatus } from "./sdk"
 
 export type RuntimeState = "starting" | "ready" | "error" | "stopped" | "stopping"
 
@@ -12,6 +13,7 @@ export type WorkspaceRuntime = {
   url: string
   state: RuntimeState
   sessions: Map<string, SessionInfo>
+  sessionStatuses: Map<string, SessionStatus>
   sessionsState: "idle" | "loading" | "ready" | "error"
   pid?: number
   proc?: cp.ChildProcess
@@ -120,13 +122,23 @@ export function startupFailure(proc: cp.ChildProcess) {
 }
 
 export function spawn(dir: string, port: number) {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    OPENCODE_CALLER: "vscode-ui",
+  }
+  const proxy = getHttpProxy()
+
+  if (proxy) {
+    env.HTTP_PROXY = proxy
+    env.HTTPS_PROXY = proxy
+    env.http_proxy = proxy
+    env.https_proxy = proxy
+  }
+
   return cp.spawn("opencode", ["serve", "--port", String(port), "--hostname", "127.0.0.1"], {
     cwd: dir,
     detached: process.platform !== "win32",
-    env: {
-      ...process.env,
-      OPENCODE_CALLER: "vscode-ui",
-    },
+    env,
   })
 }
 

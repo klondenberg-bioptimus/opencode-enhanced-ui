@@ -1,5 +1,6 @@
 import * as vscode from "vscode"
 import type { WorkspaceRef } from "../bridge/types"
+import { openSettingsQuery } from "./settings"
 import { checkOpencodeAvailable, runtimeNotReadyMessage } from "./runtime-errors"
 import { SessionItem, WorkspaceItem } from "../sidebar/item"
 import type { WorkspaceRuntime } from "./server"
@@ -22,6 +23,9 @@ export function commands(
     }),
     vscode.commands.registerCommand("opencode-ui.openOutput", () => {
       out.show(true)
+    }),
+    vscode.commands.registerCommand("opencode-ui.openSettings", async () => {
+      await vscode.commands.executeCommand("workbench.action.openSettings", openSettingsQuery())
     }),
     vscode.commands.registerCommand("opencode-ui.openProviderDocs", async () => {
       await vscode.env.openExternal(vscode.Uri.parse("https://opencode.ai/docs"))

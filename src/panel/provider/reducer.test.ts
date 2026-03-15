@@ -17,6 +17,11 @@ function snapshot(parentID?: string): SessionSnapshot {
       time: { created: 1, updated: 1 },
     },
     message: "ready",
+    display: {
+      showInternals: false,
+      showThinking: true,
+      diffMode: "unified",
+    },
     sessionStatus: { type: "idle" },
     messages: [],
     childMessages: {},

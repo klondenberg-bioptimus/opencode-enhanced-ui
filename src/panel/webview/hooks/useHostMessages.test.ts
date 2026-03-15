@@ -114,6 +114,11 @@ describe("dispatchHostMessage", () => {
           time: { created: 0, updated: 0 },
         },
         message: "ready",
+        display: {
+          showInternals: false,
+          showThinking: true,
+          diffMode: "unified" as const,
+        },
         sessionStatus: { type: "idle" },
         messages: [userMessage, assistantMessage],
         childMessages: {},
@@ -233,6 +238,11 @@ describe("dispatchHostMessage", () => {
         time: { created: 0, updated: 0 },
       },
       message: "ready",
+      display: {
+        showInternals: false,
+        showThinking: true,
+        diffMode: "unified" as const,
+      },
       sessionStatus: { type: "idle" as const },
       messages: [userMessage, assistantMessage],
       childMessages: {},

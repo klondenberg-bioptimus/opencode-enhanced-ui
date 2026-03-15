@@ -2,6 +2,7 @@ import * as vscode from "vscode"
 import { SESSION_PANEL_VIEW_TYPE } from "./bridge/types"
 import { commands } from "./core/commands"
 import { EventHub } from "./core/events"
+import { affectsHttpProxySetting, proxyRestartMessage } from "./core/settings"
 import { SessionStore } from "./core/session"
 import { TabManager } from "./core/tabs"
 import { WorkspaceManager } from "./core/workspace"
@@ -17,8 +18,8 @@ export async function activate(ctx: vscode.ExtensionContext) {
   const out = vscode.window.createOutputChannel("OpenCode UI")
   out.appendLine(`OpenCode UI activating (remote=${vscode.env.remoteName || "local"}, uiKind=${vscode.UIKind[vscode.env.uiKind]})`)
   mgr = new WorkspaceManager(out)
-  const sessions = new SessionStore(mgr, out)
   const events = new EventHub(mgr, out)
+  const sessions = new SessionStore(mgr, events, out)
   const panels = new SessionPanelManager(ctx.extensionUri, mgr, events, out)
   const tabs = new TabManager(panels)
   const focused = new FocusedSessionStore(mgr, panels, events, out)
@@ -44,6 +45,16 @@ export async function activate(ctx: vscode.ExtensionContext) {
   await events.sync()
 
   ctx.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(async (event) => {
+      if (!affectsHttpProxySetting(event)) {
+        return
+      }
+
+      const action = await vscode.window.showInformationMessage(proxyRestartMessage(), "Reload Window")
+      if (action === "Reload Window") {
+        await vscode.commands.executeCommand("workbench.action.reloadWindow")
+      }
+    }),
     vscode.workspace.onDidChangeWorkspaceFolders(async () => {
       await mgr?.sync(vscode.workspace.workspaceFolders ?? [])
       await events.sync()

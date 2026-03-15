@@ -1,4 +1,5 @@
 import type { AgentInfo, CommandInfo, FileDiff, LspStatus, McpResource, McpStatus, PermissionRequest, PromptSource, ProviderInfo, QuestionRequest, SessionEvent, SessionInfo, SessionMessage, SessionStatus, Todo } from "../core/sdk"
+import type { DisplaySettings } from "../core/settings"
 
 export const SESSION_PANEL_VIEW_TYPE = "opencode-ui.session"
 
@@ -22,6 +23,7 @@ export type SessionBootstrap = {
 }
 
 export type SessionSnapshot = SessionBootstrap & {
+  display: DisplaySettings
   sessionStatus?: SessionStatus
   messages: SessionMessage[]
   childMessages: Record<string, SessionMessage[]>

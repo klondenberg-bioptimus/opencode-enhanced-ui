@@ -60,7 +60,7 @@ export class SidebarProvider implements vscode.TreeDataProvider<vscode.TreeItem>
         return [new StatusItem("Loading sessions...")]
       }
 
-      const list = this.sessions.list(rt.workspaceId).map((session) => new SessionItem(rt, session))
+      const list = this.sessions.list(rt.workspaceId).map((session) => new SessionItem(rt, session, rt.sessionStatuses.get(session.id)))
 
       if (rt.sessionsErr) {
         return [new StatusItem(`Session error: ${rt.sessionsErr}`), ...list]

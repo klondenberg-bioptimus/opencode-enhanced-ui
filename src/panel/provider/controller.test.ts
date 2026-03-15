@@ -59,6 +59,11 @@ function snapshot(options?: {
     },
     session,
     message: "ready",
+    display: {
+      showInternals: false,
+      showThinking: true,
+      diffMode: "unified",
+    },
     sessionStatus: { type: "idle" },
     messages: options?.messages ?? [message(session.id, "m1", "hello")],
     childMessages: options?.childMessages ?? {},

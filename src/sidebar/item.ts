@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 import { isMissingOpencodeError } from "../core/runtime-errors"
-import type { SessionInfo } from "../core/sdk"
+import type { SessionInfo, SessionStatus } from "../core/sdk"
 import type { WorkspaceRuntime } from "../core/server"
 
 export class WorkspaceItem extends vscode.TreeItem {
@@ -26,13 +26,16 @@ export class SessionItem extends vscode.TreeItem {
   constructor(
     readonly runtime: WorkspaceRuntime,
     readonly session: SessionInfo,
+    status?: SessionStatus,
   ) {
     super(session.title || session.id.slice(0, 8), vscode.TreeItemCollapsibleState.None)
     this.id = `${runtime.workspaceId}:${session.id}`
     this.description = session.id.slice(0, 8)
     this.tooltip = `${session.title || session.id}\n${session.id}\n${runtime.dir}`
     this.contextValue = "session"
-    this.iconPath = new vscode.ThemeIcon("comment-discussion")
+    this.iconPath = status?.type === "busy"
+      ? new vscode.ThemeIcon("loading~spin")
+      : new vscode.ThemeIcon("comment-discussion")
     this.command = {
       command: "opencode-ui.openSession",
       title: "Open Session",

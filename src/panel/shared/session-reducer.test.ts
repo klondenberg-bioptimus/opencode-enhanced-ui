@@ -2,9 +2,10 @@ import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 
 import type { SessionSnapshot } from "../../bridge/types"
+import type { DisplaySettings } from "../../core/settings"
 import { reduceSessionSnapshot } from "./session-reducer"
 
-function snapshot(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {
+function snapshot(overrides: Partial<SessionSnapshot> & { display?: DisplaySettings } = {}): SessionSnapshot {
   return {
     status: "ready",
     workspaceName: "workspace",
@@ -41,6 +42,11 @@ function snapshot(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {
     agentMode: "build",
     navigation: {},
     ...overrides,
+    display: overrides.display ?? {
+      showInternals: false,
+      showThinking: true,
+      diffMode: "unified",
+    },
   }
 }
 

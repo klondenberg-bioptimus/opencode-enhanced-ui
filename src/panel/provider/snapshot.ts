@@ -1,5 +1,6 @@
 import * as path from "node:path"
 import type { SessionPanelRef, SessionSnapshot } from "../../bridge/types"
+import { getDisplaySettings } from "../../core/settings"
 import type { AgentInfo, Client, CommandInfo, FileDiff, LspStatus, McpResource, McpStatus, ProviderInfo, SessionInfo, SessionMessage } from "../../core/sdk"
 import { WorkspaceManager } from "../../core/workspace"
 import { summarizeSessionSnapshot } from "../shared/session-summary"
@@ -22,6 +23,7 @@ export type SessionSnapshotBuild = {
 }
 
 export async function buildSessionSnapshot({ ref, mgr, log, isSubmitting }: SnapshotContext): Promise<SessionSnapshotBuild> {
+  const display = getDisplaySettings()
   const rt = mgr.get(ref.workspaceId)
   const workspaceName = rt?.name || path.basename(ref.dir)
 
@@ -108,6 +110,7 @@ export async function buildSessionSnapshot({ ref, mgr, log, isSubmitting }: Snap
 
     const snapshot = patch({
       status: "ready",
+      display,
       sessionRef: ref,
       workspaceName,
       session,
@@ -312,8 +315,10 @@ function fallbackSnapshot(
   message: string,
   submitting: boolean,
 ): SessionSnapshot {
+  const display = getDisplaySettings()
   return {
     status,
+    display,
     sessionRef: ref,
     workspaceName,
     message,

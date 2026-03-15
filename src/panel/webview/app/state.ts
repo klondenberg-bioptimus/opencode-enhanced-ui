@@ -1,4 +1,5 @@
 import type { ComposerFileSelection, ComposerPathKind, SessionBootstrap, SessionSnapshot } from "../../../bridge/types"
+import type { DisplaySettings } from "../../../core/settings"
 import type { AgentInfo, CommandInfo, FileDiff, LspStatus, McpResource, McpStatus, MessageInfo, PermissionRequest, ProviderInfo, QuestionRequest, SessionInfo, SessionMessage, SessionStatus, Todo } from "../../../core/sdk"
 
 export type VsCodeApi = {
@@ -63,6 +64,7 @@ export type AppState = {
   bootstrap: SessionBootstrap
   snapshot: {
     session?: SessionInfo
+    display: DisplaySettings
     messages: SessionMessage[]
     childMessages: Record<string, SessionMessage[]>
     childSessions: Record<string, SessionInfo>
@@ -131,6 +133,11 @@ export function createInitialState(initialRef: SessionBootstrap["sessionRef"] | 
     snapshot: {
       messages: [],
       session: undefined,
+      display: {
+        showInternals: false,
+        showThinking: true,
+        diffMode: "unified",
+      },
       childMessages: {},
       childSessions: {},
       sessionStatus: undefined,
@@ -210,6 +217,7 @@ export function bootstrapFromSnapshot(payload: SessionSnapshot): SessionBootstra
 export function normalizeSnapshotPayload(payload: SessionSnapshot, previous?: AppState["snapshot"]): AppState["snapshot"] {
   return {
     session: payload.session,
+    display: payload.display,
     messages: reconcileMessageList(Array.isArray(payload.messages) ? payload.messages : [], previous?.messages),
     childMessages: recordOfMessageLists(payload.childMessages, previous?.childMessages),
     childSessions: recordOfSessions(payload.childSessions),

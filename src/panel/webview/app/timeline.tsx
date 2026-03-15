@@ -35,9 +35,12 @@ export function createTimelineDerivationCache(): TimelineDerivationCache {
 type TimelineProps = {
   bootstrapStatus: "idle" | "loading" | "ready" | "error"
   bootstrapMessage?: string
+  diffMode: "unified" | "split"
   messages: SessionMessage[]
   revertDiff?: string
   revertID?: string
+  showInternals: boolean
+  showThinking: boolean
   AgentBadge: ({ name }: { name: string }) => React.JSX.Element
   CompactionDivider: () => React.JSX.Element
   EmptyState: ({ title, text }: { title: string; text: string }) => React.JSX.Element
@@ -48,18 +51,18 @@ type TimelineProps = {
 export const Timeline = React.memo(function Timeline({
   bootstrapStatus,
   bootstrapMessage,
+  diffMode,
   messages,
   revertDiff,
   revertID,
+  showInternals,
+  showThinking,
   AgentBadge,
   CompactionDivider,
   EmptyState,
   MarkdownBlock,
   PartView,
 }: TimelineProps) {
-  const [showThinking, setShowThinking] = React.useState(true)
-  const [showInternals, setShowInternals] = React.useState(false)
-  const [diffMode, setDiffMode] = React.useState<"unified" | "split">("unified")
   const cacheRef = React.useRef<TimelineDerivationCache>(createTimelineDerivationCache())
 
   const blocks = React.useMemo(() => reconcileTimelineBlocks(cacheRef.current, messages, {
@@ -69,7 +72,6 @@ export const Timeline = React.memo(function Timeline({
     revertDiff,
   }), [messages, revertDiff, revertID, showInternals, showThinking])
   const activeToolID = React.useMemo(() => latestActiveToolId(blocks.flatMap((block) => block.kind === "assistant-part" ? [block.part] : [])), [blocks])
-  const hasPatchDiff = React.useMemo(() => blocks.some((block) => block.kind === "assistant-part" && block.part.type === "tool" && block.part.tool === "apply_patch"), [blocks])
 
   if (bootstrapStatus === "error") {
     return <EmptyState title="Session unavailable" text={bootstrapMessage || "The workspace runtime is not ready."} />
@@ -86,24 +88,6 @@ export const Timeline = React.memo(function Timeline({
   return (
     <TranscriptVisibilityContext.Provider value={{ showThinking, showInternals }}>
       <div className="oc-log">
-        <div className="oc-transcriptTools">
-          <button type="button" className={`oc-toggleBtn${showThinking ? " is-active" : ""}`} onClick={() => setShowThinking((current) => !current)}>
-            Thinking {showThinking ? "on" : "off"}
-          </button>
-          <button type="button" className={`oc-toggleBtn${showInternals ? " is-active" : ""}`} onClick={() => setShowInternals((current) => !current)}>
-            Internals {showInternals ? "on" : "off"}
-          </button>
-          {hasPatchDiff ? (
-            <div className="oc-transcriptToggleGroup" role="group" aria-label="Diff view mode">
-              <button type="button" className={`oc-toggleBtn${diffMode === "unified" ? " is-active" : ""}`} onClick={() => setDiffMode("unified")}>
-                Unified
-              </button>
-              <button type="button" className={`oc-toggleBtn${diffMode === "split" ? " is-active" : ""}`} onClick={() => setDiffMode("split")}>
-                Split
-              </button>
-            </div>
-          ) : null}
-        </div>
         {blocks.map((block) => (
           <MemoTimelineBlockView
             key={block.key}

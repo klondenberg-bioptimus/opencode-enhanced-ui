@@ -154,6 +154,7 @@ export class WorkspaceManager implements vscode.Disposable {
       url,
       state: "starting",
       sessions: new Map(),
+      sessionStatuses: new Map(),
       sessionsState: "idle",
       pid: proc.pid,
       proc,

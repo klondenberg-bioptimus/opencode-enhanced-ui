@@ -37,6 +37,7 @@
     "onCommand:opencode-ui.openSession",
     "onCommand:opencode-ui.deleteSession",
     "onCommand:opencode-ui.openOutput",
+    "onCommand:opencode-ui.openSettings",
     "onCommand:opencode-ui.checkEnvironment",
     "onCommand:opencode-ui.refreshWorkspaceSessions",
     "onCommand:opencode-ui.restartWorkspaceServer",
@@ -126,6 +127,11 @@
         "title": "OpenCode: Open Output"
       },
       {
+        "command": "opencode-ui.openSettings",
+        "title": "OpenCode: Open Settings",
+        "icon": "$(gear)"
+      },
+      {
         "command": "opencode-ui.checkEnvironment",
         "title": "OpenCode: Check Environment",
         "icon": "$(debug-alt)"
@@ -153,8 +159,51 @@
         "icon": "$(debug-restart)"
       }
     ],
+    "configuration": {
+      "title": "OpenCode UI",
+      "properties": {
+        "opencode-ui.showThinking": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show thinking blocks in session panels.",
+          "scope": "machine-overridable"
+        },
+        "opencode-ui.showInternals": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show internal transcript blocks in session panels.",
+          "scope": "machine-overridable"
+        },
+        "opencode-ui.diffMode": {
+          "type": "string",
+          "default": "unified",
+          "enum": [
+            "unified",
+            "split"
+          ],
+          "markdownEnumDescriptions": [
+            "Render diffs in a unified view.",
+            "Render diffs in a split view."
+          ],
+          "description": "Choose how diffs render in session panels.",
+          "scope": "machine-overridable"
+        },
+        "opencode-ui.httpProxy": {
+          "type": "string",
+          "default": "",
+          "description": "Optional HTTP_PROXY value used when launching opencode serve. Leave empty to inherit the existing environment. Requires editor restart to take effect.",
+          "scope": "machine-overridable"
+        }
+      }
+    },
     "menus": {
-      "view/title": [],
+      "view/title": [
+        {
+          "command": "opencode-ui.openSettings",
+          "when": "view == opencode-ui.sessions",
+          "group": "navigation@99"
+        }
+      ],
       "view/item/context": [
         {
           "command": "opencode-ui.newSession",

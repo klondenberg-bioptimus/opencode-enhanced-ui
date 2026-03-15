@@ -934,9 +934,12 @@ export function App() {
                   <Timeline
                     bootstrapStatus={state.bootstrap.status}
                     bootstrapMessage={state.bootstrap.message}
+                    diffMode={state.snapshot.display.diffMode}
                     messages={state.snapshot.messages}
                     revertID={state.snapshot.session?.revert?.messageID}
                     revertDiff={state.snapshot.session?.revert?.diff}
+                    showInternals={state.snapshot.display.showInternals}
+                    showThinking={state.snapshot.display.showThinking}
                     AgentBadge={AgentBadge}
                     CompactionDivider={CompactionDivider}
                     EmptyState={EmptyState}
