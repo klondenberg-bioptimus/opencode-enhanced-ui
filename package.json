@@ -4,7 +4,7 @@
   "displayName": "OpenCode UI",
   "description": "VS Code UI for opencode sessions",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.6",
   "publisher": "zgy",
   "icon": "images/logo.png",
   "license": "MIT",
@@ -32,6 +32,7 @@
   "activationEvents": [
     "onStartupFinished",
     "onView:opencode-ui.sessions",
+    "onView:opencode-ui.sessionView",
     "onCommand:opencode-ui.refresh",
     "onCommand:opencode-ui.newSession",
     "onCommand:opencode-ui.openSession",
@@ -41,6 +42,7 @@
     "onCommand:opencode-ui.checkEnvironment",
     "onCommand:opencode-ui.refreshWorkspaceSessions",
     "onCommand:opencode-ui.restartWorkspaceServer",
+    "onCommand:opencode-ui.quickNewSession",
     "onWebviewPanel:opencode-ui.session"
   ],
   "main": "./dist/extension.js",
@@ -89,6 +91,13 @@
           "title": "OpenCode",
           "icon": "images/activity.svg"
         }
+      ],
+      "secondarySidebar": [
+        {
+          "id": "opencode-ui-secondary",
+          "title": "OpenCode",
+          "icon": "images/activity.svg"
+        }
       ]
     },
     "views": {
@@ -105,6 +114,13 @@
         {
           "id": "opencode-ui.diff",
           "name": "Modified Files",
+          "type": "webview"
+        }
+      ],
+      "opencode-ui-secondary": [
+        {
+          "id": "opencode-ui.sessionView",
+          "name": "Session",
           "type": "webview"
         }
       ]
@@ -157,6 +173,15 @@
         "title": "OpenCode: Restart Workspace Server",
         "shortTitle": "Restart",
         "icon": "$(debug-restart)"
+      },
+      {
+        "command": "opencode-ui.quickNewSession",
+        "title": "OpenCode: Quick New Session",
+        "shortTitle": "OpenCode",
+        "icon": {
+          "light": "images/button-dark.svg",
+          "dark": "images/button-light.svg"
+        }
       }
     ],
     "configuration": {
@@ -197,6 +222,12 @@
       }
     },
     "menus": {
+      "editor/title": [
+        {
+          "command": "opencode-ui.quickNewSession",
+          "group": "navigation"
+        }
+      ],
       "view/title": [
         {
           "command": "opencode-ui.openSettings",

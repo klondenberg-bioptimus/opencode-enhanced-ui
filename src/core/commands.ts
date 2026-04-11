@@ -7,6 +7,7 @@ import type { WorkspaceRuntime } from "./server"
 import { SessionStore } from "./session"
 import { TabManager } from "./tabs"
 import { WorkspaceManager } from "./workspace"
+import { SessionPanelManager } from "../panel/provider"
 
 export function commands(
   ctx: vscode.ExtensionContext,
@@ -14,6 +15,7 @@ export function commands(
   sessions: SessionStore,
   out: vscode.OutputChannel,
   tabs: TabManager,
+  panels: SessionPanelManager,
 ) {
   ctx.subscriptions.push(
     vscode.commands.registerCommand("opencode-ui.refresh", async () => {
@@ -145,12 +147,43 @@ export function commands(
       await sessions.delete(item.runtime.workspaceId, item.session.id)
       tabs.closeSession(workspaceRef(item.runtime), item.session.id)
     }),
+    vscode.commands.registerCommand("opencode-ui.quickNewSession", async () => {
+      const rt = runtimeFromActiveEditor(mgr) ?? firstRuntime(mgr)
+
+      if (!rt) {
+        await vscode.window.showInformationMessage("Open a workspace folder first.")
+        return
+      }
+
+      if (rt.state !== "ready") {
+        await vscode.window.showErrorMessage(runtimeNotReadyMessage(rt))
+        return
+      }
+
+      const session = await sessions.create(rt.workspaceId)
+      const ref = { ...workspaceRef(rt), sessionId: session.id }
+      await panels.open(ref, vscode.ViewColumn.Beside)
+    }),
   )
 }
 
 function firstRuntime(mgr: WorkspaceManager): WorkspaceRuntime | undefined {
   const folder = vscode.workspace.workspaceFolders?.[0]
   return folder ? mgr.get(folder.uri.toString()) : undefined
+}
+
+function runtimeFromActiveEditor(mgr: WorkspaceManager): WorkspaceRuntime | undefined {
+  const editor = vscode.window.activeTextEditor
+  if (!editor) {
+    return undefined
+  }
+
+  const folder = vscode.workspace.getWorkspaceFolder(editor.document.uri)
+  if (!folder) {
+    return undefined
+  }
+
+  return mgr.get(folder.uri.toString())
 }
 
 function workspaceRef(runtime: { workspaceId: string; dir: string }): WorkspaceRef {

@@ -20,7 +20,7 @@ export class SessionPanelManager implements vscode.Disposable {
     private out: vscode.OutputChannel,
   ) {}
 
-  async open(ref: SessionPanelRef) {
+  async open(ref: SessionPanelRef, viewColumn?: vscode.ViewColumn) {
     const key = panelKey(ref)
     const existing = this.panels.get(key)
 
@@ -29,7 +29,7 @@ export class SessionPanelManager implements vscode.Disposable {
       return existing.panel
     }
 
-    const panel = vscode.window.createWebviewPanel(SESSION_PANEL_VIEW_TYPE, panelTitle(ref.sessionId), vscode.ViewColumn.Active, {
+    const panel = vscode.window.createWebviewPanel(SESSION_PANEL_VIEW_TYPE, panelTitle(ref.sessionId), viewColumn ?? vscode.ViewColumn.Active, {
       enableScripts: true,
       retainContextWhenHidden: true,
       localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, "dist")],

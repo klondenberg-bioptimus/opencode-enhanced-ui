@@ -25,8 +25,14 @@ type ActionContext = {
   syncSubmitting: () => Promise<void>
 }
 
-export async function submit(ctx: ActionContext, textValue: string, parts?: ComposerPromptPart[], agent?: string, model?: MessageInfo["model"], variant?: string) {
-  if (!textValue.trim() || ctx.state.disposed) {
+export async function submit(ctx: ActionContext, textValue: string, parts?: ComposerPromptPart[], agent?: string, model?: MessageInfo["model"], variant?: string, images?: Array<{ dataUrl: string; mime: string; name: string }>) {
+  if (ctx.state.disposed) {
+    return
+  }
+
+  const hasText = !!textValue.trim()
+  const hasImages = !!images && images.length > 0
+  if (!hasText && !hasImages) {
     return
   }
 
@@ -42,7 +48,7 @@ export async function submit(ctx: ActionContext, textValue: string, parts?: Comp
   await ctx.syncSubmitting()
 
   try {
-    const prompt = toPromptParts(ctx.ref.dir, textValue, parts)
+    const prompt = toPromptParts(ctx.ref.dir, textValue, parts, images)
     await rt.sdk.session.promptAsync({
       sessionID: ctx.ref.sessionId,
       directory: rt.dir,
@@ -493,54 +499,82 @@ export async function fail(webview: vscode.Webview, message: string) {
   })
 }
 
-function toPromptParts(workspaceDir: string, textValue: string, parts?: ComposerPromptPart[]): PromptPartInput[] {
-  if (!parts || parts.length === 0) {
-    return [{ type: "text", text: textValue }]
-  }
-
+function toPromptParts(workspaceDir: string, textValue: string, parts?: ComposerPromptPart[], images?: Array<{ dataUrl: string; mime: string; name: string }>): PromptPartInput[] {
   const out: PromptPartInput[] = []
-  for (const part of parts) {
-    if (part.type === "text") {
-      out.push(part)
-      continue
-    }
-    if (part.type === "agent") {
-      out.push(part)
-      continue
-    }
 
-    if (part.type === "resource") {
+  if (!parts || parts.length === 0) {
+    if (textValue.trim()) {
+      out.push({ type: "text", text: textValue })
+    }
+  } else {
+    for (const part of parts) {
+      if (part.type === "text") {
+        out.push(part)
+        continue
+      }
+      if (part.type === "agent") {
+        out.push(part)
+        continue
+      }
+
+      if (part.type === "image") {
+        out.push({
+          type: "file",
+          mime: part.mime,
+          filename: part.name,
+          url: part.dataUrl,
+        })
+        continue
+      }
+
+      if (part.type === "resource") {
+        out.push({
+          type: "file",
+          mime: part.mimeType ?? "text/plain",
+          filename: part.name,
+          url: part.uri,
+          source: {
+            type: "resource",
+            uri: part.uri,
+            clientName: part.clientName,
+            text: part.source,
+          },
+        })
+        continue
+      }
+
+      const filePath = absolutePath(workspaceDir, part.path)
+
       out.push({
         type: "file",
-        mime: part.mimeType ?? "text/plain",
-        filename: part.name,
-        url: part.uri,
+        mime: "text/plain",
+        filename: path.basename(part.path),
+        url: fileUrl(filePath, part.selection),
         source: {
-          type: "resource",
-          uri: part.uri,
-          clientName: part.clientName,
+          type: "file",
+          path: filePath,
           text: part.source,
         },
       })
-      continue
     }
-
-    const filePath = absolutePath(workspaceDir, part.path)
-
-    out.push({
-      type: "file",
-      mime: "text/plain",
-      filename: path.basename(part.path),
-      url: fileUrl(filePath, part.selection),
-      source: {
-        type: "file",
-        path: filePath,
-        text: part.source,
-      },
-    })
   }
 
-  return out.length > 0 ? out : [{ type: "text", text: textValue }]
+  if (images && images.length > 0) {
+    for (const img of images) {
+      out.push({
+        type: "file",
+        mime: img.mime,
+        filename: img.name,
+        url: img.dataUrl,
+      })
+    }
+  }
+
+  if (out.length === 0) {
+    return [{ type: "text", text: textValue }]
+  }
+
+  return out
 }
 
 function absolutePath(dir: string, file: string) {

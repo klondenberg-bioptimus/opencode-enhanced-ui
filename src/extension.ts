@@ -11,6 +11,7 @@ import { SessionPanelSerializer } from "./panel/serializer"
 import { FocusedSessionStore } from "./sidebar/focused"
 import { SidebarProvider } from "./sidebar/provider"
 import { SidebarViewProvider } from "./sidebar/view-provider"
+import { SessionViewProvider } from "./sidebar/session-view-provider"
 
 let mgr: WorkspaceManager | undefined
 
@@ -27,17 +28,21 @@ export async function activate(ctx: vscode.ExtensionContext) {
   const tree = new SidebarProvider(mgr, sessions)
   const todoView = new SidebarViewProvider(ctx.extensionUri, "todo", focused)
   const diffView = new SidebarViewProvider(ctx.extensionUri, "diff", focused)
+  const sessionView = new SessionViewProvider(ctx.extensionUri, mgr, events, focused, out)
   const reg = vscode.window.registerTreeDataProvider("opencode-ui.sessions", tree)
   const todoReg = vscode.window.registerWebviewViewProvider("opencode-ui.todo", todoView)
   const diffReg = vscode.window.registerWebviewViewProvider("opencode-ui.diff", diffView)
+  const sessionViewReg = vscode.window.registerWebviewViewProvider("opencode-ui.sessionView", sessionView, {
+    webviewOptions: { retainContextWhenHidden: true },
+  })
   const serializer = vscode.window.registerWebviewPanelSerializer(
     SESSION_PANEL_VIEW_TYPE,
     new SessionPanelSerializer(panels),
   )
 
-  commands(ctx, mgr, sessions, out, tabs)
+  commands(ctx, mgr, sessions, out, tabs, panels)
 
-  ctx.subscriptions.push(out, mgr, sessions, events, panels, focused, tree, todoView, diffView, reg, todoReg, diffReg, serializer)
+  ctx.subscriptions.push(out, mgr, sessions, events, panels, focused, tree, todoView, diffView, sessionView, reg, todoReg, diffReg, sessionViewReg, serializer)
   out.appendLine("OpenCode UI activated")
 
   const folders = vscode.workspace.workspaceFolders ?? []

@@ -3,7 +3,7 @@ import type { ComposerPathResult, ComposerPromptPart, SessionBootstrap } from ".
 import type { QuestionRequest } from "../../../core/sdk"
 import { ChildMessagesContext, ChildSessionsContext, WorkspaceDirContext } from "./contexts"
 import { answerKey, PermissionDock, QuestionDock, RetryStatus, SessionNav, SubagentNotice } from "./docks"
-import { createInitialState, persistableAppState, type AppState, type ComposerEditorPart, type PersistedAppState, type VsCodeApi } from "./state"
+import { createInitialState, persistableAppState, type AppState, type ComposerEditorPart, type ImageAttachment, type PersistedAppState, type VsCodeApi } from "./state"
 import { Timeline } from "./timeline"
 import { AgentBadge, CompactionDivider, EmptyState, MarkdownBlock, PartView, WebviewBindingsProvider } from "./webview-bindings"
 import { ensureComposerCursorVisible, resizeComposer, useComposerResize } from "../hooks/useComposer"
@@ -54,6 +54,7 @@ export function App() {
   const [fileSearch, setFileSearch] = React.useState<{ status: "idle" | "searching" | "done"; query: string }>({ status: "idle", query: "" })
   const [composerDrag, setComposerDrag] = React.useState<null | "mention">(null)
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false)
+  const [previewImage, setPreviewImage] = React.useState<ImageAttachment | null>(null)
   const timelineRef = React.useRef<HTMLDivElement | null>(null)
   const composerRef = React.useRef<HTMLDivElement | null>(null)
   const modelPickerRef = React.useRef<HTMLDivElement | null>(null)
@@ -428,7 +429,11 @@ export function App() {
   }, [])
 
   const submit = React.useCallback(() => {
-    if (!state.draft.trim() || blocked) {
+    const hasImages = state.imageAttachments.length > 0
+    if (!state.draft.trim() && !hasImages) {
+      return
+    }
+    if (blocked) {
       return
     }
 
@@ -494,10 +499,12 @@ export function App() {
 
     const mentions = mentionsFromParts(finalized)
     const parts = buildComposerSubmitParts(draft, mentions)
+    const images = state.imageAttachments.map((img) => ({ dataUrl: img.dataUrl, mime: img.mime, name: img.name }))
     vscode.postMessage({
       type: "submit",
       text: draft,
       parts,
+      images: images.length > 0 ? images : undefined,
       agent: selection.agent,
       model: selection.model,
       variant: selection.variant,
@@ -508,9 +515,10 @@ export function App() {
       composerParts: emptyComposerParts(),
       composerMentions: [],
       composerMentionAgentOverride: undefined,
+      imageAttachments: [],
       error: "",
     }))
-  }, [blocked, composerMode, currentSelection, exitShellMode, state.composerParts, state.snapshot.commands])
+  }, [blocked, composerMode, currentSelection, exitShellMode, state.composerParts, state.imageAttachments, state.snapshot.commands])
 
   const composerPlaceholder = composerMode === "shell"
     ? "Enter shell command to run in this workspace."
@@ -1006,6 +1014,31 @@ export function App() {
             <section className={`oc-composer${leaderPending ? " is-leaderPending" : ""}${composerMode === "shell" ? " is-shell" : ""}`}>
               <div className="oc-composerBody">
                     {composerDrag ? <div className="oc-composerDropOverlay">Drop to @mention file</div> : null}
+                    {state.imageAttachments.length > 0 ? (
+                      <div className="oc-composerImageStrip">
+                        {state.imageAttachments.map((img) => (
+                          <div key={img.id} className="oc-composerImageThumb">
+                            <img
+                              src={img.dataUrl}
+                              alt={img.name}
+                              className="oc-composerImageThumbImg"
+                              onClick={() => setPreviewImage(img)}
+                            />
+                            <button
+                              type="button"
+                              className="oc-composerImageThumbClose"
+                              aria-label={`Remove ${img.name}`}
+                              onClick={() => setState((current) => ({
+                                ...current,
+                                imageAttachments: current.imageAttachments.filter((a) => a.id !== img.id),
+                              }))}
+                            >
+                              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4L12 12M12 4L4 12" /></svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                     <div className="oc-composerInputWrap">
                         {leaderPending ? <div className="oc-composerLeaderOverlay"><span className="oc-composerLeaderOverlayText">Ctrl + X Pressed</span></div> : null}
                         <div
@@ -1039,6 +1072,34 @@ export function App() {
                       ensureComposerCursorVisible(event.currentTarget)
                     }}
                     onPaste={(event) => {
+                      const items = Array.from(event.clipboardData.items)
+                      const imageItems = items.filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+                      if (imageItems.length > 0) {
+                        event.preventDefault()
+                        for (const item of imageItems) {
+                          const file = item.getAsFile()
+                          if (!file) {
+                            continue
+                          }
+                          const reader = new FileReader()
+                          reader.onload = () => {
+                            const dataUrl = reader.result as string
+                            const attachment: ImageAttachment = {
+                              id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                              dataUrl,
+                              mime: file.type || "image/png",
+                              name: file.name || `image.${(file.type || "image/png").split("/")[1] || "png"}`,
+                            }
+                            setState((current) => ({
+                              ...current,
+                              imageAttachments: [...current.imageAttachments, attachment],
+                            }))
+                          }
+                          reader.readAsDataURL(file)
+                        }
+                        return
+                      }
+
                       const text = event.clipboardData.getData("text/plain")
                       if (!text) {
                         return
@@ -1285,9 +1346,24 @@ export function App() {
               </section>
           ) : null}
 
-              {!blocked && isChildSession ? <SubagentNotice /> : null}
+               {!blocked && isChildSession ? <SubagentNotice /> : null}
               </div>
             </footer>
+            {previewImage ? (
+              <div className="oc-imagePreviewOverlay" onClick={() => setPreviewImage(null)}>
+                <div className="oc-imagePreviewContent" onClick={(event) => event.stopPropagation()}>
+                  <img src={previewImage.dataUrl} alt={previewImage.name} className="oc-imagePreviewImg" />
+                  <button
+                    type="button"
+                    className="oc-imagePreviewClose"
+                    aria-label="Close preview"
+                    onClick={() => setPreviewImage(null)}
+                  >
+                    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4L12 12M12 4L4 12" /></svg>
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
           </WebviewBindingsProvider>
         </ChildSessionsContext.Provider>
@@ -1507,6 +1583,10 @@ function composerPartsFromPromptParts(parts: ComposerPromptPart[]): ComposerEdit
         end: 0,
       })
       next.push({ type: "text", content: " ", start: 0, end: 0 })
+      continue
+    }
+
+    if (part.type === "image") {
       continue
     }
 

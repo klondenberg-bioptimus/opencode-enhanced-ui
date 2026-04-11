@@ -930,3 +930,136 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+.oc-composerImageStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px 4px;
+}
+
+.oc-composerImageThumb {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 6px;
+  border: 1px solid var(--oc-border-strong);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--oc-surface-control) 92%, transparent 8%);
+  flex: 0 0 auto;
+}
+
+.oc-composerImageThumbImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.oc-composerImageThumbImg:hover {
+  opacity: 0.88;
+}
+
+.oc-composerImageThumbClose {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--oc-surface-canvas) 82%, transparent 18%);
+  color: var(--oc-fg-primary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.oc-composerImageThumb:hover .oc-composerImageThumbClose {
+  opacity: 1;
+}
+
+.oc-composerImageThumbClose:hover {
+  background: var(--oc-error);
+  color: #fff;
+}
+
+.oc-composerImageThumbClose svg {
+  width: 10px;
+  height: 10px;
+}
+
+.oc-composerImageThumbClose svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.oc-imagePreviewOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.oc-imagePreviewContent {
+  position: relative;
+  max-width: min(90vw, 800px);
+  max-height: 80vh;
+}
+
+.oc-imagePreviewImg {
+  display: block;
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 6px;
+  border: 1px solid var(--oc-border-strong);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+}
+
+.oc-imagePreviewClose {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--oc-border-strong);
+  border-radius: 50%;
+  background: var(--oc-surface-canvas);
+  color: var(--oc-fg-primary);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.oc-imagePreviewClose:hover {
+  background: var(--oc-error);
+  color: #fff;
+  border-color: var(--oc-error);
+}
+
+.oc-imagePreviewClose svg {
+  width: 12px;
+  height: 12px;
+}
+
+.oc-imagePreviewClose svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}

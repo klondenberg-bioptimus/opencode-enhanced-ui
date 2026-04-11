@@ -60,6 +60,13 @@ export type ComposerEditorPart = ({
 
 export type ComposerModelRef = NonNullable<MessageInfo["model"]>
 
+export type ImageAttachment = {
+  id: string
+  dataUrl: string
+  mime: string
+  name: string
+}
+
 export type AppState = {
   bootstrap: SessionBootstrap
   snapshot: {
@@ -105,6 +112,7 @@ export type AppState = {
   composerFavoriteModels: ComposerModelRef[]
   composerModelVariants: Record<string, string>
   composerHydratedMessageID?: string
+  imageAttachments: ImageAttachment[]
   error: string
   form: FormState
 }
@@ -168,6 +176,7 @@ export function createInitialState(initialRef: SessionBootstrap["sessionRef"] | 
     composerFavoriteModels: normalizeModelList(persisted?.composerFavoriteModels),
     composerModelVariants: sameSession ? normalizeVariantMap(persisted?.composerModelVariants) : {},
     composerHydratedMessageID: undefined,
+    imageAttachments: [],
     error: "",
     form: {
       selected: {},

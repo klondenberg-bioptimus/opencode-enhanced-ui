@@ -148,6 +148,12 @@ export type ComposerPromptPart =
       mimeType?: string
       source: PromptSource
     }
+  | {
+      type: "image"
+      dataUrl: string
+      mime: string
+      name: string
+    }
 
 export type WebviewMessage =
   | {
@@ -160,6 +166,7 @@ export type WebviewMessage =
       type: "submit"
       text: string
       parts?: ComposerPromptPart[]
+      images?: Array<{ dataUrl: string; mime: string; name: string }>
       agent?: string
       model?: {
         providerID: string
