@@ -73,4 +73,15 @@ describe("launch context", () => {
       ],
     })
   })
+
+  test("returns undefined when the selected file is outside the workspace", () => {
+    const seed = buildEditorSeed({
+      workspaceId: "file:///workspace",
+      workspaceDir: "/workspace",
+      filePath: "/other/app.ts",
+      selection: { startLine: 1, empty: true },
+    })
+
+    assert.equal(seed, undefined)
+  })
 })

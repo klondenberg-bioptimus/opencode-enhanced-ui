@@ -8,6 +8,7 @@ import { SessionStore } from "./session"
 import { TabManager } from "./tabs"
 import { WorkspaceManager } from "./workspace"
 import { SessionPanelManager } from "../panel/provider"
+import { buildEditorSeed, buildExplorerSeed, type LaunchSeed } from "./launch-context"
 
 export function commands(
   ctx: vscode.ExtensionContext,
@@ -164,7 +165,85 @@ export function commands(
       const ref = { ...workspaceRef(rt), sessionId: session.id }
       await panels.open(ref, vscode.ViewColumn.Beside)
     }),
+    vscode.commands.registerCommand("opencode-ui.askSelection", async () => {
+      const seed = seedFromActiveEditor("selection")
+      if (!seed) {
+        await vscode.window.showInformationMessage("Select text in a workspace file first.")
+        return
+      }
+
+      await openSeededSession(seed, mgr, sessions, panels)
+    }),
+    vscode.commands.registerCommand("opencode-ui.askCurrentFile", async () => {
+      const seed = seedFromActiveEditor("file")
+      if (!seed) {
+        await vscode.window.showInformationMessage("Open a workspace file first.")
+        return
+      }
+
+      await openSeededSession(seed, mgr, sessions, panels)
+    }),
+    vscode.commands.registerCommand("opencode-ui.askExplorerFiles", async (item?: vscode.Uri, items?: vscode.Uri[]) => {
+      const seed = seedFromExplorerSelection(item, items)
+      if (!seed) {
+        await vscode.window.showInformationMessage("Select one or more files from a single workspace folder first.")
+        return
+      }
+
+      await openSeededSession(seed, mgr, sessions, panels)
+    }),
   )
+
+  function seedFromActiveEditor(mode: "selection" | "file") {
+    const editor = vscode.window.activeTextEditor
+    if (!editor) {
+      return undefined
+    }
+
+    const folder = vscode.workspace.getWorkspaceFolder(editor.document.uri)
+    if (!folder) {
+      return undefined
+    }
+
+    const selection = editor.selection
+    if (mode === "selection" && selection.isEmpty) {
+      return undefined
+    }
+
+    return buildEditorSeed({
+      workspaceId: folder.uri.toString(),
+      workspaceDir: folder.uri.fsPath,
+      filePath: editor.document.uri.fsPath,
+      selection: {
+        startLine: selection.start.line + 1,
+        endLine: selection.isEmpty ? undefined : selection.end.line + 1,
+        empty: mode === "file" ? true : selection.isEmpty,
+      },
+    })
+  }
+
+  function seedFromExplorerSelection(item?: vscode.Uri, items?: vscode.Uri[]) {
+    const uris = items?.length ? items : item ? [item] : []
+    if (!uris.length) {
+      return undefined
+    }
+
+    const folder = vscode.workspace.getWorkspaceFolder(uris[0]!)
+    if (!folder) {
+      return undefined
+    }
+
+    const sameWorkspaceFiles = uris.filter((uri) => vscode.workspace.getWorkspaceFolder(uri)?.uri.toString() === folder.uri.toString())
+    if (!sameWorkspaceFiles.length || sameWorkspaceFiles.length !== uris.length) {
+      return undefined
+    }
+
+    return buildExplorerSeed({
+      workspaceId: folder.uri.toString(),
+      workspaceDir: folder.uri.fsPath,
+      filePaths: sameWorkspaceFiles.map((uri) => uri.fsPath),
+    })
+  }
 }
 
 function firstRuntime(mgr: WorkspaceManager): WorkspaceRuntime | undefined {
@@ -191,4 +270,30 @@ function workspaceRef(runtime: { workspaceId: string; dir: string }): WorkspaceR
     workspaceId: runtime.workspaceId,
     dir: runtime.dir,
   }
+}
+
+async function openSeededSession(
+  seed: LaunchSeed,
+  mgr: WorkspaceManager,
+  sessions: SessionStore,
+  panels: SessionPanelManager,
+) {
+  const rt = mgr.get(seed.workspaceId)
+
+  if (!rt) {
+    await vscode.window.showInformationMessage("Open a workspace folder first.")
+    return
+  }
+
+  if (rt.state !== "ready") {
+    await vscode.window.showErrorMessage(runtimeNotReadyMessage(rt))
+    return
+  }
+
+  const session = await sessions.create(rt.workspaceId)
+  await panels.openWithSeed({
+    workspaceId: rt.workspaceId,
+    dir: rt.dir,
+    sessionId: session.id,
+  }, seed.parts, vscode.ViewColumn.Beside)
 }

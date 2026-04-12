@@ -336,6 +336,33 @@ describe("SessionPanelController.handle", () => {
 })
 
 describe("SessionPanelController.actionContext", () => {
+  test("posts restoreComposer after the webview becomes ready", async () => {
+    const current = snapshot()
+    const { controller } = createHarness(current)
+    const posted: unknown[] = []
+    const raw = controller as any
+
+    raw.ready = false
+    raw.panel = {
+      title: "OpenCode",
+      webview: {
+        postMessage: async (message: unknown) => {
+          posted.push(message)
+          return true
+        },
+      },
+    }
+
+    await raw.seedComposer([{ type: "text", text: "@src/app.ts" }])
+    raw.ready = true
+    await raw.flushSeedComposer()
+
+    assert.deepEqual(posted.at(-1), {
+      type: "restoreComposer",
+      parts: [{ type: "text", text: "@src/app.ts" }],
+    })
+  })
+
   test("syncSubmitting updates current state and posts submitting transport", async () => {
     const current = snapshot()
     const values: boolean[] = []

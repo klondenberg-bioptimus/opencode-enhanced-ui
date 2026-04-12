@@ -1,5 +1,5 @@
 import * as vscode from "vscode"
-import { SESSION_PANEL_VIEW_TYPE, type SessionPanelRef } from "../../bridge/types"
+import { SESSION_PANEL_VIEW_TYPE, type ComposerPromptPart, type SessionPanelRef } from "../../bridge/types"
 import { EventHub } from "../../core/events"
 import { WorkspaceManager } from "../../core/workspace"
 import { sessionPanelHtml } from "../html"
@@ -29,15 +29,25 @@ export class SessionPanelManager implements vscode.Disposable {
       return existing.panel
     }
 
-    const panel = vscode.window.createWebviewPanel(SESSION_PANEL_VIEW_TYPE, panelTitle(ref.sessionId), viewColumn ?? vscode.ViewColumn.Active, {
-      enableScripts: true,
-      retainContextWhenHidden: true,
-      localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, "dist")],
-    })
-
-    const controller = this.attach(ref, panel)
+    const controller = this.createController(ref, viewColumn)
     await controller.push()
-    return panel
+    return controller.panel
+  }
+
+  async openWithSeed(ref: SessionPanelRef, parts: ComposerPromptPart[], viewColumn?: vscode.ViewColumn) {
+    const key = panelKey(ref)
+    const existing = this.panels.get(key)
+
+    if (existing) {
+      await existing.reveal()
+      await existing.seedComposer(parts)
+      return existing.panel
+    }
+
+    const controller = this.createController(ref, viewColumn)
+    await controller.seedComposer(parts)
+    await controller.push()
+    return controller.panel
   }
 
   async restore(panel: vscode.WebviewPanel, state: unknown) {
@@ -112,6 +122,16 @@ export class SessionPanelManager implements vscode.Disposable {
       this.setActive(ref)
     }
     return controller
+  }
+
+  private createController(ref: SessionPanelRef, viewColumn?: vscode.ViewColumn) {
+    const panel = vscode.window.createWebviewPanel(SESSION_PANEL_VIEW_TYPE, panelTitle(ref.sessionId), viewColumn ?? vscode.ViewColumn.Active, {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, "dist")],
+    })
+
+    return this.attach(ref, panel)
   }
 
   private setActive(ref: SessionPanelRef | undefined) {

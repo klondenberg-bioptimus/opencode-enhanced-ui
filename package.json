@@ -43,6 +43,9 @@
     "onCommand:opencode-ui.refreshWorkspaceSessions",
     "onCommand:opencode-ui.restartWorkspaceServer",
     "onCommand:opencode-ui.quickNewSession",
+    "onCommand:opencode-ui.askSelection",
+    "onCommand:opencode-ui.askCurrentFile",
+    "onCommand:opencode-ui.askExplorerFiles",
     "onWebviewPanel:opencode-ui.session"
   ],
   "main": "./dist/extension.js",
@@ -182,6 +185,18 @@
           "light": "images/button-dark.svg",
           "dark": "images/button-light.svg"
         }
+      },
+      {
+        "command": "opencode-ui.askSelection",
+        "title": "OpenCode: Ask About Selection"
+      },
+      {
+        "command": "opencode-ui.askCurrentFile",
+        "title": "OpenCode: Ask About Current File"
+      },
+      {
+        "command": "opencode-ui.askExplorerFiles",
+        "title": "OpenCode: Ask About Selected Files"
       }
     ],
     "configuration": {
@@ -226,6 +241,25 @@
         {
           "command": "opencode-ui.quickNewSession",
           "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "opencode-ui.askSelection",
+          "when": "editorTextFocus && editorHasSelection",
+          "group": "navigation@1"
+        },
+        {
+          "command": "opencode-ui.askCurrentFile",
+          "when": "editorTextFocus",
+          "group": "navigation@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "opencode-ui.askExplorerFiles",
+          "when": "!explorerResourceIsFolder",
+          "group": "navigation@1"
         }
       ],
       "view/title": [

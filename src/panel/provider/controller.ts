@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 import { postToWebview } from "../../bridge/host"
-import type { HostMessage, SessionPanelRef, SessionSnapshot, WebviewMessage } from "../../bridge/types"
+import type { ComposerPromptPart, HostMessage, SessionPanelRef, SessionSnapshot, WebviewMessage } from "../../bridge/types"
 import { affectsDisplaySettings } from "../../core/settings"
 import { EventHub } from "../../core/events"
 import type { SessionEvent } from "../../core/sdk"
@@ -16,6 +16,7 @@ export class SessionPanelController implements vscode.Disposable {
   private ready = false
   private incrementalReady = false
   private pending: Promise<void> | undefined
+  private pendingComposerParts: ComposerPromptPart[] | undefined
   private current: SessionSnapshot | undefined
   private refreshSeq = 0
   private deferredDirty = {
@@ -50,7 +51,10 @@ export class SessionPanelController implements vscode.Disposable {
       (message: WebviewMessage) => {
         if (message?.type === "ready") {
           this.ready = true
-          void this.push(false, "webview:ready")
+          void (async () => {
+            await this.push(false, "webview:ready")
+            await this.flushSeedComposer()
+          })()
           return
         }
 
@@ -167,6 +171,15 @@ export class SessionPanelController implements vscode.Disposable {
     this.panel.reveal(vscode.ViewColumn.Active)
   }
 
+  async seedComposer(parts: ComposerPromptPart[]) {
+    if (!parts.length) {
+      return
+    }
+
+    this.pendingComposerParts = parts
+    await this.flushSeedComposer()
+  }
+
   async push(force?: boolean, reason?: string) {
     if (!this.ready || this.state.disposed) {
       return
@@ -184,6 +197,7 @@ export class SessionPanelController implements vscode.Disposable {
     }
 
     await this.pending
+    await this.flushSeedComposer()
   }
 
   dispose() {
@@ -288,6 +302,19 @@ export class SessionPanelController implements vscode.Disposable {
 
   private async postEvent(message: Extract<HostMessage, { type: "sessionEvent" }>) {
     await postToWebview(this.panel.webview, message)
+  }
+
+  async flushSeedComposer() {
+    if (this.state.disposed || !this.ready || !this.pendingComposerParts?.length) {
+      return
+    }
+
+    const parts = this.pendingComposerParts
+    this.pendingComposerParts = undefined
+    await postToWebview(this.panel.webview, {
+      type: "restoreComposer",
+      parts,
+    })
   }
 
   private isSubmitting() {
