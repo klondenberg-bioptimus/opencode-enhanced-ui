@@ -9,6 +9,7 @@ Stay in the editor, keep context intact, and manage OpenCode where the code alre
 ## Why use it ✨
 
 - **Browse sessions by workspace folder** from the Activity Bar
+- **Search sessions within one workspace** directly from the sidebar
 - **Open every conversation in its own VS Code tab**
 - **Track todos and changed files beside the active session**
 - **Use it in local folders and Remote SSH workspaces**
@@ -21,6 +22,8 @@ Stay in the editor, keep context intact, and manage OpenCode where the code alre
 ### Sessions sidebar
 
 The sidebar gives you a workspace-first view of your OpenCode sessions so you can create, reopen, refresh, and manage conversations without leaving VS Code.
+
+You can also search sessions for one workspace at a time from the workspace row, keeping the rest of the tree unchanged while you narrow results.
 
 ![Browse OpenCode sessions by workspace folder from the Activity Bar](docs/screenshots/sidebar.png)
 
@@ -42,6 +45,7 @@ Companion views help you track session-generated tasks and inspect which files c
 
 - One OpenCode runtime per workspace folder
 - Session browser with create, open, refresh, and delete actions
+- Workspace-scoped session search from the sidebar
 - A dedicated panel for each workspace-session pair
 - Todo and modified file companion views
 - Built-in environment checks with clearer `opencode` setup feedback

@@ -4,12 +4,15 @@ import type { SessionInfo, SessionStatus } from "../core/sdk"
 import type { WorkspaceRuntime } from "../core/server"
 
 export class WorkspaceItem extends vscode.TreeItem {
-  constructor(readonly runtime: WorkspaceRuntime) {
+  constructor(
+    readonly runtime: WorkspaceRuntime,
+    searchActive = false,
+  ) {
     super(runtime.name, vscode.TreeItemCollapsibleState.Expanded)
     this.id = runtime.workspaceId
     this.description = desc(runtime)
     this.tooltip = `${runtime.dir}\n${runtime.url}`
-    this.contextValue = "workspace"
+    this.contextValue = searchActive ? "workspace-searching" : "workspace"
     this.iconPath = icon(runtime.state)
   }
 }
@@ -17,6 +20,7 @@ export class WorkspaceItem extends vscode.TreeItem {
 export class StatusItem extends vscode.TreeItem {
   constructor(label: string, description?: string) {
     super(label, vscode.TreeItemCollapsibleState.None)
+    this.label = label
     this.description = description
     this.contextValue = "status"
   }
@@ -24,7 +28,7 @@ export class StatusItem extends vscode.TreeItem {
 
 export class SessionItem extends vscode.TreeItem {
   constructor(
-    readonly runtime: WorkspaceRuntime,
+    readonly runtime: Pick<WorkspaceRuntime, "workspaceId" | "dir">,
     readonly session: SessionInfo,
     status?: SessionStatus,
   ) {
@@ -39,6 +43,20 @@ export class SessionItem extends vscode.TreeItem {
     this.command = {
       command: "opencode-ui.openSession",
       title: "Open Session",
+      arguments: [this],
+    }
+  }
+}
+
+export class ClearSearchItem extends vscode.TreeItem {
+  constructor(readonly runtime: Pick<WorkspaceRuntime, "workspaceId">) {
+    super("Clear Search", vscode.TreeItemCollapsibleState.None)
+    this.id = `${runtime.workspaceId}:clear-search`
+    this.contextValue = "clear-search"
+    this.iconPath = new vscode.ThemeIcon("close")
+    this.command = {
+      command: "opencode-ui.clearWorkspaceSessionSearch",
+      title: "Clear Session Search",
       arguments: [this],
     }
   }

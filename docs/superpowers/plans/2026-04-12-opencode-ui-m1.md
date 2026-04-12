@@ -1,5 +1,7 @@
 # OpenCode UI M1 Implementation Plan
 
+> Status: Completed and archived after M1 implementation shipped on 2026-04-12.
+
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add M1 migration-focused UX foundations so users can launch OpenCode from the editor with prefilled context, see an always-available status bar entry, and build future work on a safe runtime capability layer.

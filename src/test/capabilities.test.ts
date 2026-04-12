@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 
-import { CapabilityStore, classifyCapabilityError, createEmptyCapabilities, probeRuntimeCapabilities } from "../core/capabilities"
+import { applySessionSearchCapabilityResult, CapabilityStore, classifyCapabilityError, createEmptyCapabilities, probeRuntimeCapabilities } from "../core/capabilities"
 
 describe("capabilities", () => {
   test("starts with unknown feature support", () => {
@@ -16,6 +16,16 @@ describe("capabilities", () => {
 
   test("treats transient failures as unknown", () => {
     assert.equal(classifyCapabilityError(new Error("socket hang up")), "unknown")
+  })
+
+  test("marks session search supported after a successful search attempt", () => {
+    const next = applySessionSearchCapabilityResult(createEmptyCapabilities(), "supported")
+    assert.equal(next.sessionSearch, "supported")
+  })
+
+  test("marks session search unsupported after an unsupported search failure", () => {
+    const next = applySessionSearchCapabilityResult(createEmptyCapabilities(), "unsupported")
+    assert.equal(next.sessionSearch, "unsupported")
   })
 
   test("reuses cached capability snapshots until refresh", async () => {

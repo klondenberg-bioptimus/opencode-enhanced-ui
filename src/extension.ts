@@ -54,7 +54,7 @@ export async function activate(ctx: vscode.ExtensionContext) {
     new SessionPanelSerializer(panels),
   )
 
-  commands(ctx, workspaceMgr, sessions, out, tabs, panels, capabilities)
+  commands(ctx, workspaceMgr, sessions, out, tabs, panels, capabilities, tree)
 
   ctx.subscriptions.push(out, workspaceMgr, sessions, events, panels, focused, capabilities, statusBar, tree, todoView, diffView, sessionView, reg, todoReg, diffReg, sessionViewReg, serializer)
   out.appendLine("OpenCode UI activated")

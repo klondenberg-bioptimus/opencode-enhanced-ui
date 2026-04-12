@@ -28,6 +28,16 @@ export function classifyCapabilityError(err: unknown): CapabilityState {
   return "unknown"
 }
 
+export function applySessionSearchCapabilityResult(
+  snapshot: RuntimeCapabilities,
+  result: CapabilityState,
+): RuntimeCapabilities {
+  return {
+    ...snapshot,
+    sessionSearch: result,
+  }
+}
+
 export class CapabilityStore {
   private readonly cache = new Map<string, RuntimeCapabilities>()
   private readonly inflight = new Map<string, Promise<RuntimeCapabilities>>()
@@ -68,6 +78,11 @@ export class CapabilityStore {
 
   clear(workspaceId: string) {
     this.cache.delete(workspaceId)
+    this.inflight.delete(workspaceId)
+  }
+
+  set(workspaceId: string, snapshot: RuntimeCapabilities) {
+    this.cache.set(workspaceId, snapshot)
     this.inflight.delete(workspaceId)
   }
 

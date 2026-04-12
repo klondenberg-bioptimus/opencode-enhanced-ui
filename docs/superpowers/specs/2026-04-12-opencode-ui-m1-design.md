@@ -1,5 +1,7 @@
 # OpenCode UI M1 Design
 
+> Status: Completed and archived after M1 implementation shipped on 2026-04-12.
+
 ## Goal
 
 Deliver the first migration-focused milestone for OpenCode UI so heavy Claude Code and Codex users can start an agent session from the editor, land in a prefilled session with useful context, and keep a lightweight always-visible OpenCode control point inside VS Code.

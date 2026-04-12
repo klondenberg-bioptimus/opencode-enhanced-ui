@@ -2,14 +2,15 @@ import * as vscode from "vscode"
 import type { WorkspaceRef } from "../bridge/types"
 import { openSettingsQuery } from "./settings"
 import { checkOpencodeAvailable, runtimeNotReadyMessage } from "./runtime-errors"
-import { SessionItem, WorkspaceItem } from "../sidebar/item"
+import { ClearSearchItem, SessionItem, WorkspaceItem } from "../sidebar/item"
 import type { WorkspaceRuntime } from "./server"
 import { SessionStore } from "./session"
 import { TabManager } from "./tabs"
 import { WorkspaceManager } from "./workspace"
 import { SessionPanelManager } from "../panel/provider"
 import { buildEditorSeed, buildExplorerSeed, type LaunchSeed } from "./launch-context"
-import { CapabilityStore } from "./capabilities"
+import { applySessionSearchCapabilityResult, CapabilityState, CapabilityStore, classifyCapabilityError, createEmptyCapabilities, type RuntimeCapabilities } from "./capabilities"
+import { SidebarProvider } from "../sidebar/provider"
 
 export function commands(
   ctx: vscode.ExtensionContext,
@@ -19,6 +20,7 @@ export function commands(
   tabs: TabManager,
   panels: SessionPanelManager,
   capabilities: CapabilityStore,
+  tree: SidebarProvider,
 ) {
   ctx.subscriptions.push(
     vscode.commands.registerCommand("opencode-ui.refresh", async () => {
@@ -195,6 +197,42 @@ export function commands(
 
       await openSeededSession(seed, mgr, sessions, panels, capabilities)
     }),
+    vscode.commands.registerCommand("opencode-ui.searchWorkspaceSessions", async (item?: WorkspaceItem) => {
+      const rt = item?.runtime
+
+      if (!rt) {
+        await vscode.window.showInformationMessage("Pick a workspace item to search its sessions.")
+        return
+      }
+
+      if (rt.state !== "ready" || !rt.sdk) {
+        await vscode.window.showErrorMessage(runtimeNotReadyMessage(rt))
+        return
+      }
+
+      const query = await vscode.window.showInputBox(buildWorkspaceSearchInputOptions(rt.name, tree.searchQuery(rt.workspaceId)))
+
+      await runWorkspaceSessionSearch({
+        runtime: rt,
+        query,
+        capability: capabilities.snapshot(rt.workspaceId).sessionSearch,
+        snapshot: capabilities.snapshot(rt.workspaceId),
+        capabilities,
+        sidebar: tree,
+        showInformationMessage: (message) => vscode.window.showInformationMessage(message),
+        showErrorMessage: (message) => vscode.window.showErrorMessage(message),
+      })
+    }),
+    vscode.commands.registerCommand("opencode-ui.clearWorkspaceSessionSearch", async (item?: WorkspaceItem | ClearSearchItem) => {
+      const workspaceId = item?.runtime.workspaceId
+
+      if (!workspaceId) {
+        await vscode.window.showInformationMessage("Pick a workspace search to clear first.")
+        return
+      }
+
+      tree.clearSearch(workspaceId)
+    }),
     vscode.commands.registerCommand("opencode-ui.statusBarAction", async () => {
       const active = panels.activeSession()
       if (active) {
@@ -275,6 +313,86 @@ export function commands(
   }
 }
 
+type SearchRuntime = Pick<WorkspaceRuntime, "workspaceId" | "dir" | "name" | "state"> & {
+  sdk?: {
+    session: {
+      list(input: {
+        directory: string
+        roots: true
+        search: string
+      }): Promise<{ data?: import("./sdk").SessionInfo[] }>
+    }
+  }
+}
+
+type WorkspaceSessionSearchInput = {
+  runtime: SearchRuntime
+  query: string | undefined
+  capability: CapabilityState
+  snapshot?: RuntimeCapabilities
+  capabilities: Pick<CapabilityStore, "set">
+  sidebar: Pick<SidebarProvider, "setSearchLoading" | "setSearchResult" | "setSearchError" | "clearSearch">
+  showInformationMessage: (message: string) => Thenable<unknown>
+  showErrorMessage: (message: string) => Thenable<unknown>
+}
+
+export function buildWorkspaceSearchInputOptions(runtimeName: string, previousQuery?: string): vscode.InputBoxOptions {
+  return {
+    prompt: `Search sessions in ${runtimeName}`,
+    placeHolder: "Enter session title or keyword",
+    ignoreFocusOut: true,
+    value: previousQuery,
+  }
+}
+
+export async function runWorkspaceSessionSearch(input: WorkspaceSessionSearchInput) {
+  const query = input.query?.trim()
+  if (!query) {
+    return
+  }
+
+  if (input.capability === "unsupported") {
+    await input.showInformationMessage(`Session search is not supported by the OpenCode server for ${input.runtime.name}.`)
+    return
+  }
+
+  if (input.runtime.state !== "ready" || !input.runtime.sdk) {
+    await input.showErrorMessage(runtimeNotReadyMessage(input.runtime as WorkspaceRuntime))
+    return
+  }
+
+  input.sidebar.setSearchLoading(input.runtime.workspaceId, query)
+
+  try {
+    const result = await input.runtime.sdk.session.list({
+      directory: input.runtime.dir,
+      roots: true,
+      search: query,
+    })
+    input.sidebar.setSearchResult(input.runtime.workspaceId, query, result.data ?? [])
+    input.capabilities.set(
+      input.runtime.workspaceId,
+      applySessionSearchCapabilityResult(input.snapshot ?? createEmptyCapabilities(), "supported"),
+    )
+  } catch (error) {
+    const state = classifyCapabilityError(error)
+
+    if (state === "unsupported") {
+      input.sidebar.clearSearch(input.runtime.workspaceId)
+      input.capabilities.set(
+        input.runtime.workspaceId,
+        applySessionSearchCapabilityResult(input.snapshot ?? createEmptyCapabilities(), "unsupported"),
+      )
+      await input.showInformationMessage(`Session search is not supported by the OpenCode server for ${input.runtime.name}.`)
+      return
+    }
+
+    const message = errorMessage(error)
+    input.sidebar.setSearchError(input.runtime.workspaceId, query, message)
+    await input.showErrorMessage(`OpenCode session search failed for ${input.runtime.name}: ${message}`)
+  }
+}
+
 function firstRuntime(mgr: WorkspaceManager): WorkspaceRuntime | undefined {
   const folder = vscode.workspace.workspaceFolders?.[0]
   return folder ? mgr.get(folder.uri.toString()) : undefined
@@ -327,4 +445,12 @@ async function openSeededSession(
     dir: rt.dir,
     sessionId: session.id,
   }, seed.parts, vscode.ViewColumn.Beside)
+}
+
+function errorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return String(error)
 }
