@@ -68,6 +68,9 @@ If you use Remote SSH, **install `opencode` on the remote host** so the extensio
 3. Open the OpenCode view from the Activity Bar.
 4. Run `OpenCode: Check Environment` if you want to verify setup first.
 5. Create a new session or reopen one from the sidebar.
+6. Right-click an editor selection or current file to open OpenCode with prefilled context.
+7. Right-click selected files in the Explorer to seed a new session with multiple file refs.
+8. Use the always-visible OpenCode status bar entry to reopen the active session or start a quick session from the current editor.
 
 ## Commands
 
@@ -79,6 +82,9 @@ If you use Remote SSH, **install `opencode` on the remote host** so the extensio
 - `OpenCode: Check Environment`
 - `OpenCode: Refresh Workspace Sessions`
 - `OpenCode: Restart Workspace Server`
+- `OpenCode: Ask About Selection`
+- `OpenCode: Ask About Current File`
+- `OpenCode: Ask About Selected Files`
 
 ## Notes
 
