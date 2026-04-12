@@ -25,3 +25,47 @@ export function classifyCapabilityError(err: unknown): CapabilityState {
 
   return "unknown"
 }
+
+export class CapabilityStore {
+  private readonly cache = new Map<string, RuntimeCapabilities>()
+  private readonly inflight = new Map<string, Promise<RuntimeCapabilities>>()
+
+  constructor(
+    private readonly deps: {
+      probe: (workspaceId: string) => Promise<RuntimeCapabilities>
+    },
+  ) {}
+
+  snapshot(workspaceId: string) {
+    return this.cache.get(workspaceId) ?? createEmptyCapabilities()
+  }
+
+  async getOrProbe(workspaceId: string) {
+    const cached = this.cache.get(workspaceId)
+    if (cached) {
+      return cached
+    }
+
+    const pending = this.inflight.get(workspaceId)
+    if (pending) {
+      return await pending
+    }
+
+    const next = this.deps.probe(workspaceId).then((result) => {
+      this.cache.set(workspaceId, result)
+      this.inflight.delete(workspaceId)
+      return result
+    }, (error) => {
+      this.inflight.delete(workspaceId)
+      throw error
+    })
+
+    this.inflight.set(workspaceId, next)
+    return await next
+  }
+
+  clear(workspaceId: string) {
+    this.cache.delete(workspaceId)
+    this.inflight.delete(workspaceId)
+  }
+}
