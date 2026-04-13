@@ -11,7 +11,8 @@ This slice includes:
 1. Reworking `src/core/sdk.ts` so it is backed by official `@opencode-ai/sdk/v2` types and client construction
 2. Preserving the current extension-facing `Client` shape where practical through a thin compatibility adapter
 3. Exporting local semantic aliases such as `SessionInfo`, `SessionMessage`, and `SessionEvent` from official SDK types instead of handwritten copies
-4. Adding adapter-focused tests and regression coverage so the migration can proceed with TDD
+4. Replacing the extension's current fork flow with the official `session.fork()` API
+5. Adding adapter-focused tests and regression coverage so the migration can proceed with TDD
 
 This slice does not include:
 
@@ -19,6 +20,7 @@ This slice does not include:
 - Reworking unrelated panel, sidebar, or runtime behavior
 - Adding new UI features simply because the official SDK exposes more endpoints
 - Refactoring the rest of the extension to use raw generated OpenAPI type names directly
+- Preserving the existing local "create session plus restore prompt seed" fork behavior
 
 ## Product Decisions
 
@@ -70,6 +72,19 @@ Behavior:
 
 This prevents the new adapter from becoming another long-lived handwritten fork.
 
+### 5. Session forking should use the official API directly
+
+The extension's current fork behavior is not reliable enough. This slice should treat the official `session.fork()` endpoint as the only correct fork path.
+
+Behavior:
+
+- The `opencode-ui.forkSessionMessage` command should call official `session.fork()`
+- Forking should pass the selected `messageID` when the user forks from a specific user message
+- The command should open the returned forked session instead of creating a new session locally and replaying prompt seed state
+- The old local fallback path should be removed rather than kept as a silent alternative
+
+This makes the extension's fork semantics match the server contract and reduces custom behavior that is hard to maintain.
+
 ## Architecture
 
 The migration should keep the existing extension boundaries intact:
@@ -83,8 +98,9 @@ The preferred flow is:
 1. Create the official `v2` client in `src/core/sdk.ts`
 2. Wrap it in a compatibility object that matches the extension's current runtime expectations
 3. Re-export official `v2` types through local semantic aliases
-4. Keep current callers unchanged unless a real type mismatch forces a small cleanup
-5. Use adapter tests and regression tests to verify that existing panel/sidebar/runtime flows still compile and behave the same
+4. Update the fork command flow to use official `session.fork()`
+5. Keep other current callers unchanged unless a real type mismatch forces a small cleanup
+6. Use adapter tests and regression tests to verify that existing panel/sidebar/runtime flows still compile and behave the same
 
 ## Compatibility Design
 
@@ -171,6 +187,12 @@ The current panel snapshot logic depends on lightweight provider/model aliases. 
 - Keep the `client(url, dir)` call site the same unless official typing requires a tiny adjustment
 - Do not move adapter logic here
 
+### `src/core/commands.ts`
+
+- Replace the current fork implementation with a direct call to official `session.fork()`
+- Keep the surrounding command UX the same: find the source message, fork from it, then open the new session
+- Remove the old local create-and-seed flow once the official fork path is in place
+
 ### `src/core/events.ts`
 
 - Expect no behavior change
@@ -209,6 +231,14 @@ Mitigation:
 - Avoid re-declaring large object graphs unless there is no official type to export
 - Document the exact compatibility responsibilities in `src/core/sdk.ts`
 
+### Risk: Fork behavior changes during migration and breaks the existing command flow
+
+Mitigation:
+
+- Explicitly move the command to official `session.fork()` rather than mixing old and new behavior
+- Add command-level tests that verify the selected `messageID` is sent to `session.fork()`
+- Verify the returned session is the one opened by the extension
+
 ### Risk: Search or event streaming breaks because of subtle generated-client differences
 
 Mitigation:
@@ -242,6 +272,11 @@ Extend existing tests to ensure the rest of the extension does not feel the migr
 
 - `src/test/capabilities.test.ts`
   - verify capability probing still works against the official-type-backed client shape
+- `src/test/commands.test.ts`
+  - verify `opencode-ui.forkSessionMessage` calls official `session.fork()`
+  - verify the selected message id is forwarded
+  - verify the returned fork session is opened
+  - verify the old create-and-seed path is no longer used
 - `src/panel/provider/actions.test.ts`
   - verify prompt, command, shell, and revert payloads still match current expectations
 - `src/panel/provider/snapshot.test.ts`
@@ -253,6 +288,7 @@ Required validation after implementation:
 
 - `bun test src/core/sdk.test.ts`
 - `bun test src/test/capabilities.test.ts`
+- `bun test src/test/commands.test.ts`
 - `bun test src/panel/provider/actions.test.ts`
 - `bun test src/panel/provider/snapshot.test.ts`
 - `bun run test`
@@ -263,11 +299,13 @@ Required validation after implementation:
 ## Implementation Order
 
 1. Add failing adapter tests for the official `v2`-backed `src/core/sdk.ts` surface
-2. Implement the minimal official-client adapter and semantic type aliases in `src/core/sdk.ts`
-3. Run targeted adapter tests until green
-4. Update any impacted regression tests with official-type-backed fixtures
-5. Run the full repo validation suite
-6. Only then consider follow-up work to expose more official SDK capabilities
+2. Add failing command tests for the official `session.fork()` flow
+3. Implement the minimal official-client adapter and semantic type aliases in `src/core/sdk.ts`
+4. Replace the command fork path with official `session.fork()`
+5. Run targeted adapter and fork tests until green
+6. Update any impacted regression tests with official-type-backed fixtures
+7. Run the full repo validation suite
+8. Only then consider follow-up work to expose more official SDK capabilities
 
 ## Success Criteria
 
@@ -275,6 +313,7 @@ This slice is successful when:
 
 - `src/core/sdk.ts` is backed by the official `@opencode-ai/sdk/v2` client and types instead of handwritten structural copies
 - Existing extension modules continue to compile with little or no call-site churn
+- Forking from the command layer uses official `session.fork()` as the only implementation path
 - The compatibility boundary is isolated to `src/core/sdk.ts`
 - Adapter and regression tests protect the migration path
 - The extension’s main validation commands pass after the migration
