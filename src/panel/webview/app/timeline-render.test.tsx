@@ -77,8 +77,9 @@ describe("Timeline user message rendering", () => {
     )
 
     assert.equal(html.includes("oc-messageActions"), true)
-    assert.equal(html.includes("Copy"), true)
-    assert.equal(html.includes("Fork"), true)
-    assert.equal(html.includes("Undo"), true)
+    assert.equal(html.includes('aria-label="Copy message"'), true)
+    assert.equal(html.includes('aria-label="Fork from message"'), true)
+    assert.equal(html.includes('aria-label="Undo to message"'), true)
+    assert.equal(html.includes(">Copy<"), false)
   })
 })

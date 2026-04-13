@@ -4,7 +4,7 @@ import * as vscode from "vscode"
 
 import type { SessionPanelRef } from "../bridge/types"
 import type { SessionInfo, SessionStatus } from "../core/sdk"
-import { resolveNewSessionOpenColumn, resolveReusableNewSession, resolveSeedSessionTarget } from "../core/commands"
+import { buildForkSessionCreateInput, resolveNewSessionOpenColumn, resolveReusableNewSession, resolveSeedSessionTarget } from "../core/commands"
 
 function session(id: string, updated: number, title = `New session - ${id}`): SessionInfo {
   return {
@@ -127,5 +127,13 @@ describe("resolveReusableNewSession", () => {
 describe("resolveNewSessionOpenColumn", () => {
   test("opens newly created session panels beside the current editor column", () => {
     assert.equal(resolveNewSessionOpenColumn(), vscode.ViewColumn.Beside)
+  })
+})
+
+describe("buildForkSessionCreateInput", () => {
+  test("creates a normal fork session instead of a child session", () => {
+    assert.deepEqual(buildForkSessionCreateInput("/workspace-a"), {
+      directory: "/workspace-a",
+    })
   })
 })

@@ -185,10 +185,7 @@ export function commands(
           return
         }
 
-        const created = await rt.sdk.session.create({
-          directory: rt.dir,
-          parentID: current.sessionId,
-        })
+        const created = await rt.sdk.session.create(buildForkSessionCreateInput(rt.dir))
         const session = created.data
         if (!session) {
           throw new Error("session create returned no data")
@@ -714,6 +711,12 @@ export function resolveSeedSessionTarget(input: {
 
 export function resolveNewSessionOpenColumn() {
   return vscode.ViewColumn.Beside
+}
+
+export function buildForkSessionCreateInput(directory: string) {
+  return {
+    directory,
+  }
 }
 
 export function resolveReusableNewSession(input: {

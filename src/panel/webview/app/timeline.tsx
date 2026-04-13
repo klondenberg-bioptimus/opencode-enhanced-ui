@@ -169,9 +169,15 @@ function TimelineBlockView({
             </div>
           ) : null}
           <div className="oc-messageActions" aria-label="Message actions">
-            <button type="button" className="oc-messageActionBtn" onClick={() => onCopyUserMessage(block.message)}>Copy</button>
-            <button type="button" className="oc-messageActionBtn" onClick={() => onForkUserMessage(block.message)} disabled={block.queued}>Fork</button>
-            <button type="button" className="oc-messageActionBtn" onClick={() => onUndoUserMessage(block.message)} disabled={block.queued}>Undo</button>
+            <button type="button" className="oc-messageActionBtn" aria-label="Copy message" title="Copy message" onClick={() => onCopyUserMessage(block.message)}>
+              <CopyMessageIcon />
+            </button>
+            <button type="button" className="oc-messageActionBtn" aria-label="Fork from message" title="Fork from message" onClick={() => onForkUserMessage(block.message)} disabled={block.queued}>
+              <ForkMessageIcon />
+            </button>
+            <button type="button" className="oc-messageActionBtn" aria-label="Undo to message" title="Undo to message" onClick={() => onUndoUserMessage(block.message)} disabled={block.queued}>
+              <UndoMessageIcon />
+            </button>
           </div>
         </section>
       </>
@@ -471,6 +477,37 @@ function revertFiles(diff?: string) {
   } catch {
     return []
   }
+}
+
+function CopyMessageIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="5" y="3" width="8" height="10" rx="1.5" className="oc-messageActionPath" />
+      <path d="M3.5 10.5V5.5c0-.828.672-1.5 1.5-1.5h5" className="oc-messageActionPath" />
+    </svg>
+  )
+}
+
+function ForkMessageIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M5 3.5h5a2 2 0 0 1 2 2v1.5" className="oc-messageActionPath" />
+      <path d="M5 12.5h5a2 2 0 0 0 2-2V9" className="oc-messageActionPath" />
+      <circle cx="4" cy="3.5" r="1.25" className="oc-messageActionPath" />
+      <circle cx="4" cy="12.5" r="1.25" className="oc-messageActionPath" />
+      <path d="M10 8h3" className="oc-messageActionPath" />
+      <path d="M11.5 6.5 13 8l-1.5 1.5" className="oc-messageActionPath" />
+    </svg>
+  )
+}
+
+function UndoMessageIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M6.5 4.5H11a2.5 2.5 0 0 1 0 5H4.5" className="oc-messageActionPath" />
+      <path d="M6.5 2.75 3.75 5.5 6.5 8.25" className="oc-messageActionPath" />
+    </svg>
+  )
 }
 
 function messagesFromAssistants(messages: SessionMessage[]) {
