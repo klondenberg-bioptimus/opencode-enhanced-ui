@@ -15,7 +15,7 @@
   gap: 4px;
   width: 100%;
   margin: 0;
-  padding: 10px 12px;
+  padding: 6px 10px;
   background: var(--oc-surface-block);
 }
 
@@ -24,8 +24,8 @@
 .oc-toolRowWrap-grep,
 .oc-toolRowWrap-bash,
 .oc-toolRowWrap-mcp {
-  padding-top: 4px;
-  padding-bottom: 4px;
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 .oc-toolRowWrap-mcp {
@@ -112,8 +112,8 @@
 .oc-taskRow {
   display: grid;
   gap: 4px;
-  padding-top: 14px;
-  padding-bottom: 14px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 .oc-taskLine {
@@ -240,7 +240,7 @@
 
 .oc-toolPanel {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   border-color: color-mix(in srgb, var(--oc-border) 76%, transparent 24%);
 }
 
@@ -348,7 +348,7 @@
   display: grid;
   gap: 0;
   border: 1px solid var(--oc-outputWindow-border);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--oc-outputWindow-body-bg);
 }
@@ -364,7 +364,7 @@
   justify-content: space-between;
   gap: 10px;
   min-width: 0;
-  padding: 6px 10px;
+  padding: 5px 8px;
   background: var(--oc-outputWindow-head-bg);
   color: var(--oc-outputWindow-head-fg);
 }
@@ -532,7 +532,7 @@
 
 .oc-outputWindowContent-shell,
 .oc-outputWindowContent-diff {
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .oc-outputWindowToggle {
@@ -542,7 +542,7 @@
   justify-content: center;
   width: 100%;
   min-height: 18px;
-  padding: 2px 10px;
+  padding: 2px 8px;
   border: 0;
   border-top: 1px solid color-mix(in srgb, var(--oc-outputWindow-border) 72%, transparent 28%);
   background: var(--oc-outputWindow-toggle-bg);

@@ -501,6 +501,18 @@ async function openSeededSession(
   }
 
   void capabilities.getOrProbe(rt.workspaceId)
+  const target = resolveSeedSessionTarget({
+    workspaceId: rt.workspaceId,
+    activeSession: panels.activeSession(),
+    visibleSession: panels.visibleSession(rt.workspaceId),
+    recentSession: panels.recentSession(rt.workspaceId),
+  })
+
+  if (target) {
+    await panels.openWithSeed(target, seed.parts)
+    return
+  }
+
   const session = await sessions.create(rt.workspaceId)
   await panels.openWithSeed({
     workspaceId: rt.workspaceId,
@@ -515,4 +527,25 @@ function errorMessage(error: unknown) {
   }
 
   return String(error)
+}
+
+export function resolveSeedSessionTarget(input: {
+  workspaceId: string
+  activeSession?: WorkspaceRef & { sessionId: string }
+  visibleSession?: WorkspaceRef & { sessionId: string }
+  recentSession?: WorkspaceRef & { sessionId: string }
+}) {
+  if (input.activeSession?.workspaceId === input.workspaceId) {
+    return input.activeSession
+  }
+
+  if (input.visibleSession?.workspaceId === input.workspaceId) {
+    return input.visibleSession
+  }
+
+  if (input.recentSession?.workspaceId === input.workspaceId) {
+    return input.recentSession
+  }
+
+  return undefined
 }

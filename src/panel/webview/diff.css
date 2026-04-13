@@ -3,23 +3,23 @@
 }
 
 .oc-outputWindow {
-  margin: 0 14px;
+  margin: 0 10px;
 }
 
 .oc-partTerminal {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-left: 2px solid color-mix(in srgb, var(--oc-accent) 72%, transparent 28%);
 }
 
 .oc-outputWindow .oc-partTerminal {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 0;
 }
 
 .oc-codeBlock,
 .oc-diffBlock {
   overflow-x: auto;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 1px solid color-mix(in srgb, var(--oc-border-strong) 72%, transparent 28%);
   border-left: 2px solid color-mix(in srgb, var(--oc-accent) 72%, transparent 28%);
 }
@@ -36,7 +36,7 @@
 
 .oc-codeWindowBody {
   margin: 0;
-  padding: 10px 12px;
+  padding: 8px 10px;
   overflow-x: auto;
   color: var(--oc-outputWindow-body-fg);
 }

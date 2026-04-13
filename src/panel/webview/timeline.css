@@ -1,6 +1,6 @@
 .oc-turnUser {
   display: grid;
-  gap: 8px;
+  gap: 4px;
   width: 100%;
   margin: 0;
   justify-self: stretch;
@@ -8,7 +8,7 @@
 
 .oc-turnUser {
   position: relative;
-  padding: 10px 12px 10px 14px;
+  padding: 6px 10px 6px 12px;
   border: 0;
   background: var(--oc-surface-block);
 }
@@ -24,16 +24,17 @@
   border-radius: 1px;
 }
 
-.oc-turnUser .oc-entryRole {
-  font-size: var(--oc-font-size);
-  font-weight: 500;
+.oc-userStatusRow {
+  display: flex;
+  align-items: center;
+  min-height: 0;
 }
 
 .oc-turnMeta {
-  padding: 0 12px 10px;
+  padding: 0 10px 4px;
   color: var(--oc-fg-muted);
   font-size: var(--oc-font-size-sm);
-  line-height: 1.5;
+  line-height: 1.4;
   font-family: var(--oc-ui);
 }
 
@@ -66,11 +67,11 @@
 .oc-attachmentRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .oc-part-text {
-  padding: 10px 12px;
+  padding: 6px 10px;
   border: 0;
 }
 
@@ -93,17 +94,17 @@
 }
 
 .oc-part-inline {
-  padding: 10px 12px;
+  padding: 6px 10px;
   border: 0;
 }
 
 .oc-part-compact {
-  padding: 10px 12px;
+  padding: 6px 10px;
   border: 0;
 }
 
 .oc-part-reasoning {
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 0;
   border-left: 1px solid color-mix(in srgb, var(--oc-border-strong) 82%, transparent 18%);
 }
@@ -147,10 +148,10 @@
   display: grid;
   grid-template-columns: minmax(16px, 1fr) auto minmax(16px, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   margin: 0;
-  padding: 8px 12px;
+  padding: 4px 10px;
   color: var(--oc-fg-muted);
   font-size: var(--oc-font-size-sm);
   line-height: 1.4;
@@ -160,15 +161,15 @@
   position: relative;
   display: flex;
   justify-content: center;
-  padding-top: 10px;
+  padding-top: 6px;
   text-align: center;
 }
 
 .oc-dividerCompactionLine {
   position: absolute;
-  top: 16px;
-  left: 12px;
-  right: 12px;
+  top: 12px;
+  left: 10px;
+  right: 10px;
   height: 1px;
   background: color-mix(in srgb, var(--oc-accent) 56%, var(--oc-border) 44%);
 }
@@ -194,8 +195,8 @@
 
 .oc-revertNotice {
   display: grid;
-  gap: 8px;
-  padding: 12px;
+  gap: 6px;
+  padding: 8px 10px;
   background: color-mix(in srgb, var(--oc-surface-block) 84%, var(--oc-surface-canvas) 16%);
   border-left: 3px solid color-mix(in srgb, var(--oc-accent) 55%, var(--oc-border-strong) 45%);
 }

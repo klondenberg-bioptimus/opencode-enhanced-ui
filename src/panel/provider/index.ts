@@ -25,6 +25,7 @@ export class SessionPanelManager implements vscode.Disposable {
     const existing = this.panels.get(key)
 
     if (existing) {
+      this.touch(key, existing)
       await existing.reveal()
       return existing.panel
     }
@@ -39,6 +40,7 @@ export class SessionPanelManager implements vscode.Disposable {
     const existing = this.panels.get(key)
 
     if (existing) {
+      this.touch(key, existing)
       await existing.reveal()
       await existing.seedComposer(parts)
       return existing.panel
@@ -75,6 +77,32 @@ export class SessionPanelManager implements vscode.Disposable {
 
   activeSession() {
     return this.currentRef
+  }
+
+  recentSession(workspaceId: string) {
+    const controllers = [...this.panels.values()]
+
+    for (let index = controllers.length - 1; index >= 0; index -= 1) {
+      const ref = controllers[index]?.ref
+      if (ref?.workspaceId === workspaceId) {
+        return ref
+      }
+    }
+
+    return undefined
+  }
+
+  visibleSession(workspaceId: string) {
+    const controllers = [...this.panels.values()]
+
+    for (let index = controllers.length - 1; index >= 0; index -= 1) {
+      const controller = controllers[index]
+      if (controller?.ref.workspaceId === workspaceId && controller.panel.visible) {
+        return controller.ref
+      }
+    }
+
+    return undefined
   }
 
   close(ref: SessionPanelRef) {
@@ -135,11 +163,24 @@ export class SessionPanelManager implements vscode.Disposable {
   }
 
   private setActive(ref: SessionPanelRef | undefined) {
+    if (ref) {
+      const key = panelKey(ref)
+      const controller = this.panels.get(key)
+      if (controller) {
+        this.touch(key, controller)
+      }
+    }
+
     if (panelKey(this.currentRef) === panelKey(ref)) {
       return
     }
 
     this.currentRef = ref
     this.active.fire(ref)
+  }
+
+  private touch(key: string, controller: SessionPanelController) {
+    this.panels.delete(key)
+    this.panels.set(key, controller)
   }
 }

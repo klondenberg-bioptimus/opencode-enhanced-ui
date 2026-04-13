@@ -137,10 +137,11 @@ function TimelineBlockView({
       <>
         {hasCompaction ? <CompactionDivider /> : null}
         <section className="oc-turnUser">
-          <div className="oc-entryHeader">
-            <div className="oc-entryRole">You</div>
-            {block.queued ? <div className="oc-queuedBadge">QUEUED</div> : <div className="oc-entryTime">{formatTime(block.message.info.time?.created)}</div>}
-          </div>
+          {block.queued ? (
+            <div className="oc-userStatusRow">
+              <div className="oc-queuedBadge">QUEUED</div>
+            </div>
+          ) : null}
           {userText ? <MarkdownBlock content={userText.text || ""} /> : (showEmptyPrompt ? <div className="oc-partEmpty">No visible prompt text.</div> : null)}
           {userFiles.length > 0 ? (
             <div className="oc-attachmentRow">
