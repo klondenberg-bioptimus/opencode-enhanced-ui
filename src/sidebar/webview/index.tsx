@@ -50,8 +50,8 @@ function App() {
 
   return (
     <div className="sv-shell">
-      {state.status === "idle" ? <Empty title="No active session" text={mode === "todo" ? "Focus an OpenCode session tab to view todos" : "Focus an OpenCode session tab to view changed files"} /> : null}
-      {state.status === "loading" ? <Empty title={mode === "todo" ? "Loading todos..." : "Loading modified files..."} text="From focused session" /> : null}
+      {state.status === "idle" ? <Empty title="No selected session" text={mode === "todo" ? "Select or focus an OpenCode session to view todos" : "Select or focus an OpenCode session to view changed files"} /> : null}
+      {state.status === "loading" ? <Empty title={mode === "todo" ? "Loading todos..." : "Loading modified files..."} text="From selected session" /> : null}
       {state.status === "error" ? <Empty title="Unavailable" text={state.error || "Failed to load view"} /> : null}
       {state.status === "ready" && mode === "todo" ? <TodoList state={state} /> : null}
       {state.status === "ready" && mode === "diff" ? <DiffList state={state} /> : null}
@@ -67,7 +67,7 @@ function TodoList({ state }: { state: SidebarViewState }) {
   })
 
   if (state.todos.length === 0) {
-    return <Empty title="No todos yet" text="Tasks from the focused session will appear here" />
+    return <Empty title="No todos yet" text="Tasks from the selected session will appear here" />
   }
 
   return (
@@ -127,12 +127,11 @@ function TodoList({ state }: { state: SidebarViewState }) {
 function DiffList({ state }: { state: SidebarViewState }) {
   const view = buildDiffPanelView({
     branch: state.branch,
-    workspaceFileSummary: state.workspaceFileSummary,
     diff: state.diff,
   })
 
   if (view.items.length === 0) {
-    return <Empty title="No modified files" text="Files changed by the focused session will appear here" />
+    return <Empty title="No modified files" text="Files changed by the selected session will appear here" />
   }
 
   return (
@@ -239,17 +238,27 @@ export function buildTaskOpenMessage(ref?: SessionPanelRef): SidebarWebviewMessa
 
 export function buildDiffPanelView(input: {
   branch?: string
-  workspaceFileSummary?: {
-    added: number
-    deleted: number
-    modified: number
-  }
   diff: SidebarViewState["diff"]
 }) {
+  const counts = input.diff.reduce((summary, item) => {
+    if (item.status === "added") {
+      summary.added += 1
+    } else if (item.status === "deleted") {
+      summary.deleted += 1
+    } else {
+      summary.modified += 1
+    }
+    return summary
+  }, {
+    added: 0,
+    deleted: 0,
+    modified: 0,
+  })
+
   return {
-    summary: input.workspaceFileSummary ? {
+    summary: input.diff.length > 0 ? {
       branch: input.branch,
-      counts: input.workspaceFileSummary,
+      counts,
     } : undefined,
     items: input.diff,
   }

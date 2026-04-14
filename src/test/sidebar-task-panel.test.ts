@@ -85,24 +85,35 @@ describe("task panel view", () => {
   test("builds workspace summary metadata for the diff companion view", () => {
     const view = buildDiffPanelView({
       branch: "feature/auth",
-      workspaceFileSummary: {
-        added: 2,
-        deleted: 1,
-        modified: 3,
-      },
-      diff: [{
-        file: "src/app.ts",
-        patch: "@@",
-        additions: 3,
-        deletions: 1,
-        status: "modified",
-      }],
+      diff: [
+        {
+          file: "src/new.ts",
+          patch: "@@",
+          additions: 3,
+          deletions: 0,
+          status: "added",
+        },
+        {
+          file: "src/app.ts",
+          patch: "@@",
+          additions: 3,
+          deletions: 1,
+          status: "modified",
+        },
+        {
+          file: "src/old.ts",
+          patch: "@@",
+          additions: 0,
+          deletions: 2,
+          status: "deleted",
+        },
+      ],
     })
 
     assert.equal(view.summary?.branch, "feature/auth")
-    assert.equal(view.summary?.counts.added, 2)
+    assert.equal(view.summary?.counts.added, 1)
     assert.equal(view.summary?.counts.deleted, 1)
-    assert.equal(view.summary?.counts.modified, 3)
-    assert.equal(view.items[0]?.file, "src/app.ts")
+    assert.equal(view.summary?.counts.modified, 1)
+    assert.equal(view.items[0]?.file, "src/new.ts")
   })
 })

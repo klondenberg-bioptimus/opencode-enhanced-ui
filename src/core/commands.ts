@@ -251,6 +251,7 @@ export function commands(
       await archiveSession({
         target,
         sessions,
+        closeSession: () => tabs.closeSession(workspaceRef(target.runtime), target.session.id),
         showWarningMessage: (message, options, ...items) => vscode.window.showWarningMessage(message, options, ...items),
         showInformationMessage: (message) => vscode.window.showInformationMessage(message),
         showErrorMessage: (message) => vscode.window.showErrorMessage(message),
@@ -618,6 +619,7 @@ export async function renameSession(input: SessionActionInput & {
 }
 
 export async function archiveSession(input: SessionActionInput & {
+  closeSession?: () => Thenable<unknown> | unknown
   showWarningMessage: (
     message: string,
     options: vscode.MessageOptions,
@@ -649,6 +651,7 @@ export async function archiveSession(input: SessionActionInput & {
       },
     })
     await input.sessions.refresh(input.target.runtime.workspaceId, true)
+    await input.closeSession?.()
     await input.showInformationMessage(`Archived session "${label}".`)
   } catch (error) {
     await input.showErrorMessage(`OpenCode archive failed for ${input.target.runtime.name}: ${errorMessage(error)}`)

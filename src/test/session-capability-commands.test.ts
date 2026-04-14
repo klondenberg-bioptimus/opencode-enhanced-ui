@@ -30,10 +30,11 @@ function readyRuntime(overrides?: Record<string, unknown>) {
 }
 
 describe("archiveSession", () => {
-  test("confirms before archiving, stores an archived timestamp, and refreshes workspace sessions", async () => {
+  test("confirms before archiving, stores an archived timestamp, refreshes workspace sessions, and closes the archived tab", async () => {
     let prompt: string | undefined
     let updated: unknown
     let refreshed: unknown
+    let closed = false
 
     await archiveSession({
       target: {
@@ -54,6 +55,9 @@ describe("archiveSession", () => {
           refreshed = args
         },
       } as any,
+      closeSession: async () => {
+        closed = true
+      },
       now: () => 123456,
       showWarningMessage: async (message) => {
         prompt = message
@@ -64,6 +68,7 @@ describe("archiveSession", () => {
     })
 
     assert.match(prompt ?? "", /Archive me/)
+    assert.equal(closed, true)
     assert.deepEqual(updated, {
       sessionID: "session-archive",
       directory: "/workspace-a",

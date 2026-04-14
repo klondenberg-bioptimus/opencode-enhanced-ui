@@ -35,6 +35,11 @@ mock.module("vscode", () => ({
     showWarningMessage: async () => undefined,
     createOutputChannel: () => ({ appendLine() {}, show() {}, dispose() {} }),
     registerTreeDataProvider: () => new Disposable(),
+    createTreeView: () => ({
+      onDidChangeSelection: () => new Disposable(),
+      reveal: async () => undefined,
+      dispose() {},
+    }),
     registerWebviewViewProvider: () => new Disposable(),
     registerWebviewPanelSerializer: () => new Disposable(),
     createWebviewPanel: () => ({

@@ -167,6 +167,19 @@ export class SidebarProvider implements vscode.TreeDataProvider<vscode.TreeItem>
     return item
   }
 
+  getParent(item: vscode.TreeItem) {
+    if (!(item instanceof SessionItem)) {
+      return undefined
+    }
+
+    const rt = this.mgr.get(item.runtime.workspaceId)
+    if (!rt) {
+      return undefined
+    }
+
+    return new WorkspaceItem(rt, this.search.has(rt.workspaceId), this.tagFilters.has(rt.workspaceId))
+  }
+
   getChildren(item?: vscode.TreeItem) {
     if (!item) {
       const list = this.mgr.list()
@@ -191,6 +204,24 @@ export class SidebarProvider implements vscode.TreeDataProvider<vscode.TreeItem>
     }
 
     return []
+  }
+
+  findSessionItem(workspaceId: string, sessionId: string) {
+    const rt = this.mgr.get(workspaceId)
+    if (!rt) {
+      return undefined
+    }
+
+    const items = buildWorkspaceChildren({
+      runtime: rt,
+      sessions: this.sessions.list(rt.workspaceId),
+      statuses: rt.sessionStatuses,
+      search: this.search.get(rt.workspaceId),
+      tagFilter: this.tagFilters.get(rt.workspaceId),
+      tags: this.tags.tagsBySession(rt.workspaceId),
+    })
+
+    return items.find((item) => item instanceof SessionItem && item.session.id === sessionId)
   }
 
   setSearchLoading(workspaceId: string, query: string) {

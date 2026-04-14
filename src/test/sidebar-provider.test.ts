@@ -2,7 +2,8 @@ import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 
 import type { SessionInfo } from "../core/sdk"
-import { buildWorkspaceChildren, clearWorkspaceSearchState, getWorkspaceSearchQuery, setWorkspaceSearchError, setWorkspaceSearchLoading, setWorkspaceSearchResult } from "../sidebar/provider"
+import { SessionItem, WorkspaceItem } from "../sidebar/item"
+import { SidebarProvider, buildWorkspaceChildren, clearWorkspaceSearchState, getWorkspaceSearchQuery, setWorkspaceSearchError, setWorkspaceSearchLoading, setWorkspaceSearchResult } from "../sidebar/provider"
 
 function session(id: string, title: string, updated = 1): SessionInfo {
   return {
@@ -229,5 +230,60 @@ describe("sidebar session search", () => {
     assert.equal(items[0]?.contextValue, "session-shared")
     assert.match(String(items[0]?.description), /shared/i)
     assert.match(String(items[0]?.tooltip), /share\.example/)
+  })
+
+  test("finds a visible session item by workspace and session id", () => {
+    const provider = new SidebarProvider(
+      {
+        list: () => [{
+          ...runtime(),
+          sessionStatuses: new Map(),
+        }],
+        get: () => ({
+          ...runtime(),
+          sessionStatuses: new Map(),
+        }),
+        onDidChange: () => ({ dispose() {} }),
+      } as any,
+      {
+        list: () => [session("s1", "Fix login")],
+      } as any,
+      {
+        tagsBySession: () => ({}),
+      } as any,
+    )
+
+    const item = provider.findSessionItem("ws-1", "s1")
+
+    assert.ok(item instanceof SessionItem)
+    assert.equal(item?.session.id, "s1")
+  })
+
+  test("returns the workspace parent for a session item", () => {
+    const provider = new SidebarProvider(
+      {
+        list: () => [{
+          ...runtime(),
+          sessionStatuses: new Map(),
+        }],
+        get: () => ({
+          ...runtime(),
+          sessionStatuses: new Map(),
+        }),
+        onDidChange: () => ({ dispose() {} }),
+      } as any,
+      {
+        list: () => [session("s1", "Fix login")],
+      } as any,
+      {
+        tagsBySession: () => ({}),
+      } as any,
+    )
+    const child = provider.findSessionItem("ws-1", "s1")
+
+    const parent = child ? provider.getParent(child) : undefined
+
+    assert.ok(parent instanceof WorkspaceItem)
+    assert.equal(parent?.id, "ws-1")
   })
 })

@@ -1,7 +1,7 @@
 import * as vscode from "vscode"
 import type { SessionPanelRef } from "../bridge/types"
 import { EventHub } from "../core/events"
-import type { Client, FileDiff, SessionEvent, SessionInfo, Todo, WorkspaceFileStatus } from "../core/sdk"
+import type { Client, FileDiff, SessionEvent, SessionInfo, SessionMessage, Todo } from "../core/sdk"
 import { WorkspaceManager } from "../core/workspace"
 import { SessionPanelManager } from "../panel/provider"
 
@@ -13,12 +13,6 @@ export type FocusedSessionState = {
   diff: FileDiff[]
   branch?: string
   defaultBranch?: string
-  workspaceFileStatus: WorkspaceFileStatus[]
-  workspaceFileSummary?: {
-    added: number
-    deleted: number
-    modified: number
-  }
   error?: string
 }
 
@@ -26,13 +20,14 @@ const idleState: FocusedSessionState = {
   status: "idle",
   todos: [],
   diff: [],
-  workspaceFileStatus: [],
 }
 
 export class FocusedSessionStore implements vscode.Disposable {
   private readonly change = new vscode.EventEmitter<void>()
   private state: FocusedSessionState = idleState
   private run = 0
+  private activeRef: SessionPanelRef | undefined
+  private selectedRef: SessionPanelRef | undefined
 
   readonly onDidChange = this.change.event
 
@@ -43,7 +38,11 @@ export class FocusedSessionStore implements vscode.Disposable {
     private out: vscode.OutputChannel,
   ) {
     this.panels.onDidChangeActiveSession((ref) => {
-      void this.focus(ref)
+      this.activeRef = ref
+      if (ref) {
+        this.selectedRef = ref
+      }
+      void this.focus(this.resolveRef())
     })
 
     this.events.onDidEvent((item) => {
@@ -59,7 +58,7 @@ export class FocusedSessionStore implements vscode.Disposable {
       const rt = this.mgr.get(ref.workspaceId)
       if (rt?.state === "ready" && rt.sdk) {
         if (this.state.status === "loading") {
-          void this.focus(ref)
+          void this.focus(this.resolveRef())
         }
         return
       }
@@ -71,16 +70,24 @@ export class FocusedSessionStore implements vscode.Disposable {
           session: this.state.session,
           todos: [],
           diff: [],
-          workspaceFileStatus: [],
         })
       }
     })
 
-    void this.focus(this.panels.activeSession())
+    this.activeRef = this.panels.activeSession()
+    if (this.activeRef) {
+      this.selectedRef = this.activeRef
+    }
+    void this.focus(this.resolveRef())
   }
 
   snapshot() {
     return this.state
+  }
+
+  selectSession(ref?: SessionPanelRef) {
+    this.selectedRef = ref
+    void this.focus(this.resolveRef())
   }
 
   dispose() {
@@ -93,6 +100,10 @@ export class FocusedSessionStore implements vscode.Disposable {
       return
     }
 
+    if (sameRef(this.state.ref, ref) && this.state.status === "ready") {
+      return
+    }
+
     const run = ++this.run
     this.set({
       status: "loading",
@@ -100,7 +111,6 @@ export class FocusedSessionStore implements vscode.Disposable {
       session: this.state.session?.id === ref.sessionId ? this.state.session : undefined,
       todos: [],
       diff: [],
-      workspaceFileStatus: [],
     })
 
     const rt = this.mgr.get(ref.workspaceId)
@@ -111,7 +121,6 @@ export class FocusedSessionStore implements vscode.Disposable {
         session: this.state.session?.id === ref.sessionId ? this.state.session : undefined,
         todos: [],
         diff: [],
-        workspaceFileStatus: [],
       })
       return
     }
@@ -145,7 +154,6 @@ export class FocusedSessionStore implements vscode.Disposable {
         ref,
         todos: [],
         diff: [],
-        workspaceFileStatus: [],
         error: message,
       })
     }
@@ -193,6 +201,11 @@ export class FocusedSessionStore implements vscode.Disposable {
       if (props.info?.id !== ref.sessionId) {
         return
       }
+      if (props.info.time.archived) {
+        this.clearRef(props.info.id, workspaceId)
+        await this.focus(this.resolveRef())
+        return
+      }
       this.set({
         ...this.state,
         session: props.info,
@@ -205,12 +218,8 @@ export class FocusedSessionStore implements vscode.Disposable {
       if (props.info?.id !== ref.sessionId) {
         return
       }
-      this.set({
-        status: "idle",
-        todos: [],
-        diff: [],
-        workspaceFileStatus: [],
-      })
+      this.clearRef(props.info.id, workspaceId)
+      await this.focus(this.resolveRef())
     }
   }
 
@@ -222,6 +231,20 @@ export class FocusedSessionStore implements vscode.Disposable {
   private log(message: string) {
     this.out.appendLine(`[focused-session] ${message}`)
   }
+
+  private resolveRef() {
+    return this.activeRef ?? this.selectedRef
+  }
+
+  private clearRef(sessionId: string, workspaceId: string) {
+    if (this.activeRef?.workspaceId === workspaceId && this.activeRef.sessionId === sessionId) {
+      this.activeRef = undefined
+    }
+
+    if (this.selectedRef?.workspaceId === workspaceId && this.selectedRef.sessionId === sessionId) {
+      this.selectedRef = undefined
+    }
+  }
 }
 
 export async function loadFocusedSessionState(input: {
@@ -231,7 +254,7 @@ export async function loadFocusedSessionState(input: {
     sdk: Client
   }
 }) {
-  const [sessionRes, todoRes, diffRes, vcsRes, fileStatusRes] = await Promise.all([
+  const [sessionRes, todoRes, messagesRes, vcsRes] = await Promise.all([
     input.runtime.sdk.session.get({
       sessionID: input.ref.sessionId,
       directory: input.ref.dir,
@@ -240,49 +263,60 @@ export async function loadFocusedSessionState(input: {
       sessionID: input.ref.sessionId,
       directory: input.ref.dir,
     }),
-    input.runtime.sdk.session.diff({
+    input.runtime.sdk.session.messages({
       sessionID: input.ref.sessionId,
       directory: input.ref.dir,
+      limit: 200,
     }),
     input.runtime.sdk.vcs.get({
       directory: input.ref.dir,
     }),
-    input.runtime.sdk.file.status({
-      directory: input.ref.dir,
-    }),
   ])
 
-  const workspaceFileStatus = fileStatusRes.data ?? []
+  const diff = await loadSessionDiff({
+    sdk: input.runtime.sdk,
+    dir: input.ref.dir,
+    sessionId: input.ref.sessionId,
+    messages: messagesRes.data ?? [],
+  })
+
   return {
     session: sessionRes.data,
     todos: todoRes.data ?? [],
-    diff: diffRes.data ?? [],
+    diff,
     branch: vcsRes.data?.branch,
     defaultBranch: vcsRes.data?.default_branch,
-    workspaceFileStatus,
-    workspaceFileSummary: summarizeWorkspaceFileStatus(workspaceFileStatus),
   }
 }
 
-function summarizeWorkspaceFileStatus(files: WorkspaceFileStatus[]) {
-  if (files.length === 0) {
-    return undefined
+async function loadSessionDiff(input: {
+  sdk: Client
+  dir: string
+  sessionId: string
+  messages: SessionMessage[]
+}) {
+  const userMessages = input.messages.filter((message) => message.info.role === "user")
+  if (userMessages.length === 0) {
+    return []
   }
 
-  return files.reduce((summary, item) => {
-    if (item.status === "added") {
-      summary.added += 1
-    } else if (item.status === "deleted") {
-      summary.deleted += 1
-    } else {
-      summary.modified += 1
+  const results = await Promise.all(userMessages.map(async (message) => {
+    const res = await input.sdk.session.diff({
+      sessionID: input.sessionId,
+      directory: input.dir,
+      messageID: message.info.id,
+    })
+    return res.data ?? []
+  }))
+
+  const merged = new Map<string, FileDiff>()
+  for (const list of results) {
+    for (const item of list) {
+      merged.set(item.file, item)
     }
-    return summary
-  }, {
-    added: 0,
-    deleted: 0,
-    modified: 0,
-  })
+  }
+
+  return [...merged.values()].sort((a, b) => a.file.localeCompare(b.file))
 }
 
 function sameRef(a?: SessionPanelRef, b?: SessionPanelRef) {

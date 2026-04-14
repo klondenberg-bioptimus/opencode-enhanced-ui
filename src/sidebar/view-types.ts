@@ -13,11 +13,6 @@ export type SidebarViewState = {
   diff: FileDiff[]
   branch?: string
   defaultBranch?: string
-  workspaceFileSummary?: {
-    added: number
-    deleted: number
-    modified: number
-  }
   error?: string
 }
 

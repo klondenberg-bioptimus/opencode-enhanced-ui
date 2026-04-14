@@ -1,10 +1,12 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 
-import { loadFocusedSessionState } from "./focused"
+import type { SessionPanelRef } from "../bridge/types"
+import { FocusedSessionStore, loadFocusedSessionState } from "./focused"
 
 describe("focused session store", () => {
-  test("focused-session load fetches workspace status and exposes branch and file summary alongside diff", async () => {
+  test("focused-session load aggregates per-message diffs for the selected session", async () => {
+    const diffCalls: string[] = []
     const state = await loadFocusedSessionState({
       ref: {
         workspaceId: "ws-1",
@@ -24,31 +26,92 @@ describe("focused session store", () => {
               },
             }),
             todo: async () => ({ data: [] }),
-            diff: async () => ({
-              data: [{
-                file: "src/app.ts",
-                patch: "@@",
-                additions: 3,
-                deletions: 1,
-                status: "modified" as const,
-              }],
+            messages: async () => ({
+              data: [
+                {
+                  info: {
+                    id: "m-user-1",
+                    sessionID: "session-1",
+                    role: "user",
+                    time: { created: 1 },
+                  },
+                  parts: [],
+                },
+                {
+                  info: {
+                    id: "m-assistant-1",
+                    sessionID: "session-1",
+                    role: "assistant",
+                    time: { created: 2 },
+                  },
+                  parts: [],
+                },
+                {
+                  info: {
+                    id: "m-user-2",
+                    sessionID: "session-1",
+                    role: "user",
+                    time: { created: 3 },
+                  },
+                  parts: [],
+                },
+              ],
             }),
+            diff: async ({ messageID }: { messageID?: string }) => {
+              diffCalls.push(messageID ?? "none")
+              if (messageID === "m-user-1") {
+                return {
+                  data: [
+                    {
+                      file: "src/app.ts",
+                      patch: "@@",
+                      additions: 3,
+                      deletions: 1,
+                      status: "modified" as const,
+                    },
+                    {
+                      file: "src/new.ts",
+                      patch: "@@",
+                      additions: 5,
+                      deletions: 0,
+                      status: "added" as const,
+                    },
+                  ],
+                }
+              }
+
+              if (messageID === "m-user-2") {
+                return {
+                  data: [
+                    {
+                      file: "src/app.ts",
+                      patch: "@@",
+                      additions: 7,
+                      deletions: 2,
+                      status: "modified" as const,
+                    },
+                    {
+                      file: "src/old.ts",
+                      patch: "@@",
+                      additions: 0,
+                      deletions: 4,
+                      status: "deleted" as const,
+                    },
+                  ],
+                }
+              }
+
+              return { data: [] }
+            },
           },
           vcs: {
             get: async () => ({
-              data: {
-                branch: "feature/auth",
-                default_branch: "main",
-              },
-            }),
-          },
-          file: {
-            status: async () => ({
               data: [
-                { path: "src/app.ts", added: 3, removed: 1, status: "modified" as const },
-                { path: "src/new.ts", added: 5, removed: 0, status: "added" as const },
-                { path: "src/old.ts", added: 0, removed: 2, status: "deleted" as const },
-              ],
+                {
+                  branch: "feature/auth",
+                  default_branch: "main",
+                },
+              ][0],
             }),
           },
         },
@@ -57,12 +120,109 @@ describe("focused session store", () => {
 
     assert.equal(state.branch, "feature/auth")
     assert.equal(state.defaultBranch, "main")
-    assert.equal(state.diff[0]?.file, "src/app.ts")
-    assert.deepEqual(state.workspaceFileSummary, {
-      added: 1,
-      deleted: 1,
-      modified: 1,
+    assert.deepEqual(diffCalls, ["m-user-1", "m-user-2"])
+    assert.deepEqual(state.diff.map((item) => item.file), ["src/app.ts", "src/new.ts", "src/old.ts"])
+    assert.deepEqual(state.diff[0], {
+      file: "src/app.ts",
+      patch: "@@",
+      additions: 7,
+      deletions: 2,
+      status: "modified",
     })
-    assert.equal(state.workspaceFileStatus.length, 3)
+    assert.equal("workspaceFileSummary" in state, false)
+  })
+
+  test("keeps the selected session loaded when the active panel session clears", async () => {
+    const ref: SessionPanelRef = {
+      workspaceId: "ws-1",
+      dir: "/workspace",
+      sessionId: "session-1",
+    }
+
+    let activeListener: ((ref?: SessionPanelRef) => void) | undefined
+    const store = new FocusedSessionStore(
+      {
+        get: () => ({
+          state: "ready",
+          dir: "/workspace",
+          sdk: {
+            session: {
+              get: async () => ({
+                data: {
+                  id: "session-1",
+                  directory: "/workspace",
+                  title: "Focused session",
+                  time: { created: 1, updated: 1 },
+                },
+              }),
+              todo: async () => ({
+                data: [{ content: "Review file", status: "pending", priority: "medium" }],
+              }),
+              messages: async () => ({
+                data: [{
+                  info: {
+                    id: "m-user-1",
+                    sessionID: "session-1",
+                    role: "user",
+                    time: { created: 1 },
+                  },
+                  parts: [],
+                }],
+              }),
+              diff: async () => ({
+                data: [{
+                  file: "src/app.ts",
+                  patch: "@@",
+                  additions: 3,
+                  deletions: 1,
+                  status: "modified" as const,
+                }],
+              }),
+            },
+            vcs: {
+              get: async () => ({
+                data: {
+                  branch: "feature/auth",
+                  default_branch: "main",
+                },
+              }),
+            },
+          },
+        }),
+        onDidChange: () => ({ dispose() {} }),
+      } as any,
+      {
+        activeSession: () => undefined,
+        onDidChangeActiveSession(listener: (value?: SessionPanelRef) => void) {
+          activeListener = listener
+          return { dispose() {} }
+        },
+      } as any,
+      {
+        onDidEvent: () => ({ dispose() {} }),
+      } as any,
+      {
+        appendLine() {},
+      } as any,
+    )
+
+    store.selectSession(ref)
+    await settle()
+
+    assert.equal(store.snapshot().status, "ready")
+    assert.equal(store.snapshot().ref?.sessionId, "session-1")
+    assert.equal(store.snapshot().todos.length, 1)
+    assert.equal(store.snapshot().diff.length, 1)
+
+    activeListener?.(undefined)
+
+    assert.equal(store.snapshot().status, "ready")
+    assert.equal(store.snapshot().ref?.sessionId, "session-1")
+    assert.equal(store.snapshot().todos.length, 1)
+    assert.equal(store.snapshot().diff.length, 1)
   })
 })
+
+async function settle() {
+  await new Promise((resolve) => setTimeout(resolve, 0))
+}
