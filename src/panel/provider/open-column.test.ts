@@ -56,4 +56,101 @@ describe("SessionPanelManager.open", () => {
 
     assert.deepEqual(created, [4])
   })
+
+  test("locks the editor group after opening a new session panel", async () => {
+    const executed: string[] = []
+    const manager = Object.create(SessionPanelManager.prototype) as SessionPanelManager
+    const original = vscode.commands.executeCommand
+
+    Reflect.set(manager, "panels", new Map())
+    Reflect.set(manager, "createController", () => ({
+      panel: {},
+      push: async () => {},
+    }))
+    Reflect.set(vscode.commands, "executeCommand", async (command: string) => {
+      executed.push(command)
+    })
+
+    try {
+      await manager.open({
+        workspaceId: "file:///workspace",
+        dir: "/workspace",
+        sessionId: "session-new",
+      })
+    } finally {
+      Reflect.set(vscode.commands, "executeCommand", original)
+    }
+
+    assert.deepEqual(executed, ["workbench.action.lockEditorGroup"])
+  })
+
+  test("re-locks the editor group when revealing an existing session panel", async () => {
+    const executed: string[] = []
+    const steps: string[] = []
+    const manager = Object.create(SessionPanelManager.prototype) as SessionPanelManager
+    const original = vscode.commands.executeCommand
+    const existingKey = "file:///workspace::session-open"
+
+    Reflect.set(manager, "panels", new Map([[existingKey, {
+      ref: {
+        workspaceId: "file:///workspace",
+        dir: "/workspace",
+        sessionId: "session-open",
+      },
+      panel: {},
+      reveal: async () => {
+        steps.push("reveal")
+      },
+    }]]))
+    Reflect.set(vscode.commands, "executeCommand", async (command: string) => {
+      executed.push(command)
+      steps.push(command)
+    })
+
+    try {
+      await manager.open({
+        workspaceId: "file:///workspace",
+        dir: "/workspace",
+        sessionId: "session-open",
+      })
+    } finally {
+      Reflect.set(vscode.commands, "executeCommand", original)
+    }
+
+    assert.deepEqual(steps, ["reveal", "workbench.action.lockEditorGroup"])
+    assert.deepEqual(executed, ["workbench.action.lockEditorGroup"])
+  })
+})
+
+describe("SessionPanelManager.retarget", () => {
+  test("locks the editor group after replacing a session in place", async () => {
+    const executed: string[] = []
+    const manager = Object.create(SessionPanelManager.prototype) as SessionPanelManager
+    const original = vscode.commands.executeCommand
+    const currentKey = "file:///workspace::session-open"
+
+    Reflect.set(manager, "panels", new Map([[currentKey, {
+      panel: {},
+      retarget: async () => {},
+    }]]))
+    Reflect.set(vscode.commands, "executeCommand", async (command: string) => {
+      executed.push(command)
+    })
+
+    try {
+      await manager.retarget({
+        workspaceId: "file:///workspace",
+        dir: "/workspace",
+        sessionId: "session-open",
+      }, {
+        workspaceId: "file:///workspace",
+        dir: "/workspace",
+        sessionId: "session-next",
+      })
+    } finally {
+      Reflect.set(vscode.commands, "executeCommand", original)
+    }
+
+    assert.deepEqual(executed, ["workbench.action.lockEditorGroup"])
+  })
 })

@@ -4,7 +4,7 @@ import { EventHub } from "../../core/events"
 import { WorkspaceManager } from "../../core/workspace"
 import { sessionPanelHtml } from "../html"
 import { SessionPanelController } from "./controller"
-import { canRestoreRef, panelIconPath, panelKey, panelTitle, reviveState } from "./utils"
+import { canRestoreRef, panelIconPath, panelKey, panelTitle, reviveState, textError } from "./utils"
 
 export class SessionPanelManager implements vscode.Disposable {
   private readonly panels = new Map<string, SessionPanelController>()
@@ -27,11 +27,13 @@ export class SessionPanelManager implements vscode.Disposable {
     if (existing) {
       this.touch(key, existing)
       await existing.reveal()
+      await this.lockSessionGroup(undefined, "open:existing")
       return existing.panel
     }
 
     const controller = this.createController(ref, this.resolveOpenColumn(ref.workspaceId, viewColumn))
     await controller.push()
+    await this.lockSessionGroup(undefined, "open:new")
     return controller.panel
   }
 
@@ -43,12 +45,14 @@ export class SessionPanelManager implements vscode.Disposable {
       this.touch(key, existing)
       await existing.reveal()
       await existing.seedComposer(parts)
+      await this.lockSessionGroup(undefined, "openWithSeed:existing")
       return existing.panel
     }
 
     const controller = this.createController(ref, this.resolveOpenColumn(ref.workspaceId, viewColumn))
     await controller.seedComposer(parts)
     await controller.push()
+    await this.lockSessionGroup(undefined, "openWithSeed:new")
     return controller.panel
   }
 
@@ -75,6 +79,7 @@ export class SessionPanelManager implements vscode.Disposable {
     this.panels.delete(currentKey)
     await current.retarget(nextRef, nextKey)
     this.panels.set(nextKey, current)
+    await this.lockSessionGroup(current.panel, "retarget")
 
     if (panelKey(this.currentRef) === currentKey) {
       this.setActive(nextRef)
@@ -235,5 +240,16 @@ export class SessionPanelManager implements vscode.Disposable {
   private touch(key: string, controller: SessionPanelController) {
     this.panels.delete(key)
     this.panels.set(key, controller)
+  }
+
+  private async lockSessionGroup(panel: vscode.WebviewPanel | undefined, reason: string) {
+    try {
+      if (panel && typeof panel.reveal === "function") {
+        panel.reveal(panel.viewColumn ?? vscode.ViewColumn.Active)
+      }
+      await vscode.commands.executeCommand("workbench.action.lockEditorGroup")
+    } catch (error) {
+      this.out.appendLine(`[panel] failed to lock session editor group after ${reason}: ${textError(error)}`)
+    }
   }
 }
