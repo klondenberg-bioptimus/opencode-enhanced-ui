@@ -11,7 +11,7 @@ type Runtime = {
   state: "ready"
   sdk?: {
     session: {
-      create?(input: { directory: string; title: string }): Promise<{ data?: SessionInfo }>
+      create?(input: { directory: string; title?: string }): Promise<{ data?: SessionInfo }>
       list(input: { directory: string; roots: true }): Promise<{ data?: SessionInfo[] }>
       status(input: { directory: string }): Promise<{ data?: Record<string, SessionStatus> }>
     }
@@ -117,10 +117,10 @@ function deferred<T>() {
 }
 
 describe("SessionStore child session filtering", () => {
-  test("creates sessions with the compact default title", async () => {
+  test("creates sessions without overriding the upstream auto title flow", async () => {
     const harness = createHarness()
     const created = info("created", 2)
-    let input: { directory: string; title: string } | undefined
+    let input: { directory: string; title?: string } | undefined
 
     harness.rt.sdk = {
       session: {
@@ -142,7 +142,6 @@ describe("SessionStore child session filtering", () => {
 
     assert.deepEqual(input, {
       directory: "/workspace",
-      title: "New session",
     })
     assert.equal(result.title, "New session")
   })

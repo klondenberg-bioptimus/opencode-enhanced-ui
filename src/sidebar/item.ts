@@ -2,6 +2,7 @@ import * as vscode from "vscode"
 import { isMissingOpencodeError } from "../core/runtime-errors"
 import type { SessionInfo, SessionStatus } from "../core/sdk"
 import type { WorkspaceRuntime } from "../core/server"
+import { displaySessionTitle } from "../core/session-titles"
 
 export class WorkspaceItem extends vscode.TreeItem {
   constructor(
@@ -35,8 +36,9 @@ export class SessionItem extends vscode.TreeItem {
     status?: SessionStatus,
     tags: string[] = [],
   ) {
-    super(session.title || session.id.slice(0, 8), vscode.TreeItemCollapsibleState.None)
-    this.label = session.title || session.id.slice(0, 8)
+    const label = displaySessionTitle(session.title, session.id.slice(0, 8))
+    super(label, vscode.TreeItemCollapsibleState.None)
+    this.label = label
     this.id = `${runtime.workspaceId}:${session.id}`
     this.description = buildSessionDescription(session.id, tags)
     this.tooltip = buildSessionTooltip(runtime.dir, session, tags)
@@ -143,7 +145,7 @@ function buildSessionDescription(sessionId: string, tags: string[]) {
 }
 
 function buildSessionTooltip(runtimeDir: string, session: SessionInfo, tags: string[]) {
-  const lines = [`${session.title || session.id}`, session.id, runtimeDir]
+  const lines = [`${displaySessionTitle(session.title, session.id)}`, session.id, runtimeDir]
   if (tags.length > 0) {
     lines.push(`Tags: ${tags.join(", ")}`)
   }

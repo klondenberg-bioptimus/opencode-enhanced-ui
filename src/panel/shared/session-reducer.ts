@@ -1,5 +1,6 @@
 import type { SessionSnapshot } from "../../bridge/types"
 import type { FileDiff, MessagePart, PermissionRequest, QuestionRequest, SessionEvent, SessionMessage, SessionStatus, Todo } from "../../core/sdk"
+import { displaySessionTitle } from "../../core/session-titles"
 
 export function reduceSessionSnapshot(payload: SessionSnapshot, event: SessionEvent) {
   if (event.type === "session.diff") {
@@ -549,7 +550,7 @@ function nextNavigation(session: SessionSnapshot["session"], children: Record<st
 function sessionRef(session: NonNullable<SessionSnapshot["session"]>) {
   return {
     id: session.id,
-    title: session.title || session.id.slice(0, 8),
+    title: displaySessionTitle(session.title, session.id.slice(0, 8)),
   }
 }
 

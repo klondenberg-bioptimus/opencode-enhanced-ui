@@ -1,6 +1,7 @@
 import * as vscode from "vscode"
 import type { SessionBootstrap, SessionPanelRef, SessionSnapshot } from "../../bridge/types"
 import type { SessionStatus } from "../../core/sdk"
+import { displaySessionTitle } from "../../core/session-titles"
 export { canRestoreRef, reviveState, type SessionPanelState } from "./restore-state"
 
 export function panelKey(ref?: SessionPanelRef) {
@@ -12,7 +13,7 @@ export function panelKey(ref?: SessionPanelRef) {
 }
 
 export function panelTitle(title: string) {
-  const clean = (title || "session").trim() || "session"
+  const clean = displaySessionTitle(title, "session")
   const maxTitleLength = 24
   return clean.length > maxTitleLength ? `${clean.slice(0, maxTitleLength - 1)}…` : clean
 }

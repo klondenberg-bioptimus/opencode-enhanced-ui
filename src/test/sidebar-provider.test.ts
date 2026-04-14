@@ -177,6 +177,18 @@ describe("sidebar session search", () => {
     assert.equal(String(items[0]?.description).includes("bug"), true)
   })
 
+  test("normalizes timestamped default session titles in the tree", () => {
+    const items = buildWorkspaceChildren({
+      runtime: {
+        ...runtime(),
+      },
+      sessions: [session("s1", "New session - 2026-04-14 12:24")],
+      statuses: new Map(),
+    })
+
+    assert.equal(items[0]?.label, "New session")
+  })
+
   test("intersects workspace tag filters with text search results", () => {
     const items = buildWorkspaceChildren({
       runtime: {

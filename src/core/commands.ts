@@ -7,7 +7,7 @@ import { ClearSearchItem, ClearTagFilterItem, SessionItem, WorkspaceItem } from 
 import type { WorkspaceRuntime } from "./server"
 import { parseSessionTagsInput, SessionTagStore } from "./session-tags"
 import { SessionStore } from "./session"
-import { isDefaultNewSessionTitle } from "./session-titles"
+import { displaySessionTitle, isDefaultNewSessionTitle } from "./session-titles"
 import { TabManager } from "./tabs"
 import { WorkspaceManager } from "./workspace"
 import { SessionPanelManager } from "../panel/provider"
@@ -199,7 +199,7 @@ export function commands(
         return
       }
 
-      const label = item.session.title || item.session.id.slice(0, 8)
+      const label = displaySessionTitle(item.session.title, item.session.id.slice(0, 8))
       const confirmed = await vscode.window.showWarningMessage(
         `Delete session "${label}"? This permanently removes its messages and history.`,
         { modal: true },
@@ -302,7 +302,7 @@ export function commands(
 
       const current = tags.tags(item.runtime.workspaceId, item.session.id)
       const input = await vscode.window.showInputBox({
-        prompt: `Manage tags for ${item.session.title || item.session.id.slice(0, 8)}`,
+        prompt: `Manage tags for ${displaySessionTitle(item.session.title, item.session.id.slice(0, 8))}`,
         placeHolder: "tag-a, tag-b",
         value: current.join(", "),
         ignoreFocusOut: true,

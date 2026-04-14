@@ -1,5 +1,6 @@
 import type { SessionSnapshot } from "../../bridge/types"
 import type { PermissionRequest, QuestionRequest } from "../../core/sdk"
+import { displaySessionTitle } from "../../core/session-titles"
 import { cmp } from "./utils"
 
 type SessionInfo = NonNullable<SessionSnapshot["session"]>
@@ -90,7 +91,7 @@ export function filterQuestion(list: QuestionRequest[], sessionIDs: string[]) {
 function ref(session: SessionInfo) {
   return {
     id: session.id,
-    title: session.title || session.id.slice(0, 8),
+    title: displaySessionTitle(session.title, session.id.slice(0, 8)),
   }
 }
 

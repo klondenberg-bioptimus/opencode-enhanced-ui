@@ -1,5 +1,6 @@
 import type { SessionBootstrap } from "../../../bridge/types"
 import type { AgentInfo, LspStatus, McpStatus, MessageInfo, ProviderInfo, SessionMessage, SessionStatus } from "../../../core/sdk"
+import { displaySessionTitle } from "../../../core/session-titles"
 
 export type ModelRef = NonNullable<MessageInfo["model"]>
 
@@ -14,7 +15,7 @@ export type StatusItem = {
 }
 
 export function sessionTitle(bootstrap: SessionBootstrap) {
-  return bootstrap.session?.title || bootstrap.sessionRef.sessionId?.slice(0, 8) || "session"
+  return displaySessionTitle(bootstrap.session?.title, bootstrap.sessionRef.sessionId?.slice(0, 8) || "session")
 }
 
 export function isSessionRunning(status?: SessionStatus) {

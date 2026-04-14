@@ -1,5 +1,6 @@
 import * as vscode from "vscode"
 import type { RuntimeState } from "./server"
+import { displaySessionTitle } from "./session-titles"
 import { WorkspaceManager } from "./workspace"
 import { SessionPanelManager } from "../panel/provider"
 
@@ -96,7 +97,7 @@ export class OpenCodeStatusBar implements vscode.Disposable {
       const session = rt?.sessions.get(active.sessionId)
       const status = rt?.sessionStatuses.get(active.sessionId)
       return deriveStatusBarState({
-        activeSessionTitle: session?.title || active.sessionId,
+        activeSessionTitle: displaySessionTitle(session?.title, active.sessionId),
         activeSessionBusy: status?.type === "busy",
         runtimeState: rt?.state,
       })

@@ -1,4 +1,5 @@
 import * as vscode from "vscode"
+import { displaySessionTitle } from "../core/session-titles"
 import { FocusedSessionStore } from "./focused"
 import { sidebarViewHtml } from "./html"
 import type { SidebarHostMessage, SidebarViewMode, SidebarWebviewMessage } from "./view-types"
@@ -65,7 +66,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       payload: {
         status: state.status,
         mode: this.mode,
-        sessionTitle: state.session?.title || state.session?.id?.slice(0, 8),
+        sessionTitle: displaySessionTitle(state.session?.title, state.session?.id?.slice(0, 8) || "session"),
         sessionRef: state.ref,
         todos: state.todos,
         diff: state.diff,
