@@ -6,43 +6,54 @@ import { SessionPanelController } from "./controller"
 import { SessionPanelManager } from "./index"
 
 describe("SessionPanelController.reveal", () => {
-  test("reveals the panel in the requested editor column", async () => {
+  test("reveals the panel in its existing editor column by default", async () => {
     const revealed: vscode.ViewColumn[] = []
     const controller = Object.create(SessionPanelController.prototype) as SessionPanelController
 
     Reflect.set(controller, "push", async () => {})
     Reflect.set(controller, "panel", {
+      viewColumn: 5,
       reveal(viewColumn: vscode.ViewColumn) {
         revealed.push(viewColumn)
       },
     } as unknown as vscode.WebviewPanel)
 
-    await controller.reveal(vscode.ViewColumn.Beside)
+    await controller.reveal()
 
-    assert.deepEqual(revealed, [vscode.ViewColumn.Beside])
+    assert.deepEqual(revealed, [5])
   })
 })
 
 describe("SessionPanelManager.open", () => {
-  test("reuses an existing panel in the requested editor column", async () => {
-    const revealed: vscode.ViewColumn[] = []
+  test("creates new session panels in the existing OpenCode group before splitting again", async () => {
+    const created: vscode.ViewColumn[] = []
     const manager = Object.create(SessionPanelManager.prototype) as SessionPanelManager
-    const key = "file:///workspace::session-1"
-    const existing = {
-      panel: {},
-      async reveal(viewColumn?: vscode.ViewColumn) {
-        revealed.push(viewColumn ?? vscode.ViewColumn.Active)
-      },
-    }
+    const existingKey = "file:///workspace::session-open"
 
-    Reflect.set(manager, "panels", new Map([[key, existing]]))
+    Reflect.set(manager, "panels", new Map([[existingKey, {
+      ref: {
+        workspaceId: "file:///workspace",
+        dir: "/workspace",
+        sessionId: "session-open",
+      },
+      panel: {
+        viewColumn: 4,
+      },
+    }]]))
+    Reflect.set(manager, "createController", (_ref: unknown, viewColumn?: vscode.ViewColumn) => {
+      created.push(viewColumn ?? vscode.ViewColumn.Active)
+      return {
+        panel: {},
+        push: async () => {},
+      }
+    })
 
     await manager.open({
       workspaceId: "file:///workspace",
       dir: "/workspace",
-      sessionId: "session-1",
+      sessionId: "session-new",
     }, vscode.ViewColumn.Beside)
 
-    assert.deepEqual(revealed, [vscode.ViewColumn.Beside])
+    assert.deepEqual(created, [4])
   })
 })

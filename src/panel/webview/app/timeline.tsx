@@ -169,13 +169,13 @@ function TimelineBlockView({
             </div>
           ) : null}
           <div className="oc-messageActions" aria-label="Message actions">
-            <button type="button" className="oc-messageActionBtn" aria-label="Copy message" title="Copy message" onClick={() => onCopyUserMessage(block.message)}>
+            <button type="button" className="oc-messageActionBtn" aria-label="Copy" data-tooltip="Copy" onClick={() => onCopyUserMessage(block.message)}>
               <CopyMessageIcon />
             </button>
-            <button type="button" className="oc-messageActionBtn" aria-label="Fork from message" title="Fork from message" onClick={() => onForkUserMessage(block.message)} disabled={block.queued}>
+            <button type="button" className="oc-messageActionBtn" aria-label="Fork" data-tooltip="Fork" onClick={() => onForkUserMessage(block.message)} disabled={block.queued}>
               <ForkMessageIcon />
             </button>
-            <button type="button" className="oc-messageActionBtn" aria-label="Undo to message" title="Undo to message" onClick={() => onUndoUserMessage(block.message)} disabled={block.queued}>
+            <button type="button" className="oc-messageActionBtn" aria-label="Undo" data-tooltip="Undo" onClick={() => onUndoUserMessage(block.message)} disabled={block.queued}>
               <UndoMessageIcon />
             </button>
           </div>

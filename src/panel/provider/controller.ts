@@ -187,7 +187,7 @@ export class SessionPanelController implements vscode.Disposable {
     )
   }
 
-  async reveal(viewColumn: vscode.ViewColumn = vscode.ViewColumn.Active) {
+  async reveal(viewColumn = this.panel.viewColumn ?? vscode.ViewColumn.Active) {
     await this.push(false, "reveal")
     this.panel.reveal(viewColumn)
   }

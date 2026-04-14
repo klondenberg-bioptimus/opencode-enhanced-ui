@@ -26,11 +26,11 @@ export class SessionPanelManager implements vscode.Disposable {
 
     if (existing) {
       this.touch(key, existing)
-      await existing.reveal(viewColumn)
+      await existing.reveal()
       return existing.panel
     }
 
-    const controller = this.createController(ref, viewColumn)
+    const controller = this.createController(ref, this.resolveOpenColumn(ref.workspaceId, viewColumn))
     await controller.push()
     return controller.panel
   }
@@ -41,12 +41,12 @@ export class SessionPanelManager implements vscode.Disposable {
 
     if (existing) {
       this.touch(key, existing)
-      await existing.reveal(viewColumn)
+      await existing.reveal()
       await existing.seedComposer(parts)
       return existing.panel
     }
 
-    const controller = this.createController(ref, viewColumn)
+    const controller = this.createController(ref, this.resolveOpenColumn(ref.workspaceId, viewColumn))
     await controller.seedComposer(parts)
     await controller.push()
     return controller.panel
@@ -191,6 +191,28 @@ export class SessionPanelManager implements vscode.Disposable {
     })
 
     return this.attach(ref, panel)
+  }
+
+  private resolveOpenColumn(workspaceId: string, requested?: vscode.ViewColumn) {
+    if (requested !== vscode.ViewColumn.Beside) {
+      return requested
+    }
+
+    const controllers = [...this.panels.values()]
+
+    for (let index = controllers.length - 1; index >= 0; index -= 1) {
+      const controller = controllers[index]
+      if (controller?.ref.workspaceId !== workspaceId) {
+        continue
+      }
+
+      const viewColumn = controller.panel.viewColumn
+      if (viewColumn !== undefined) {
+        return viewColumn
+      }
+    }
+
+    return requested
   }
 
   private setActive(ref: SessionPanelRef | undefined) {
