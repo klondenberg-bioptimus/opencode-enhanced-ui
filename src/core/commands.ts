@@ -10,7 +10,6 @@ import { SessionStore } from "./session"
 import { TabManager } from "./tabs"
 import { WorkspaceManager } from "./workspace"
 import { SessionPanelManager } from "../panel/provider"
-import { restoredPromptPartsFromMessage } from "../panel/provider/actions"
 import { buildEditorSeed, buildExplorerSeed, type LaunchSeed } from "./launch-context"
 import { applySessionSearchCapabilityResult, CapabilityState, CapabilityStore, classifyCapabilityError, createEmptyCapabilities, type RuntimeCapabilities } from "./capabilities"
 import { SidebarProvider } from "../sidebar/provider"
@@ -175,28 +174,19 @@ export function commands(
       }
 
       try {
-        const result = await rt.sdk.session.messages({
-          sessionID: current.sessionId,
-          directory: rt.dir,
+        const forked = await forkSessionMessage({
+          runtime: rt,
+          current,
+          messageID,
         })
-        const message = result.data?.find((item) => item.info.role === "user" && item.info.id === messageID)
-        if (!message) {
+
+        if (!forked) {
           await vscode.window.showInformationMessage("The selected message is no longer available.")
           return
         }
 
-        const created = await rt.sdk.session.create(buildForkSessionCreateInput(rt.dir))
-        const session = created.data
-        if (!session) {
-          throw new Error("session create returned no data")
-        }
-
         void capabilities.getOrProbe(rt.workspaceId)
-        await panels.openWithSeed({
-          workspaceId: rt.workspaceId,
-          dir: rt.dir,
-          sessionId: session.id,
-        }, restoredPromptPartsFromMessage(message), resolveNewSessionOpenColumn())
+        await tabs.openSession(workspaceRef(rt), forked, resolveNewSessionOpenColumn())
         void sessions.refresh(rt.workspaceId, true)
       } catch (error) {
         await vscode.window.showErrorMessage(`OpenCode fork failed for ${rt.name}: ${errorMessage(error)}`)
@@ -713,10 +703,26 @@ export function resolveNewSessionOpenColumn() {
   return vscode.ViewColumn.Beside
 }
 
-export function buildForkSessionCreateInput(directory: string) {
-  return {
-    directory,
+export async function forkSessionMessage(input: {
+  runtime: WorkspaceRuntime
+  current: WorkspaceRef & { sessionId: string }
+  messageID: string
+}) {
+  const messages = await input.runtime.sdk!.session.messages({
+    sessionID: input.current.sessionId,
+    directory: input.runtime.dir,
+  })
+
+  const message = messages.data?.find((item) => item.info.role === "user" && item.info.id === input.messageID)
+  if (!message) {
+    return undefined
   }
+
+  return (await input.runtime.sdk!.session.fork({
+    sessionID: input.current.sessionId,
+    directory: input.runtime.dir,
+    messageID: input.messageID,
+  })).data
 }
 
 export function resolveReusableNewSession(input: {

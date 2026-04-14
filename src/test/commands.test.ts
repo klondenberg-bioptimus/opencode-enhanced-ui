@@ -4,7 +4,7 @@ import * as vscode from "vscode"
 
 import type { SessionPanelRef } from "../bridge/types"
 import type { SessionInfo, SessionStatus } from "../core/sdk"
-import { buildForkSessionCreateInput, resolveNewSessionOpenColumn, resolveReusableNewSession, resolveSeedSessionTarget } from "../core/commands"
+import { forkSessionMessage, resolveNewSessionOpenColumn, resolveReusableNewSession, resolveSeedSessionTarget } from "../core/commands"
 
 function session(id: string, updated: number, title = `New session - ${id}`): SessionInfo {
   return {
@@ -130,10 +130,56 @@ describe("resolveNewSessionOpenColumn", () => {
   })
 })
 
-describe("buildForkSessionCreateInput", () => {
-  test("creates a normal fork session instead of a child session", () => {
-    assert.deepEqual(buildForkSessionCreateInput("/workspace-a"), {
-      directory: "/workspace-a",
+describe("forkSessionMessage", () => {
+  test("uses official session.fork with the selected message id", async () => {
+    let forked: unknown
+
+    const result = await forkSessionMessage({
+      runtime: {
+        workspaceId: "file:///workspace-a",
+        dir: "/workspace-a",
+        name: "workspace-a",
+        state: "ready",
+        sdk: {
+          session: {
+            messages: async () => ({
+              data: [{
+                info: {
+                  id: "msg-1",
+                  sessionID: "session-root",
+                  role: "user",
+                  time: { created: 1 },
+                },
+                parts: [],
+              }],
+            }),
+            fork: async (input: unknown) => {
+              forked = input
+              return {
+                data: {
+                  id: "session-fork",
+                  directory: "/workspace-a",
+                  title: "Fork",
+                  time: { created: 2, updated: 2 },
+                },
+              }
+            },
+          },
+        },
+      } as any,
+      current: {
+        workspaceId: "file:///workspace-a",
+        dir: "/workspace-a",
+        sessionId: "session-root",
+      },
+      messageID: "msg-1",
     })
+
+    assert.deepEqual(forked, {
+      sessionID: "session-root",
+      directory: "/workspace-a",
+      messageID: "msg-1",
+    })
+    assert.equal(result?.id, "session-fork")
   })
 })

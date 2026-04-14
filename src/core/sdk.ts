@@ -1,30 +1,16 @@
-export type SessionInfo = {
-  id: string
-  directory: string
-  parentID?: string
-  title: string
-  revert?: {
-    messageID: string
-    partID?: string
-    snapshot?: string
-    diff?: string
-  }
-  time: {
-    created: number
-    updated: number
-    archived?: number
-  }
+import type {
+  OpencodeClient as OfficialOpencodeClient,
+  Session as OfficialSessionInfo,
+  SessionStatus as OfficialSessionStatus,
+} from "@opencode-ai/sdk/v2/client" with { "resolution-mode": "import" }
+
+export type SessionInfo = Omit<OfficialSessionInfo, "slug" | "projectID" | "version"> & {
+  slug?: OfficialSessionInfo["slug"]
+  projectID?: OfficialSessionInfo["projectID"]
+  version?: OfficialSessionInfo["version"]
 }
 
-export type SessionStatus =
-  | { type: "idle" }
-  | {
-      type: "retry"
-      attempt: number
-      message: string
-      next: number
-    }
-  | { type: "busy" }
+export type SessionStatus = OfficialSessionStatus
 
 export type PermissionReply = "once" | "always" | "reject"
 
@@ -482,6 +468,12 @@ export type Client = {
       parentID?: string
       title?: string
     }): Promise<{ data?: SessionInfo }>
+    fork(input: {
+      sessionID: string
+      directory?: string
+      workspace?: string
+      messageID?: string
+    }): Promise<{ data?: SessionInfo }>
     delete(input: {
       sessionID: string
       directory?: string
@@ -621,11 +613,40 @@ export type Client = {
   }
 }
 
+export function createClientAdapter(client: OfficialOpencodeClient): Client {
+  const adapted = { ...client } as unknown as Client
+
+  if (client.find) {
+    adapted.find = {
+      ...client.find,
+      files(input) {
+        return client.find.files({
+          ...input,
+          dirs: input.dirs === undefined ? undefined : input.dirs ? "true" : "false",
+        }) as Promise<{ data?: string[] }>
+      },
+    }
+  }
+
+  if (client.event) {
+    adapted.event = {
+      ...client.event,
+      async subscribe(input, options) {
+        const result = await client.event.subscribe(input, options)
+        const stream = "stream" in result ? result.stream : result
+        return { stream: stream as AsyncIterable<SessionEvent> }
+      },
+    }
+  }
+
+  return adapted
+}
+
 export async function client(url: string, dir: string): Promise<Client> {
   const mod = await import("@opencode-ai/sdk/v2/client")
-  return mod.createOpencodeClient({
+  return createClientAdapter(mod.createOpencodeClient({
     baseUrl: url,
     directory: dir,
     throwOnError: true,
-  }) as unknown as Client
+  }))
 }
