@@ -189,11 +189,6 @@ body {
   letter-spacing: 0.04em;
 }
 
-.sv-todoMeta {
-  color: var(--vscode-descriptionForeground);
-  font-size: 11px;
-}
-
 .sv-empty {
   display: grid;
   gap: 6px;

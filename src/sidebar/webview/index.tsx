@@ -59,7 +59,7 @@ function App() {
   )
 }
 
-function TodoList({ state }: { state: SidebarViewState }) {
+export function TodoList({ state }: { state: SidebarViewState }) {
   const [filter, setFilter] = React.useState<TaskFilter>("all")
   const view = buildTaskPanelView({
     todos: state.todos,
@@ -113,7 +113,6 @@ function TodoList({ state }: { state: SidebarViewState }) {
                 <span className="sv-todoPrefix">{todoPrefix(item.status)}</span>
                 <span className="sv-todoBody">
                   <span className="sv-todoText">{item.content || "Untitled task"}</span>
-                  {state.sessionTitle ? <span className="sv-todoMeta">{state.sessionTitle}</span> : null}
                 </span>
               </button>
             ))}
