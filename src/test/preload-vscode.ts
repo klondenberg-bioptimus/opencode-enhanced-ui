@@ -27,6 +27,7 @@ mock.module("vscode", () => ({
   EventEmitter,
   ViewColumn: {
     Active: 1,
+    Beside: 2,
   },
   window: {
     showInformationMessage: async () => undefined,

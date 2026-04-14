@@ -26,7 +26,7 @@ export class SessionPanelManager implements vscode.Disposable {
 
     if (existing) {
       this.touch(key, existing)
-      await existing.reveal()
+      await existing.reveal(viewColumn)
       return existing.panel
     }
 
@@ -41,7 +41,7 @@ export class SessionPanelManager implements vscode.Disposable {
 
     if (existing) {
       this.touch(key, existing)
-      await existing.reveal()
+      await existing.reveal(viewColumn)
       await existing.seedComposer(parts)
       return existing.panel
     }

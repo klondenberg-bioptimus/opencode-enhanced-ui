@@ -135,7 +135,7 @@ export function commands(
         return
       }
 
-      await tabs.openSession(workspaceRef(item.runtime), item.session)
+      await tabs.openSession(workspaceRef(item.runtime), item.session, resolveNewSessionOpenColumn())
     }),
     vscode.commands.registerCommand("opencode-ui.openSessionById", async (workspace?: WorkspaceRef, sessionID?: string, viewColumn?: vscode.ViewColumn) => {
       if (!workspace || !sessionID) {
@@ -159,7 +159,7 @@ export function commands(
         return
       }
 
-      await tabs.openSession(workspaceRef(rt), res.data, viewColumn)
+      await tabs.openSession(workspaceRef(rt), res.data, viewColumn ?? resolveNewSessionOpenColumn())
     }),
     vscode.commands.registerCommand("opencode-ui.forkSessionMessage", async (current?: WorkspaceRef & { sessionId: string }, messageID?: string) => {
       if (!current || !messageID) {

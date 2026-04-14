@@ -187,9 +187,9 @@ export class SessionPanelController implements vscode.Disposable {
     )
   }
 
-  async reveal() {
+  async reveal(viewColumn: vscode.ViewColumn = vscode.ViewColumn.Active) {
     await this.push(false, "reveal")
-    this.panel.reveal(vscode.ViewColumn.Active)
+    this.panel.reveal(viewColumn)
   }
 
   async seedComposer(parts: ComposerPromptPart[]) {
