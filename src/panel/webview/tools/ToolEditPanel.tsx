@@ -87,7 +87,7 @@ export function ToolEditPanel({
             <div className="oc-partHeader">
               <div className="oc-toolHeaderMain">
                 <span className="oc-kicker">{toolLabel(part.tool)}</span>
-                <span className="oc-toolPanelTitle">{details.title}</span>
+                <span className="oc-toolPanelTitle">{file ? <FileRefText value={file.path} display={file.path} /> : details.title}</span>
               </div>
               <div className="oc-toolHeaderMeta">
                 {details.subtitle ? <span className="oc-partMeta">{details.subtitle}</span> : null}

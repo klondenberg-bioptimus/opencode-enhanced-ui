@@ -2,14 +2,30 @@ import React from "react"
 import type { PermissionRequest, QuestionInfo, QuestionRequest, SessionStatus } from "../../../core/sdk"
 import type { AppState, FormState } from "./state"
 
+type FileRefTextComponent = ({ value, display, tone }: { value: string; display?: string; tone?: "default" | "muted" }) => React.JSX.Element
+
+type PermissionLine =
+  | {
+      type: "text"
+      text: string
+    }
+  | {
+      type: "path"
+      prefix?: string
+      path: string
+      display?: string
+      tone?: "default" | "muted"
+    }
+
 export function PermissionDock(props: {
   request: PermissionRequest
   currentSessionID: string
   rejectMessage: string
   onRejectMessage: (value: string) => void
   onReply: (reply: "once" | "always" | "reject", message?: string) => void
+  FileRefText: FileRefTextComponent
 }) {
-  const { request, currentSessionID, rejectMessage, onRejectMessage, onReply } = props
+  const { request, currentSessionID, rejectMessage, onRejectMessage, onReply, FileRefText } = props
   const childRequest = request.sessionID !== currentSessionID
   const info = permissionInfo(request)
   return (
@@ -19,10 +35,10 @@ export function PermissionDock(props: {
         <span className="oc-dockTitle">{info.label || "Approval required"}</span>
       </div>
       <div className="oc-dockText">{info.intro || "OpenCode is waiting for confirmation before it continues."}</div>
-      <div className="oc-inlineValue">{info.title}</div>
+      <div className="oc-inlineValue">{renderPermissionLine(info.title, FileRefText)}</div>
       {info.details.length > 0 ? (
         <div className="oc-detailList">
-          {info.details.map((item) => <div key={item} className="oc-dockText">{item}</div>)}
+          {info.details.map((item) => <div key={permissionLineKey(item)} className="oc-dockText">{renderPermissionLine(item, FileRefText)}</div>)}
         </div>
       ) : null}
       {request.patterns?.length ? (
@@ -393,14 +409,14 @@ export function answerKey(requestID: string, index: number) {
 type PermissionInfo = {
   label: string
   intro: string
-  title: string
-  details: string[]
+  title: PermissionLine
+  details: PermissionLine[]
   patternTitle?: string
 }
 
 function permissionInfo(request: PermissionRequest): PermissionInfo {
   const input = permissionInput(request)
-  const details: string[] = []
+  const details: PermissionLine[] = []
   const base = {
     label: "Approval required",
     intro: "OpenCode is waiting for confirmation before it continues.",
@@ -409,21 +425,29 @@ function permissionInfo(request: PermissionRequest): PermissionInfo {
   if (request.permission === "edit") {
     const filepath = stringValue(request.metadata?.filepath)
     if (filepath) {
-      details.push(`Path: ${filepath}`)
+      details.push({ type: "path", prefix: "Path: ", path: filepath })
     }
     const diff = stringValue(request.metadata?.diff)
     if (diff) {
-      details.push(diff)
+      details.push({ type: "text", text: diff })
     }
-    return { ...base, title: `Edit ${filepath || "file"}`, details }
+    return {
+      ...base,
+      title: filepath
+        ? { type: "path", prefix: "Edit ", path: filepath }
+        : { type: "text", text: "Edit file" },
+      details,
+    }
   }
 
   if (request.permission === "read") {
     const filePath = stringValue(input.filePath)
     return {
       ...base,
-      title: `Read ${filePath || "file"}`,
-      details: filePath ? [`Path: ${filePath}`] : details,
+      title: filePath
+        ? { type: "path", prefix: "Read ", path: filePath }
+        : { type: "text", text: "Read file" },
+      details: filePath ? [{ type: "path", prefix: "Path: ", path: filePath }] : details,
     }
   }
 
@@ -431,8 +455,8 @@ function permissionInfo(request: PermissionRequest): PermissionInfo {
     const pattern = stringValue(input.pattern)
     return {
       ...base,
-      title: `${capitalize(request.permission)} ${pattern ? `"${pattern}"` : "request"}`,
-      details: pattern ? [`Pattern: ${pattern}`] : details,
+      title: { type: "text", text: `${capitalize(request.permission)} ${pattern ? `"${pattern}"` : "request"}` },
+      details: pattern ? [{ type: "text", text: `Pattern: ${pattern}` }] : details,
     }
   }
 
@@ -440,8 +464,10 @@ function permissionInfo(request: PermissionRequest): PermissionInfo {
     const dir = stringValue(input.path)
     return {
       ...base,
-      title: `List ${dir || "directory"}`,
-      details: dir ? [`Path: ${dir}`] : details,
+      title: dir
+        ? { type: "path", prefix: "List ", path: dir }
+        : { type: "text", text: "List directory" },
+      details: dir ? [{ type: "path", prefix: "Path: ", path: dir }] : details,
     }
   }
 
@@ -450,8 +476,8 @@ function permissionInfo(request: PermissionRequest): PermissionInfo {
     const command = stringValue(input.command)
     return {
       ...base,
-      title,
-      details: command ? [`$ ${command}`] : details,
+      title: { type: "text", text: title },
+      details: command ? [{ type: "text", text: `$ ${command}` }] : details,
     }
   }
 
@@ -460,8 +486,8 @@ function permissionInfo(request: PermissionRequest): PermissionInfo {
     const description = stringValue(input.description)
     return {
       ...base,
-      title: `${capitalize(type)} task`,
-      details: description ? [description] : details,
+      title: { type: "text", text: `${capitalize(type)} task` },
+      details: description ? [{ type: "text", text: description }] : details,
     }
   }
 
@@ -469,8 +495,8 @@ function permissionInfo(request: PermissionRequest): PermissionInfo {
     const url = stringValue(input.url)
     return {
       ...base,
-      title: `WebFetch ${url || "request"}`,
-      details: url ? [`URL: ${url}`] : details,
+      title: { type: "text", text: `WebFetch ${url || "request"}` },
+      details: url ? [{ type: "text", text: `URL: ${url}` }] : details,
     }
   }
 
@@ -478,8 +504,8 @@ function permissionInfo(request: PermissionRequest): PermissionInfo {
     const query = stringValue(input.query)
     return {
       ...base,
-      title: `${capitalize(request.permission)} ${query ? `"${query}"` : "request"}`,
-      details: query ? [`Query: ${query}`] : details,
+      title: { type: "text", text: `${capitalize(request.permission)} ${query ? `"${query}"` : "request"}` },
+      details: query ? [{ type: "text", text: `Query: ${query}` }] : details,
     }
   }
 
@@ -491,8 +517,8 @@ function permissionInfo(request: PermissionRequest): PermissionInfo {
     return {
       label: "Permission required",
       intro: "OpenCode wants to reach outside the current workspace before it continues.",
-      title: `Access external directory ${target}`,
-      details: parentDir && filepath && parentDir !== filepath ? [`Path: ${filepath}`] : [],
+      title: { type: "text", text: `Access external directory ${target}` },
+      details: parentDir && filepath && parentDir !== filepath ? [{ type: "path", prefix: "Path: ", path: filepath }] : [],
       patternTitle: request.patterns?.length ? "Patterns" : undefined,
     }
   }
@@ -501,16 +527,34 @@ function permissionInfo(request: PermissionRequest): PermissionInfo {
     return {
       label: "Permission required",
       intro: "OpenCode paused because the same failure pattern keeps repeating.",
-      title: "Continue after repeated failures",
-      details: ["This keeps the session running despite repeated failures."],
+      title: { type: "text", text: "Continue after repeated failures" },
+      details: [{ type: "text", text: "This keeps the session running despite repeated failures." }],
     }
   }
 
   return {
     ...base,
-    title: `Call tool ${request.permission || "permission"}`,
+    title: { type: "text", text: `Call tool ${request.permission || "permission"}` },
     details,
   }
+}
+
+function renderPermissionLine(line: PermissionLine, FileRefText: FileRefTextComponent) {
+  if (line.type === "path") {
+    return (
+      <>
+        {line.prefix || ""}
+        <FileRefText value={line.path} display={line.display || line.path} tone={line.tone} />
+      </>
+    )
+  }
+  return line.text
+}
+
+function permissionLineKey(line: PermissionLine) {
+  return line.type === "path"
+    ? `${line.prefix || ""}${line.path}`
+    : line.text
 }
 
 function permissionInput(request: PermissionRequest) {

@@ -169,7 +169,14 @@
 }
 
 .oc-inlineCode-file {
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.12em;
+  text-decoration-color: color-mix(in srgb, var(--oc-md-current-code) 30%, transparent 70%);
+}
+
+.oc-inlineCode-file:hover {
+  text-decoration-color: color-mix(in srgb, var(--oc-md-current-code) 55%, transparent 45%);
 }
 
 .oc-modKey .oc-inlineCode-file {
@@ -185,7 +192,14 @@
 }
 
 .oc-fileRefText.is-openable {
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.12em;
+  text-decoration-color: color-mix(in srgb, currentColor 24%, transparent 76%);
+}
+
+.oc-fileRefText.is-openable:hover {
+  text-decoration-color: color-mix(in srgb, currentColor 46%, transparent 54%);
 }
 
 .oc-modKey .oc-fileRefText.is-openable {

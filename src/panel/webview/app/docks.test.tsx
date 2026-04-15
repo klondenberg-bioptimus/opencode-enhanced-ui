@@ -3,8 +3,8 @@ import { describe, test } from "node:test"
 import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
-import type { QuestionRequest } from "../../../core/sdk"
-import { QuestionBlock } from "./docks"
+import type { PermissionRequest, QuestionRequest } from "../../../core/sdk"
+import { PermissionDock, QuestionBlock } from "./docks"
 
 function questionRequest(): Pick<QuestionRequest, "id" | "questions"> {
   return {
@@ -83,5 +83,75 @@ describe("QuestionBlock", () => {
 
     assert.equal(html.includes("Business/management"), true)
     assert.equal(html.includes("No answer recorded."), true)
+  })
+})
+
+function permissionRequest(permission: PermissionRequest["permission"], extras?: Partial<PermissionRequest>): PermissionRequest {
+  return {
+    id: `permission-${permission}`,
+    sessionID: "session-1",
+    permission,
+    patterns: [],
+    metadata: {},
+    always: [],
+    ...extras,
+  }
+}
+
+describe("PermissionDock", () => {
+  const FileRefText = ({ value, display }: { value: string; display?: string }) => <span className="test-file-ref" data-path={value}>{display || value}</span>
+
+  test("renders clickable file refs for edit permission titles and path details", () => {
+    const html = renderToStaticMarkup(
+      <PermissionDock
+        request={permissionRequest("edit", {
+          metadata: {
+            filepath: "src/panel/webview/app/App.tsx",
+          },
+        })}
+        currentSessionID="session-1"
+        rejectMessage=""
+        onRejectMessage={() => {}}
+        onReply={() => {}}
+        FileRefText={FileRefText}
+      />,
+    )
+
+    assert.equal(html.includes('class="test-file-ref" data-path="src/panel/webview/app/App.tsx"'), true)
+    assert.equal(html.includes("Path:"), true)
+  })
+
+  test("renders clickable file refs for read and list permission paths", () => {
+    const readHtml = renderToStaticMarkup(
+      <PermissionDock
+        request={permissionRequest("read", {
+          metadata: {
+            filePath: "src/panel/provider/files.ts",
+          },
+        })}
+        currentSessionID="session-1"
+        rejectMessage=""
+        onRejectMessage={() => {}}
+        onReply={() => {}}
+        FileRefText={FileRefText}
+      />,
+    )
+    const listHtml = renderToStaticMarkup(
+      <PermissionDock
+        request={permissionRequest("list", {
+          metadata: {
+            path: "src/panel/webview",
+          },
+        })}
+        currentSessionID="session-1"
+        rejectMessage=""
+        onRejectMessage={() => {}}
+        onReply={() => {}}
+        FileRefText={FileRefText}
+      />,
+    )
+
+    assert.equal(readHtml.includes('data-path="src/panel/provider/files.ts"'), true)
+    assert.equal(listHtml.includes('data-path="src/panel/webview"'), true)
   })
 })
