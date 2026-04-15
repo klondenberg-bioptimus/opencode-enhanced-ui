@@ -6,7 +6,7 @@
 }
 
 .oc-footer {
-  padding: 6px 0 0;
+  padding: 8px 0 10px;
   border-top: 1px solid color-mix(in srgb, var(--oc-border-strong) 52%, var(--oc-border) 48%);
   background: var(--oc-surface-canvas);
 }
@@ -30,6 +30,10 @@
 .oc-parts {
   display: grid;
   gap: 6px;
+}
+
+.oc-footerInner {
+  gap: 8px;
 }
 
 .oc-transcriptTools {

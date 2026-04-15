@@ -1,5 +1,5 @@
 import type { ComposerFileSelection, ComposerPathKind, SessionBootstrap, SessionSnapshot, SkillCatalogEntry } from "../../../bridge/types"
-import type { DisplaySettings } from "../../../core/settings"
+import type { DisplaySettings, PanelTheme } from "../../../core/settings"
 import type { AgentInfo, CommandInfo, FileDiff, FormatterStatus, LspStatus, McpResource, McpStatus, MessageInfo, PermissionRequest, ProviderAuthMethod, ProviderInfo, QuestionRequest, SessionInfo, SessionMessage, SessionStatus, Todo } from "../../../core/sdk"
 import type { CommandPromptCatalog, CommandPromptInvocation } from "./command-prompt"
 
@@ -152,6 +152,7 @@ export function createInitialState(initialRef: SessionBootstrap["sessionRef"] | 
         showThinking: true,
         diffMode: "unified",
         compactSkillInvocations: true,
+        panelTheme: "default",
       },
       skillCatalog: [],
       childMessages: {},
@@ -199,6 +200,16 @@ export function createInitialState(initialRef: SessionBootstrap["sessionRef"] | 
   }
 }
 
+export function resolvePanelThemeValue(theme?: PanelTheme): PanelTheme {
+  switch (theme) {
+    case "codex":
+    case "claude":
+      return theme
+    default:
+      return "default"
+  }
+}
+
 export function persistableAppState(state: AppState): PersistedAppState {
   const commandPromptInvocations = normalizeCommandPromptCatalog(state.commandPromptInvocations)
   return {
@@ -242,6 +253,7 @@ export function normalizeSnapshotPayload(payload: SessionSnapshot, previous?: Ap
     display: {
       ...payload.display,
       compactSkillInvocations: payload.display?.compactSkillInvocations !== false,
+      panelTheme: resolvePanelThemeValue(payload.display?.panelTheme),
     },
     skillCatalog: Array.isArray(payload.skillCatalog) ? payload.skillCatalog : [],
     messages: reconcileMessageList(Array.isArray(payload.messages) ? payload.messages : [], previous?.messages),

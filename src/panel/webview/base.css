@@ -44,12 +44,12 @@ button {
 .oc-sessionBlock,
 .oc-turnUser,
 .oc-dock,
-.oc-composer,
 .oc-questionCard,
 .oc-emptyState,
 .oc-part {
   border: 1px solid var(--oc-border);
   background: var(--oc-surface-block);
+  border-radius: var(--oc-radius-md);
 }
 
 .oc-kicker,
@@ -160,17 +160,18 @@ button {
 
 .oc-part,
 .oc-dock,
-.oc-composer,
 .oc-questionCard,
 .oc-emptyState {
   padding: 10px 12px;
 }
 
 .oc-composer {
-  border-color: color-mix(in srgb, var(--oc-border-strong) 44%, transparent 56%);
-  background: var(--oc-surface-block);
   display: grid;
-  gap: 0;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .oc-list {
@@ -187,6 +188,7 @@ button {
   color: var(--oc-fg-primary);
   padding: 5px 9px;
   font-size: var(--oc-font-size-sm);
+  border-radius: var(--oc-radius-sm);
 }
 
 .oc-pill-file {
@@ -296,6 +298,7 @@ button {
   color: var(--oc-fg-primary);
   padding: 8px 12px;
   cursor: pointer;
+  border-radius: var(--oc-radius-sm);
 }
 
 .oc-toolTrigger,
