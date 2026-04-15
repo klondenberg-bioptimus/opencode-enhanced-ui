@@ -64,17 +64,6 @@
   }
 
   .oc-composerActions {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .oc-composerActionsMain,
-  .oc-composerContextWrap {
-    width: 100%;
-  }
-
-  .oc-composerHintRow,
-  .oc-composerContextWrap {
-    flex-wrap: wrap;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 }

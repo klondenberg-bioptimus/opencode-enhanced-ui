@@ -65,7 +65,7 @@
   border: 1px solid var(--oc-composer-border);
   border-radius: var(--oc-radius-md);
   background: color-mix(in srgb, var(--oc-accent) 8%, var(--oc-composer-surface) 92%);
-  padding-bottom: calc(10px + (1.65em * 2));
+  padding-bottom: 58px;
 }
 
 .oc-composer.is-leaderPending .oc-composerBody {
@@ -277,17 +277,12 @@
 
 .oc-composerInfo {
   position: relative;
-  padding: 0 12px 10px;
+  min-height: 53px;
+  padding: 12px 53px 12px 12px;
   background: color-mix(in srgb, var(--oc-accent) 10%, var(--oc-surface-control) 90%);
-  display: grid;
-  grid-template-rows: 1.65em 1.65em;
-  pointer-events: none;
-}
-
-.oc-composerInfoSpacer {
   display: flex;
   align-items: center;
-  min-height: 0;
+  pointer-events: none;
 }
 
 .oc-composerInfoRow,
@@ -393,7 +388,7 @@
   min-width: 0;
 }
 
-.oc-composerRunBar {
+.oc-contextUsage {
   position: relative;
   display: inline-flex;
   width: 52px;
@@ -401,27 +396,24 @@
   height: 8px;
   border-radius: 999px;
   overflow: hidden;
-  background: transparent;
-  opacity: 0;
+  background: color-mix(in srgb, var(--oc-accent) 10%, var(--oc-surface-block) 90%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--oc-border) 72%, transparent 28%);
+  flex: 0 0 auto;
 }
 
-.oc-composerRunBar::before {
-  content: "";
-  position: absolute;
-  inset: 0;
+.oc-contextUsageFill {
+  height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--oc-warning) 36%, transparent 64%) 20%, var(--oc-warning) 50%, color-mix(in srgb, var(--oc-warning) 36%, transparent 64%) 80%, transparent 100%);
-  transform: translateX(-100%);
-  animation: none;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--oc-accent) 70%, white 30%) 0%, var(--oc-accent) 100%);
+  transition: width 180ms ease, background 180ms ease;
 }
 
-.oc-composerRunBar.is-running {
-  background: color-mix(in srgb, var(--oc-warning) 16%, transparent 84%);
-  opacity: 1;
+.oc-contextUsage.is-warning .oc-contextUsageFill {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--oc-warning) 64%, white 36%) 0%, var(--oc-warning) 100%);
 }
 
-.oc-composerRunBar.is-running::before {
-  animation: oc-runBar 1s ease-in-out infinite;
+.oc-contextUsage.is-critical .oc-contextUsageFill {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--oc-error) 64%, white 36%) 0%, var(--oc-error) 100%);
 }
 
 .oc-composerModel,
@@ -485,39 +477,20 @@
 }
 
 .oc-composerActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  flex-wrap: nowrap;
+  gap: 12px;
   padding: 0 4px;
 }
 
 .oc-composerActionsMain {
+  display: flex;
   justify-content: flex-start;
-}
-
-.oc-composerHintRow {
-  display: inline-flex;
   align-items: center;
-  gap: 10px;
   min-width: 0;
-  color: var(--oc-fg-muted);
-  font-size: var(--oc-font-size-sm);
-  line-height: 1.5;
-  white-space: nowrap;
-}
-
-.oc-composerShortcutGroup {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.oc-composerHintText {
-  letter-spacing: 0.01em;
-  text-transform: lowercase;
-}
-
-.oc-composerHintText.is-warning {
-  color: var(--oc-warning);
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .oc-modelPicker {
@@ -778,14 +751,17 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 0 1 100%;
+  flex: 0 1 auto;
   max-width: min(100%, 28rem);
 }
 
 .oc-composerBadgeRow {
+  display: inline-flex;
   justify-content: flex-end;
+  align-items: center;
   position: relative;
-  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .oc-statusBadgeWrap {
@@ -857,6 +833,100 @@
 .oc-statusBadgeWrap:focus-within .oc-statusPopover {
   display: grid;
   gap: 6px;
+}
+
+.oc-composerPrimaryAction {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 29px;
+  height: 29px;
+  border: 1px solid color-mix(in srgb, var(--oc-accent) 24%, var(--oc-border-strong) 76%);
+  border-radius: calc(var(--oc-radius-sm) + 2px);
+  background: color-mix(in srgb, var(--oc-accent) 12%, var(--oc-surface-block) 88%);
+  color: var(--oc-accent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 8%, transparent 92%);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+}
+
+.oc-composerPrimaryAction:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--oc-accent) 18%, var(--oc-surface-block) 82%);
+  border-color: color-mix(in srgb, var(--oc-accent) 42%, var(--oc-border-strong) 58%);
+  transform: translateY(-1px);
+}
+
+.oc-composerPrimaryAction:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--oc-accent) 54%, transparent 46%);
+  outline-offset: 2px;
+}
+
+.oc-composerPrimaryAction.is-disabled,
+.oc-composerPrimaryAction:disabled {
+  color: color-mix(in srgb, var(--oc-fg-muted) 74%, transparent 26%);
+  border-color: color-mix(in srgb, var(--oc-fg-muted) 16%, transparent 84%);
+  background: color-mix(in srgb, var(--oc-fg-muted) 6%, var(--oc-surface-block) 94%);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.oc-composerPrimaryAction.is-interrupt {
+  color: var(--oc-warning);
+  border-color: color-mix(in srgb, var(--oc-warning) 44%, var(--oc-border-strong) 56%);
+  background: color-mix(in srgb, var(--oc-warning) 13%, var(--oc-surface-block) 87%);
+}
+
+.oc-composerPrimaryAction.is-interrupt:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--oc-warning) 18%, var(--oc-surface-block) 82%);
+  border-color: color-mix(in srgb, var(--oc-warning) 56%, var(--oc-border-strong) 44%);
+}
+
+.oc-composerPrimaryAction.is-armed {
+  color: var(--oc-error);
+  border-color: color-mix(in srgb, var(--oc-error) 52%, var(--oc-border-strong) 48%);
+  background: color-mix(in srgb, var(--oc-error) 14%, var(--oc-surface-block) 86%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--oc-error) 22%, transparent 78%);
+}
+
+.oc-composerPrimaryAction.is-armed:not(:disabled) {
+  animation: oc-composerPrimaryActionPulse 1.2s ease-in-out infinite;
+}
+
+.oc-composerPrimaryAction svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.oc-composerPrimaryActionPath {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.oc-composerPrimaryActionPath.is-fill {
+  fill: currentColor;
+  stroke: none;
+}
+
+@keyframes oc-composerPrimaryActionPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--oc-error) 22%, transparent 78%);
+  }
+
+  50% {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--oc-error) 30%, transparent 70%), 0 0 18px color-mix(in srgb, var(--oc-error) 18%, transparent 82%);
+  }
 }
 
 .oc-statusPopoverItem {

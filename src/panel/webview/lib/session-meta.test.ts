@@ -1,14 +1,14 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import type { AgentInfo, FormatterStatus, ProviderInfo, SessionMessage } from "../../../core/sdk"
-import { composerIdentity, composerSelection, cycleModelVariant, lastUserSelection, overallFormatterStatus, pushRecentModel, statusItemForMcp, toggleFavoriteModel } from "./session-meta"
+import { composerIdentity, composerMetrics, composerSelection, cycleModelVariant, lastUserSelection, overallFormatterStatus, providerModelById, pushRecentModel, statusItemForMcp, toggleFavoriteModel } from "./session-meta"
 
 const providers: ProviderInfo[] = [{
   id: "p1",
   name: "Provider 1",
   models: {
-    m1: { id: "m1", name: "Model 1", variants: { fast: {}, deep: {} } },
-    m2: { id: "m2", name: "Model 2" },
+    m1: { id: "m1", name: "Model 1", variants: { fast: {}, deep: {} }, limit: { context: 10000 } },
+    m2: { id: "m2", name: "Model 2", limit: { context: 20000 } },
   },
 }]
 
@@ -286,6 +286,55 @@ describe("session meta composer state", () => {
         { name: "prettier", tone: "green", value: ".ts, .tsx" },
         { name: "rustfmt", tone: "gray", value: "Disabled" },
       ],
+    })
+  })
+
+  test("providerModelById falls back to model.id when the record key differs", () => {
+    const mismatchedProviders: ProviderInfo[] = [{
+      id: "p2",
+      name: "Provider 2",
+      models: {
+        latest: { id: "model-real-id", name: "Model 3", limit: { context: 32000 } },
+      },
+    }]
+
+    assert.deepEqual(providerModelById(mismatchedProviders[0], "model-real-id"), {
+      id: "model-real-id",
+      name: "Model 3",
+      limit: { context: 32000 },
+    })
+  })
+
+  test("composerMetrics falls back to the current selected model limit when the last assistant model no longer resolves", () => {
+    const metrics = composerMetrics({
+      messages: [{
+        info: {
+          id: "assistant-1",
+          sessionID: "session-1",
+          role: "assistant",
+          time: { created: 2 },
+          model: { providerID: "p1", modelID: "retired-model-id" },
+          tokens: {
+            input: 3000,
+            output: 1000,
+            reasoning: 500,
+            cache: {
+              read: 500,
+              write: 0,
+            },
+          },
+          cost: 0.2,
+        },
+        parts: [],
+      }],
+      providers,
+      model: { providerID: "p1", modelID: "m1" },
+    })
+
+    assert.deepEqual(metrics, {
+      tokens: 5000,
+      percent: 50,
+      cost: 0.2,
     })
   })
 })

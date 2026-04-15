@@ -5,20 +5,22 @@ import { ChildMessagesContext, ChildSessionsContext, WorkspaceDirContext } from 
 import { answerKey, PermissionDock, QuestionDock, RetryStatus, SessionNav, SubagentNotice } from "./docks"
 import { createInitialState, persistableAppState, resolvePanelThemeValue, type AppState, type ComposerEditorPart, type ImageAttachment, type PersistedAppState, type VsCodeApi } from "./state"
 import { Timeline } from "./timeline"
-import { AgentBadge, CompactionDivider, EmptyState, MarkdownBlock, PartView, WebviewBindingsProvider } from "./webview-bindings"
+import { AgentBadge, CompactionDivider, EmptyState, FileRefText, MarkdownBlock, PartView, WebviewBindingsProvider } from "./webview-bindings"
 import { ensureComposerCursorVisible, resizeComposer, useComposerResize } from "../hooks/useComposer"
 import { filterItems, matchAutocomplete, useComposerAutocomplete, type ComposerAutocompleteItem, type ComposerAutocompleteState } from "../hooks/useComposerAutocomplete"
 import { useHostMessages } from "../hooks/useHostMessages"
 import { useModifierState } from "../hooks/useModifierState"
 import { useTimelineScroll } from "../hooks/useTimelineScroll"
 import { formatComposerFileContent, parseComposerFileQuery } from "../lib/composer-file-selection"
-import { agentColorClass, composerIdentity, composerMetrics, composerSelection, cycleModelVariant, formatUsd, isSessionRunning, lastUserSelection, modelKey, modelVariants, overallFormatterStatus, overallLspStatus, overallMcpStatus, pushRecentModel, sessionTitle, toggleFavoriteModel, type StatusItem, type StatusTone } from "../lib/session-meta"
+import { agentColorClass, composerIdentity, composerMetrics, composerSelection, cycleModelVariant, formatUsd, isSessionRunning, lastUserSelection, modelKey, modelVariants, overallFormatterStatus, overallLspStatus, overallMcpStatus, pushRecentModel, sessionTitle, toggleFavoriteModel } from "../lib/session-meta"
 import { buildComposerSubmitParts, composerMentionAgentOverride } from "./composer-mentions"
+import { ComposerFooter } from "./composer-footer"
 import { absorbFileSelectionSuffix, composerMentions as mentionsFromParts, composerPartsEqual, composerText, deleteStructuredRange, emptyComposerParts, ensureTextPart, replaceRangeWithMention, replaceRangeWithText } from "./composer-editor"
 import { getSelectionOffsets, parseComposerEditor, renderComposerEditor, setCursorPosition, syncComposerPillSelection } from "./composer-editor-dom"
 import { isCompletedSlashCommand, resolveComposerSlashAction } from "./composer-actions"
 import { collectDroppedFilePaths, shouldHandleComposerFileDrop } from "./composer-drop"
 import { autocompleteItemView, buildComposerMenuItems, mentionForQuery } from "./composer-menu"
+import { composerPrimaryAction } from "./composer-primary-action"
 import { composerEnterIntent, composerTabIntent, cycleAgentName, isShortcutTarget, leaderAction, shouldEnterShellMode, shouldExitShellModeOnBackspace, type ComposerMode } from "./keyboard-shortcuts"
 import { buildModelPickerRecoveryActions, buildModelPickerSections, ModelPicker } from "./model-picker"
 import { buildComposerHostMessage } from "./composer-submit"
@@ -619,6 +621,15 @@ export function App() {
     ? "Enter shell command to run in this workspace"
     : "Ask OpenCode to inspect explain or change this workspace"
 
+  const composerRunning = isSessionRunning(state.snapshot.sessionStatus)
+  const primaryAction = composerPrimaryAction({
+    draft: state.draft,
+    imageCount: state.imageAttachments.length,
+    blocked,
+    running: composerRunning,
+    escPending,
+  })
+
   const clearComposerDraft = React.useCallback(() => {
     setState((current) => ({
       ...current,
@@ -822,6 +833,51 @@ export function App() {
       escTimerRef.current = null
     }, ESC_INTERRUPT_WINDOW_MS)
   }, [])
+
+  const handleComposerPrimaryAction = React.useCallback(() => {
+    if (primaryAction.disabled) {
+      return
+    }
+
+    if (primaryAction.kind === "interrupt") {
+      if (escPendingRef.current) {
+        clearEscPending()
+        postComposerAction("interruptSession")
+        return
+      }
+
+      startEscPending()
+      return
+    }
+
+    submit()
+  }, [clearEscPending, postComposerAction, primaryAction.disabled, primaryAction.kind, startEscPending, submit])
+
+  const composerFooterMetrics = React.useMemo(() => {
+    const metrics = composerMetrics({
+      ...state.snapshot,
+      model: currentSelection.model,
+    })
+    return {
+      items: [
+        `${metrics.tokens.toLocaleString()} tokens`,
+        typeof metrics.percent === "number" ? `${metrics.percent}%` : "",
+        formatUsd(metrics.cost),
+      ].filter(Boolean),
+      contextPercent: metrics.percent,
+    }
+  }, [currentSelection.model, state.snapshot])
+
+  const composerFooterBadges = React.useMemo(() => {
+    const mcp = overallMcpStatus(state.snapshot.mcp)
+    const lsp = overallLspStatus(state.snapshot.lsp)
+    const formatter = overallFormatterStatus(state.snapshot.formatter)
+    return [
+      { label: "MCP", tone: mcp.tone, items: mcp.items },
+      { label: "LSP", tone: lsp.tone, items: lsp.items },
+      { label: "FMT", tone: formatter.tone, items: formatter.items },
+    ]
+  }, [state.snapshot.formatter, state.snapshot.lsp, state.snapshot.mcp])
 
   const cycleComposerAgent = React.useCallback(() => {
     const next = cycleAgentName(state.snapshot.agents, currentSelection.agent)
@@ -1130,6 +1186,7 @@ export function App() {
                   vscode.postMessage({ type: "permissionReply", requestID: firstPermission.id, reply, message })
                   setState((current) => ({ ...current, error: "" }))
                 }}
+                FileRefText={FileRefText}
               />
             ) : null}
             {firstQuestion ? (
@@ -1519,6 +1576,7 @@ export function App() {
                       <div className="oc-composerInfoWrap">
                         <ComposerInfo state={state} leaderPending={leaderPending} modelPickerOpen={modelPickerOpen} onToggleModelPicker={toggleModelPicker} onCycleVariant={() => cycleComposerVariant()} />
                       </div>
+                      <ComposerPrimaryActionButton action={primaryAction} onClick={handleComposerPrimaryAction} />
                       {modelPickerOpen ? (
                         <ModelPicker
                           sections={modelPickerSections}
@@ -1535,16 +1593,20 @@ export function App() {
                     </div>
                     {activeAutocomplete ? <ComposerAutocompletePopup state={activeAutocomplete} fileSearch={fileSearch} onSelect={acceptComposerAutocomplete} /> : null}
                   </div>
-                <div className="oc-composerActions">
-                  <div className="oc-composerActionsMain">
-                    <ComposerRunHints state={state} escPending={escPending} composerMode={composerMode} />
-                    {state.error ? <div className="oc-errorText oc-composerErrorText">{state.error}</div> : null}
-                  </div>
-                  <div className="oc-composerContextWrap">
-                    <ComposerMetrics state={state} />
-                    <ComposerStatusBadges state={state} pendingMcpActions={pendingMcpActions} onMcpActionStart={(name) => setPendingMcpActions((current) => ({ ...current, [name]: true }))} />
-                  </div>
-                </div>
+                <ComposerFooter
+                  metrics={composerFooterMetrics.items}
+                  contextPercent={composerFooterMetrics.contextPercent}
+                  badges={composerFooterBadges}
+                  error={state.error || undefined}
+                  pendingActions={pendingMcpActions}
+                  onActionStart={(name) => setPendingMcpActions((current) => ({ ...current, [name]: true }))}
+                  onBadgeAction={(item) => {
+                    if (!item.action) {
+                      return
+                    }
+                    vscode.postMessage({ type: "mcpAction", name: item.name, action: item.action })
+                  }}
+                />
               </section>
           ) : null}
 
@@ -1750,7 +1812,6 @@ function ComposerInfo({
   const colorClass = agentColorClass(info.agent)
   return (
     <div className="oc-composerInfo">
-      <div className="oc-composerInfoSpacer" />
       <div className="oc-composerInfoRow">
         <span className="oc-composerIdentityStart">
           <span className={`oc-composerAgent ${colorClass}`}>{info.agent}</span>
@@ -1787,194 +1848,51 @@ function droppedFileMentions(data: DataTransfer | null, workspaceDir: string) {
   }))
 }
 
-function ComposerRunningIndicator({ running }: { running: boolean }) {
-  return <span className={`oc-composerRunBar${running ? " is-running" : ""}`} aria-label="running" />
-}
-
-function ComposerRunHints({ state, escPending, composerMode }: { state: AppState; escPending: boolean; composerMode: ComposerMode }) {
-  const running = isSessionRunning(state.snapshot.sessionStatus)
-
-  if (running) {
-    return (
-      <div className="oc-composerHintRow" aria-hidden="true">
-        <ComposerRunningIndicator running />
-        <span className={`oc-composerHintText${escPending ? " is-warning" : ""}`}>{escPending ? "esc again to interrupt" : "esc interrupt"}</span>
-      </div>
-    )
-  }
-
+function ComposerPrimaryActionButton({
+  action,
+  onClick,
+}: {
+  action: ReturnType<typeof composerPrimaryAction>
+  onClick: () => void
+}) {
   return (
-    <div className="oc-composerHintRow" aria-hidden="true">
-      {composerMode === "shell" ? (
-        <>
-          <span className="oc-composerModeBadge">shell</span>
-          <span aria-hidden="true">·</span>
-          <span className="oc-composerShortcutGroup">
-            <Keycap icon={<EnterKeyIcon />} label="Enter" />
-            <span>run command</span>
-          </span>
-          <span aria-hidden="true">·</span>
-          <span className="oc-composerShortcutGroup">
-            <Keycap label="Shift" />
-            <span>+</span>
-            <Keycap icon={<EnterKeyIcon />} label="Enter" />
-            <span>newline</span>
-          </span>
-          <span aria-hidden="true">·</span>
-          <span className="oc-composerShortcutGroup">
-            <Keycap label="Esc" />
-            <span>exit shell</span>
-          </span>
-        </>
-      ) : (
-        <>
-          <span className="oc-composerShortcutGroup">
-            <Keycap icon={<EnterKeyIcon />} label="Enter" />
-            <span>submit</span>
-          </span>
-          <span aria-hidden="true">·</span>
-          <span className="oc-composerShortcutGroup">
-            <Keycap label="Shift" />
-            <span>+</span>
-            <Keycap icon={<EnterKeyIcon />} label="Enter" />
-            <span>newline</span>
-          </span>
-        </>
-      )}
-    </div>
-  )
-}
-
-function ComposerMetrics({ state }: { state: AppState }) {
-  const metrics = composerMetrics(state.snapshot)
-  const items = [
-    `${metrics.tokens.toLocaleString()} tokens`,
-    typeof metrics.percent === "number" ? `${metrics.percent}%` : "",
-    formatUsd(metrics.cost),
-  ].filter(Boolean)
-  return (
-    <div className="oc-contextRow">
-      {items.map((item, index) => (
-        <React.Fragment key={item}>
-          {index > 0 ? <span aria-hidden="true">·</span> : null}
-          <span>{item}</span>
-        </React.Fragment>
-      ))}
-    </div>
-  )
-}
-
-function ComposerStatusBadges({ state, pendingMcpActions, onMcpActionStart }: { state: AppState; pendingMcpActions: Record<string, boolean>; onMcpActionStart: (name: string) => void }) {
-  const mcp = overallMcpStatus(state.snapshot.mcp)
-  const lsp = overallLspStatus(state.snapshot.lsp)
-  const formatter = overallFormatterStatus(state.snapshot.formatter)
-  return (
-    <div className="oc-actionRow oc-composerBadgeRow">
-      <StatusBadge label="MCP" tone={mcp.tone} items={mcp.items} pendingActions={pendingMcpActions} onActionStart={onMcpActionStart} />
-      <StatusBadge label="LSP" tone={lsp.tone} items={lsp.items} />
-      <StatusBadge label="FMT" tone={formatter.tone} items={formatter.items} />
-    </div>
-  )
-}
-
-function Keycap({ icon, label }: { icon?: React.ReactNode; label: string }) {
-  const textOnly = !icon
-  return (
-    <span className={`oc-keycap${textOnly ? " is-text" : ""}`} aria-label={label} title={label}>
-      {icon || <span className="oc-keycapLabel">{label}</span>}
-    </span>
-  )
-}
-
-function EnterKeyIcon() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M11.75 3.75v4.5a2 2 0 0 1-2 2H4.5" className="oc-keycapPath" />
-      <path d="M6.75 7.75 4.25 10l2.5 2.25" className="oc-keycapPath" />
-    </svg>
-  )
-}
-
-function StatusBadge(props: { label: string; tone: StatusTone; items: StatusItem[]; pendingActions?: Record<string, boolean>; onActionStart?: (name: string) => void }) {
-  const { label, tone, items, pendingActions, onActionStart } = props
-  return (
-    <div className="oc-statusBadgeWrap">
-      <div className="oc-statusBadge">
-        <span className={`oc-statusLight is-${tone}`} />
-        <span>{label}</span>
-      </div>
-      {items.length > 0 ? (
-        <div className="oc-statusPopover">
-          {items.map((item) => (
-            <div key={`${label}-${item.name}`} className="oc-statusPopoverItem">
-              <span className={`oc-statusLight is-${item.tone}`} />
-              <span className="oc-statusPopoverName">{item.name}</span>
-              <span className="oc-statusPopoverValue" title={item.value}>{item.value}</span>
-              {item.action ? <StatusPopoverAction item={item} pending={!!pendingActions?.[item.name]} onActionStart={onActionStart} /> : null}
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-function StatusPopoverAction({ item, pending, onActionStart }: { item: StatusItem; pending: boolean; onActionStart?: (name: string) => void }) {
-  const onClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault()
-    event.stopPropagation()
-    if (!item.action || pending) {
-      return
-    }
-    onActionStart?.(item.name)
-    vscode.postMessage({ type: "mcpAction", name: item.name, action: item.action })
-  }
-
-  return (
-    <button type="button" disabled={pending} className={`oc-statusPopoverAction${item.action === "disconnect" || item.action === "removeAuth" ? " is-disconnect" : ""}${item.action === "connect" || item.action === "authenticate" ? " is-connect" : ""}${pending ? " is-pending" : ""}`} onClick={onClick} title={item.actionLabel} aria-label={item.actionLabel}>
-      {item.action === "disconnect" ? <DisconnectIcon /> : null}
-      {item.action === "removeAuth" ? <DisconnectIcon /> : null}
-      {item.action === "connect" ? <ConnectIcon /> : null}
-      {item.action === "authenticate" ? <ConnectIcon /> : null}
-      {item.action === "reconnect" ? <ReconnectIcon /> : null}
+    <button
+      type="button"
+      className={`oc-composerPrimaryAction is-${action.kind}${action.disabled ? " is-disabled" : ""}${action.icon === "stop-confirm" ? " is-armed" : ""}`}
+      onClick={onClick}
+      disabled={action.disabled}
+      title={action.title}
+      aria-label={action.ariaLabel}
+    >
+      {action.icon === "send" ? <SendIcon /> : null}
+      {action.icon === "stop" ? <StopIcon /> : null}
+      {action.icon === "stop-confirm" ? <StopConfirmIcon /> : null}
     </button>
   )
 }
 
-function ConnectIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M2 22L6 18" className="oc-statusActionPath" />
-      <rect x="5" y="13" width="7" height="5" rx="1" transform="rotate(-45 8.5 15.5)" className="oc-statusActionPath" />
-      <path d="M8 14L10 12" className="oc-statusActionPath" />
-      <path d="M10 16L12 14" className="oc-statusActionPath" />
-      <rect x="12" y="6" width="7" height="5" rx="1" transform="rotate(-45 15.5 8.5)" className="oc-statusActionPath" />
-      <path d="M18 6L22 2" className="oc-statusActionPath" />
-    </svg>
-  )
-}
-
-function DisconnectIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M2 22L6 18" className="oc-statusActionPath" />
-      <rect x="5" y="13" width="7" height="5" rx="1" transform="rotate(-45 8.5 15.5)" className="oc-statusActionPath" />
-      <path d="M8 14L10 12" className="oc-statusActionPath" />
-      <path d="M10 16L12 14" className="oc-statusActionPath" />
-      <rect x="12" y="6" width="7" height="5" rx="1" transform="rotate(-45 15.5 8.5)" className="oc-statusActionPath" />
-      <path d="M18 6L22 2" className="oc-statusActionPath" />
-      <path d="M4 4L20 20" className="oc-statusActionPath" />
-    </svg>
-  )
-}
-
-function ReconnectIcon() {
+function SendIcon() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M12.5 6.5A4.5 4.5 0 0 0 5.25 4" className="oc-statusActionPath" />
-      <path d="M4.75 2.75v2.5h2.5" className="oc-statusActionPath" />
-      <path d="M3.5 9.5A4.5 4.5 0 0 0 10.75 12" className="oc-statusActionPath" />
-      <path d="M11.25 13.25v-2.5h-2.5" className="oc-statusActionPath" />
+      <path d="M2.25 7.75 13.75 2.75 8.75 13.75 7.1 8.4 2.25 7.75Z" className="oc-composerPrimaryActionPath is-fill" />
+      <path d="M7 8.5 13.75 2.75" className="oc-composerPrimaryActionPath" />
+    </svg>
+  )
+}
+
+function StopIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="4.25" y="4.25" width="7.5" height="7.5" rx="1.5" className="oc-composerPrimaryActionPath is-fill" />
+    </svg>
+  )
+}
+
+function StopConfirmIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.25" className="oc-composerPrimaryActionPath" />
+      <rect x="5" y="5" width="6" height="6" rx="1.25" className="oc-composerPrimaryActionPath is-fill" />
     </svg>
   )
 }

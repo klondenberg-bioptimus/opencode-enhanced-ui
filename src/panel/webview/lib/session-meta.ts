@@ -22,14 +22,14 @@ export function isSessionRunning(status?: SessionStatus) {
   return status?.type === "busy" || status?.type === "retry"
 }
 
-export function contextUsage(messages: SessionMessage[], providers: ProviderInfo[]) {
+export function contextUsage(messages: SessionMessage[], providers: ProviderInfo[], fallbackModel?: MessageInfo["model"]) {
   const info = lastAssistantWithOutput(messages)?.info
   const tokens = totalTokens(info)
   if (!info || tokens <= 0) {
     return undefined
   }
 
-  const limit = modelContextLimit(info, providers)
+  const limit = modelContextLimit(info, providers) ?? modelContextLimitForRef(fallbackModel, providers)
   return {
     tokens,
     percent: typeof limit === "number" && limit > 0 ? Math.round(tokens / limit * 100) : undefined,
@@ -49,15 +49,19 @@ export function totalTokens(info?: MessageInfo) {
 }
 
 export function modelContextLimit(info: MessageInfo | undefined, providers: ProviderInfo[]) {
-  const providerID = info?.model?.providerID?.trim()
-  const modelID = info?.model?.modelID?.trim()
+  return modelContextLimitForRef(info?.model, providers)
+}
+
+export function modelContextLimitForRef(model: MessageInfo["model"] | undefined, providers: ProviderInfo[]) {
+  const providerID = model?.providerID?.trim()
+  const modelID = model?.modelID?.trim()
   if (!providerID || !modelID) {
     return undefined
   }
 
   const provider = providerById(providers, providerID)
-  const model = providerModelById(provider, modelID)
-  return model?.limit?.context
+  const providerModel = providerModelById(provider, modelID)
+  return providerModel?.limit?.context
 }
 
 export function providerById(providers: ProviderInfo[], providerID?: string) {
@@ -200,7 +204,8 @@ export function providerModelById(provider: ProviderInfo | undefined, modelID: s
   if (!provider?.models || !modelID) {
     return undefined
   }
-  return provider.models[modelID]
+
+  return provider.models[modelID] || Object.values(provider.models).find((item) => item.id === modelID)
 }
 
 export function firstProviderModel(provider: ProviderInfo | undefined) {
@@ -436,8 +441,9 @@ export function lastUserSelection(messages: SessionMessage[], providers: Provide
 export function composerMetrics(snapshot: {
   messages: SessionMessage[]
   providers: ProviderInfo[]
+  model?: MessageInfo["model"]
 }) {
-  const context = contextUsage(snapshot.messages, snapshot.providers)
+  const context = contextUsage(snapshot.messages, snapshot.providers, snapshot.model)
   return {
     tokens: context?.tokens ?? 0,
     percent: context?.percent,
