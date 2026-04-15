@@ -72,4 +72,40 @@ describe("panel theme settings", () => {
     assert.match(css, /\[data-oc-theme=\"codex\"\]/)
     assert.match(css, /\[data-oc-theme=\"claude\"\]/)
   })
+
+  test("keeps the default dark preset aligned with the original hard-edged look", () => {
+    const css = readFileSync(resolve(process.cwd(), "src/panel/webview/theme.css"), "utf8")
+
+    assert.match(css, /body\.vscode-dark\s*\{[\s\S]*--oc-canvas:\s*#000;/)
+    assert.match(css, /body\.vscode-dark\s*\{[\s\S]*--oc-surface-primary:\s*#000;/)
+    assert.match(css, /body\.vscode-dark\s*\{[\s\S]*--oc-radius-md:\s*0px;/)
+    assert.match(css, /body\.vscode-dark\s*\{[\s\S]*--oc-message-user-bg:\s*#000;/)
+  })
+
+  test("gives codex and claude clearly different visual signatures", () => {
+    const css = readFileSync(resolve(process.cwd(), "src/panel/webview/theme.css"), "utf8")
+
+    assert.match(css, /body\.vscode-dark\s+\.oc-shell\[data-oc-theme=\"codex\"\]\s*\{[\s\S]*--oc-radius-md:\s*10px;/)
+    assert.match(css, /body\.vscode-dark\s+\.oc-shell\[data-oc-theme=\"claude\"\]\s*\{[\s\S]*--oc-radius-md:\s*20px;/)
+    assert.match(css, /body\.vscode-dark\s+\.oc-shell\[data-oc-theme=\"codex\"\]\s*\{[\s\S]*--oc-accent-strong:\s*#63a6ff;/)
+    assert.match(css, /body\.vscode-dark\s+\.oc-shell\[data-oc-theme=\"claude\"\]\s*\{[\s\S]*--oc-accent-strong:\s*#d98d3f;/)
+  })
+
+  test("uses a frameless outer composer container", () => {
+    const baseCss = readFileSync(resolve(process.cwd(), "src/panel/webview/base.css"), "utf8")
+    const statusCss = readFileSync(resolve(process.cwd(), "src/panel/webview/status.css"), "utf8")
+
+    assert.doesNotMatch(baseCss, /\.oc-dock,\n\.oc-composer,\n\.oc-questionCard/)
+    assert.match(baseCss, /\.oc-composer\s*\{[\s\S]*border:\s*0;/)
+    assert.match(baseCss, /\.oc-composer\s*\{[\s\S]*background:\s*transparent;/)
+    assert.match(baseCss, /\.oc-composer\s*\{[\s\S]*padding:\s*0;/)
+    assert.match(baseCss, /\.oc-composer\s*\{[\s\S]*gap:\s*8px;/)
+    assert.match(statusCss, /\.oc-composerBody\s*\{[\s\S]*border:\s*1px solid var\(--oc-composer-border\);/)
+  })
+
+  test("keeps the footer top padding while adding extra bottom breathing room", () => {
+    const layoutCss = readFileSync(resolve(process.cwd(), "src/panel/webview/layout.css"), "utf8")
+
+    assert.match(layoutCss, /\.oc-footer\s*\{[\s\S]*padding:\s*8px 0 10px;/)
+  })
 })

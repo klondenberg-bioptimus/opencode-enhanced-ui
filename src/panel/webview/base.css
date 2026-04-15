@@ -44,7 +44,6 @@ button {
 .oc-sessionBlock,
 .oc-turnUser,
 .oc-dock,
-.oc-composer,
 .oc-questionCard,
 .oc-emptyState,
 .oc-part {
@@ -161,17 +160,18 @@ button {
 
 .oc-part,
 .oc-dock,
-.oc-composer,
 .oc-questionCard,
 .oc-emptyState {
   padding: 10px 12px;
 }
 
 .oc-composer {
-  border-color: var(--oc-composer-border);
-  background: var(--oc-composer-surface);
   display: grid;
-  gap: 0;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .oc-list {

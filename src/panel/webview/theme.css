@@ -16,28 +16,28 @@
 
 body.vscode-dark {
   color-scheme: dark;
-  --oc-canvas: #05070a;
-  --oc-surface-primary: #0d1016;
-  --oc-surface-secondary: #151a22;
-  --oc-surface-tertiary: #10151c;
-  --oc-surface-elevated: #161b24;
-  --oc-text-primary: #edf2fb;
-  --oc-text-muted: #8f97a8;
-  --oc-text-accent: #0b0d11;
-  --oc-border-soft: color-mix(in srgb, #8f97a8 20%, transparent 80%);
-  --oc-border-stronger: color-mix(in srgb, #edf2fb 16%, transparent 84%);
-  --oc-accent-fill: #f3f4f6;
+  --oc-canvas: #000;
+  --oc-surface-primary: #000;
+  --oc-surface-secondary: #000;
+  --oc-surface-tertiary: #000;
+  --oc-surface-elevated: #080808;
+  --oc-text-primary: var(--vscode-editor-foreground);
+  --oc-text-muted: var(--vscode-descriptionForeground);
+  --oc-text-accent: #000;
+  --oc-border-soft: color-mix(in srgb, var(--vscode-panel-border) 80%, transparent 20%);
+  --oc-border-stronger: color-mix(in srgb, var(--vscode-editor-foreground) 22%, transparent 78%);
+  --oc-accent-fill: #fff;
   --oc-accent-strong: #4ea1ff;
-  --oc-hover-surface: color-mix(in srgb, #f3f4f6 10%, transparent 90%);
-  --oc-hover-surface-inset: color-mix(in srgb, #f3f4f6 6%, transparent 94%);
-  --oc-message-user-bg: #111722;
-  --oc-message-assistant-bg: #0d1016;
-  --oc-composer-surface: #10151c;
-  --oc-composer-border: color-mix(in srgb, #edf2fb 18%, transparent 82%);
+  --oc-hover-surface: color-mix(in srgb, var(--oc-accent-fill) 10%, transparent 90%);
+  --oc-hover-surface-inset: color-mix(in srgb, var(--oc-accent-fill) 6%, transparent 94%);
+  --oc-message-user-bg: #000;
+  --oc-message-assistant-bg: #000;
+  --oc-composer-surface: #000;
+  --oc-composer-border: color-mix(in srgb, var(--vscode-editor-foreground) 18%, transparent 82%);
   --oc-dock-warning-base: #5a4300;
   --oc-dock-warning-hover: #6a5000;
   --oc-dock-warning-fg-strong: #fff;
-  --oc-status-popover-surface: color-mix(in srgb, #161b24 92%, #5a5a5a 8%);
+  --oc-status-popover-surface: color-mix(in srgb, var(--oc-surface-primary) 92%, #5a5a5a 8%);
   --oc-md-heading-accent: #ffa31c;
   --oc-md-emphasis-accent: #ffa31c;
   --oc-diff-context-text: #828bb8;
@@ -58,32 +58,35 @@ body.vscode-dark {
   --oc-status-success: #9ece6a;
   --oc-status-warning: #ffb454;
   --oc-status-danger: #f7768e;
-  --oc-code-surface: #0f141d;
+  --oc-code-surface: #000;
   --oc-shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.32);
   --oc-shadow-floating: 0 16px 40px rgba(0, 0, 0, 0.28);
   --oc-shadow-strong: 0 16px 48px rgba(0, 0, 0, 0.4);
+  --oc-radius-sm: 0px;
+  --oc-radius-md: 0px;
+  --oc-radius-lg: 0px;
 }
 
 body.vscode-light {
   color-scheme: light;
-  --oc-canvas: #f6f3ec;
-  --oc-surface-primary: #fffdfa;
-  --oc-surface-secondary: #f0e9dc;
-  --oc-surface-tertiary: #f8f3ea;
-  --oc-surface-elevated: #fefaf3;
-  --oc-text-primary: #2a251d;
-  --oc-text-muted: #756b5f;
-  --oc-text-accent: #fffdfa;
-  --oc-border-soft: color-mix(in srgb, #756b5f 24%, transparent 76%);
-  --oc-border-stronger: color-mix(in srgb, #2a251d 18%, transparent 82%);
-  --oc-accent-fill: #2a251d;
+  --oc-canvas: #fff;
+  --oc-surface-primary: #fff;
+  --oc-surface-secondary: #fff;
+  --oc-surface-tertiary: #fff;
+  --oc-surface-elevated: #fafafa;
+  --oc-text-primary: var(--vscode-editor-foreground, #222);
+  --oc-text-muted: var(--vscode-descriptionForeground, #666);
+  --oc-text-accent: #fff;
+  --oc-border-soft: color-mix(in srgb, var(--vscode-panel-border, #d0d0d0) 80%, transparent 20%);
+  --oc-border-stronger: color-mix(in srgb, var(--vscode-editor-foreground, #222) 18%, transparent 82%);
+  --oc-accent-fill: #111;
   --oc-accent-strong: #0b6bcb;
-  --oc-hover-surface: color-mix(in srgb, #2a251d 8%, transparent 92%);
-  --oc-hover-surface-inset: color-mix(in srgb, #2a251d 5%, transparent 95%);
-  --oc-message-user-bg: #eef4fb;
-  --oc-message-assistant-bg: #fffdfa;
-  --oc-composer-surface: #fefaf3;
-  --oc-composer-border: color-mix(in srgb, #2a251d 14%, transparent 86%);
+  --oc-hover-surface: color-mix(in srgb, var(--oc-accent-fill) 8%, transparent 92%);
+  --oc-hover-surface-inset: color-mix(in srgb, var(--oc-accent-fill) 5%, transparent 95%);
+  --oc-message-user-bg: #fff;
+  --oc-message-assistant-bg: #fff;
+  --oc-composer-surface: #fff;
+  --oc-composer-border: color-mix(in srgb, var(--vscode-editor-foreground, #222) 14%, transparent 86%);
   --oc-dock-warning-base: #f4dfad;
   --oc-dock-warning-hover: #ebd495;
   --oc-dock-warning-fg-strong: #5f4200;
@@ -108,10 +111,13 @@ body.vscode-light {
   --oc-status-success: #2a7d2e;
   --oc-status-warning: #b36a00;
   --oc-status-danger: #c23c4d;
-  --oc-code-surface: #f6efe4;
+  --oc-code-surface: #fff;
   --oc-shadow-soft: 0 10px 24px rgba(42, 37, 29, 0.12);
   --oc-shadow-floating: 0 16px 40px rgba(42, 37, 29, 0.14);
   --oc-shadow-strong: 0 16px 48px rgba(42, 37, 29, 0.18);
+  --oc-radius-sm: 0px;
+  --oc-radius-md: 0px;
+  --oc-radius-lg: 0px;
 }
 
 body.vscode-dark .oc-shell[data-oc-theme="codex"] {
@@ -119,15 +125,18 @@ body.vscode-dark .oc-shell[data-oc-theme="codex"] {
   --oc-surface-secondary: #121821;
   --oc-surface-tertiary: #0f141d;
   --oc-surface-elevated: #151d29;
-  --oc-border-soft: color-mix(in srgb, #91a4c1 24%, transparent 76%);
-  --oc-border-stronger: color-mix(in srgb, #edf2fb 22%, transparent 78%);
-  --oc-message-user-bg: #101824;
+  --oc-border-soft: color-mix(in srgb, #91a4c1 28%, transparent 72%);
+  --oc-border-stronger: color-mix(in srgb, #edf2fb 28%, transparent 72%);
+  --oc-accent-strong: #63a6ff;
+  --oc-message-user-bg: #0f1824;
   --oc-composer-surface: #0f141d;
   --oc-composer-border: color-mix(in srgb, #edf2fb 22%, transparent 78%);
   --oc-status-popover-surface: color-mix(in srgb, #151d29 92%, #65758f 8%);
-  --oc-radius-sm: 10px;
-  --oc-radius-md: 16px;
-  --oc-radius-lg: 22px;
+  --oc-radius-sm: 6px;
+  --oc-radius-md: 10px;
+  --oc-radius-lg: 14px;
+  --oc-shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.36);
+  --oc-shadow-floating: 0 18px 44px rgba(0, 0, 0, 0.34);
 }
 
 body.vscode-light .oc-shell[data-oc-theme="codex"] {
@@ -143,14 +152,14 @@ body.vscode-light .oc-shell[data-oc-theme="codex"] {
   --oc-border-stronger: color-mix(in srgb, #1e2733 22%, transparent 78%);
   --oc-accent-fill: #1e2733;
   --oc-accent-strong: #0b6bcb;
-  --oc-message-user-bg: #e8f0fb;
+  --oc-message-user-bg: #e4eefb;
   --oc-message-assistant-bg: #fbfcfe;
   --oc-composer-surface: #f3f6fa;
   --oc-composer-border: color-mix(in srgb, #1e2733 18%, transparent 82%);
   --oc-status-popover-surface: color-mix(in srgb, #ffffff 92%, #d7dfeb 8%);
-  --oc-radius-sm: 10px;
-  --oc-radius-md: 16px;
-  --oc-radius-lg: 22px;
+  --oc-radius-sm: 6px;
+  --oc-radius-md: 10px;
+  --oc-radius-lg: 14px;
 }
 
 body.vscode-dark .oc-shell[data-oc-theme="claude"] {
@@ -176,11 +185,13 @@ body.vscode-dark .oc-shell[data-oc-theme="claude"] {
   --oc-status-popover-surface: color-mix(in srgb, #28231e 92%, #695d50 8%);
   --oc-md-heading-accent: #ffbf73;
   --oc-md-emphasis-accent: #e6a85c;
-  --oc-radius-sm: 12px;
-  --oc-radius-md: 18px;
-  --oc-radius-lg: 24px;
+  --oc-radius-sm: 14px;
+  --oc-radius-md: 20px;
+  --oc-radius-lg: 28px;
   --oc-space-regular: 12px;
   --oc-space-roomy: 16px;
+  --oc-shadow-soft: 0 12px 28px rgba(0, 0, 0, 0.28);
+  --oc-shadow-floating: 0 20px 48px rgba(0, 0, 0, 0.26);
 }
 
 body.vscode-light .oc-shell[data-oc-theme="claude"] {
@@ -206,9 +217,9 @@ body.vscode-light .oc-shell[data-oc-theme="claude"] {
   --oc-status-popover-surface: color-mix(in srgb, #fffaf2 94%, #eadfce 6%);
   --oc-md-heading-accent: #a86016;
   --oc-md-emphasis-accent: #94510f;
-  --oc-radius-sm: 12px;
-  --oc-radius-md: 18px;
-  --oc-radius-lg: 24px;
+  --oc-radius-sm: 14px;
+  --oc-radius-md: 20px;
+  --oc-radius-lg: 28px;
   --oc-space-regular: 12px;
   --oc-space-roomy: 16px;
 }
