@@ -28,6 +28,7 @@ body.vscode-dark {
   --oc-border-stronger: color-mix(in srgb, var(--vscode-editor-foreground) 22%, transparent 78%);
   --oc-accent-fill: #fff;
   --oc-accent-strong: #4ea1ff;
+  --oc-pill-skill-fill: #9f5f3f;
   --oc-hover-surface: color-mix(in srgb, var(--oc-accent-fill) 10%, transparent 90%);
   --oc-hover-surface-inset: color-mix(in srgb, var(--oc-accent-fill) 6%, transparent 94%);
   --oc-message-user-bg: #000;
@@ -81,6 +82,7 @@ body.vscode-light {
   --oc-border-stronger: color-mix(in srgb, var(--vscode-editor-foreground, #222) 18%, transparent 82%);
   --oc-accent-fill: #111;
   --oc-accent-strong: #0b6bcb;
+  --oc-pill-skill-fill: #c9743a;
   --oc-hover-surface: color-mix(in srgb, var(--oc-accent-fill) 8%, transparent 92%);
   --oc-hover-surface-inset: color-mix(in srgb, var(--oc-accent-fill) 5%, transparent 95%);
   --oc-message-user-bg: #fff;
