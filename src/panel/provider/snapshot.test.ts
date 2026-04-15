@@ -34,6 +34,7 @@ const BRAINSTORMING_SKILL: SkillCatalogEntry = {
 
 Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
 `.trim(),
+  location: "/Users/lantingxin/.codex/superpowers/skills/brainstorming/SKILL.md",
 }
 
 function createSdk(current: SessionInfo, skills: Array<{ name: string; description: string; location: string; content: string }> = []) {

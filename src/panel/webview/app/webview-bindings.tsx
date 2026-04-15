@@ -3,6 +3,7 @@ import type { MessagePart } from "../../../core/sdk"
 import { PartView as BasePartView, ToolPartView as BaseToolPartView } from "./part-views"
 import { useChildMessages, useChildSessions, useTranscriptVisibility, useWorkspaceDir } from "./contexts"
 import { SkillPill } from "./skill-pill"
+import { findSkillLocation } from "./timeline"
 import { renderToolRowExtra, renderToolRowTitle, taskAgentName, taskBody, taskSessionTitle, toolRowExtras } from "./tool-row-meta"
 import { TaskToolRow as BaseTaskToolRow, ToolRow as BaseToolRow, ToolStatus } from "./tool-rows"
 import { extractSkillInvocationName, findSkillInvocationMatch } from "../../shared/skill-invocation"
@@ -41,14 +42,16 @@ function useWebviewBindings() {
 }
 
 export function PartView({ part, active = false, diffMode = "unified" }: { part: MessagePart; active?: boolean; diffMode?: "unified" | "split" }) {
+  const { vscode } = useWebviewBindings()
   const { compactSkillInvocations, skillCatalog } = useTranscriptVisibility()
   if (compactSkillInvocations && part.type === "text") {
     const skillMatch = findSkillInvocationMatch(part.text || "", skillCatalog)
+    const skillLocation = skillMatch ? findSkillLocation(skillMatch.name, skillCatalog) : undefined
     if (skillMatch) {
       return (
         <section className="oc-part oc-part-text oc-part-inline">
           <div className="oc-attachmentRow">
-            <SkillPill name={skillMatch.name} />
+            <SkillPill name={skillMatch.name} onClick={skillLocation ? () => vscode.postMessage({ type: "openFile", filePath: skillLocation }) : undefined} />
           </div>
           {skillMatch.remainder ? <MarkdownBlock content={skillMatch.remainder} /> : null}
         </section>
@@ -81,8 +84,11 @@ export function ToolRow({ part, active = false }: { part: Extract<MessagePart, {
 }
 
 export function SkillToolRow({ part, active = false }: { part: Extract<MessagePart, { type: "tool" }>; active?: boolean }) {
+  const { vscode } = useWebviewBindings()
+  const { skillCatalog } = useTranscriptVisibility()
   const details = toolDetails(part)
   const title = extractSkillInvocationName(part.state?.output || "", details.title)
+  const skillLocation = title ? findSkillLocation(title, skillCatalog) : undefined
   return (
     <BaseToolRow
       ToolStatus={ToolStatus}
@@ -90,7 +96,7 @@ export function SkillToolRow({ part, active = false }: { part: Extract<MessagePa
       isMcpTool={isMcpTool}
       part={part}
       renderToolRowExtra={() => null}
-      renderToolRowTitle={() => <SkillPill name={title || "Skill"} />}
+      renderToolRowTitle={() => <SkillPill name={title || "Skill"} onClick={skillLocation ? () => vscode.postMessage({ type: "openFile", filePath: skillLocation }) : undefined} />}
       extras={[]}
       toolLabel={toolLabel}
     />

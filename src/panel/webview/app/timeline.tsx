@@ -43,6 +43,8 @@ type TimelineProps = {
   messages: SessionMessage[]
   onCopyUserMessage: (message: SessionMessage) => void
   onForkUserMessage: (message: SessionMessage) => void
+  onOpenFileAttachment: (filePath: string) => void
+  onPreviewImageAttachment: (image: { src: string; name: string }) => void
   onRedoSession: () => void
   onUndoUserMessage: (message: SessionMessage) => void
   revertDiff?: string
@@ -65,6 +67,8 @@ export const Timeline = React.memo(function Timeline({
   messages,
   onCopyUserMessage,
   onForkUserMessage,
+  onOpenFileAttachment,
+  onPreviewImageAttachment,
   onRedoSession,
   onUndoUserMessage,
   revertDiff,
@@ -116,6 +120,8 @@ export const Timeline = React.memo(function Timeline({
             diffMode={diffMode}
             onCopyUserMessage={onCopyUserMessage}
             onForkUserMessage={onForkUserMessage}
+            onOpenFileAttachment={onOpenFileAttachment}
+            onPreviewImageAttachment={onPreviewImageAttachment}
             onRedoSession={onRedoSession}
             onUndoUserMessage={onUndoUserMessage}
             skillCatalog={skillCatalog}
@@ -137,6 +143,8 @@ type TimelineBlockViewProps = {
   diffMode: "unified" | "split"
   onCopyUserMessage: (message: SessionMessage) => void
   onForkUserMessage: (message: SessionMessage) => void
+  onOpenFileAttachment: (filePath: string) => void
+  onPreviewImageAttachment: (image: { src: string; name: string }) => void
   onRedoSession: () => void
   onUndoUserMessage: (message: SessionMessage) => void
   skillCatalog: SkillCatalogEntry[]
@@ -153,6 +161,8 @@ function TimelineBlockView({
   diffMode,
   onCopyUserMessage,
   onForkUserMessage,
+  onOpenFileAttachment,
+  onPreviewImageAttachment,
   onRedoSession,
   onUndoUserMessage,
   skillCatalog,
@@ -166,6 +176,7 @@ function TimelineBlockView({
     const hasCompaction = userHasCompaction(block.message)
     const hasSyntheticText = userHasSyntheticText(block.message)
     const showEmptyPrompt = !userText && !hasSyntheticText
+    const skillLocation = skillMatch ? findSkillLocation(skillMatch.name, skillCatalog) : undefined
     if (hasCompaction && !userText && userFiles.length === 0) {
       return <CompactionDivider />
     }
@@ -178,9 +189,17 @@ function TimelineBlockView({
               <div className="oc-queuedBadge">QUEUED</div>
             </div>
           ) : null}
-          {skillMatch ? (
+          {skillMatch || userFiles.length > 0 ? (
             <div className="oc-attachmentRow">
-              <SkillPill name={skillMatch.name} />
+              {skillMatch ? <SkillPill name={skillMatch.name} onClick={skillLocation ? () => onOpenFileAttachment(skillLocation) : undefined} /> : null}
+              {userFiles.map((part) => (
+                <AttachmentPill
+                  key={part.id}
+                  part={part}
+                  onOpenFileAttachment={onOpenFileAttachment}
+                  onPreviewImageAttachment={onPreviewImageAttachment}
+                />
+              ))}
             </div>
           ) : null}
           {skillMatch?.remainder
@@ -190,16 +209,6 @@ function TimelineBlockView({
             : userText
               ? <MarkdownBlock content={userText.text || ""} />
             : (showEmptyPrompt ? <div className="oc-partEmpty">No visible prompt text.</div> : null)}
-          {userFiles.length > 0 ? (
-            <div className="oc-attachmentRow">
-              {userFiles.map((part) => (
-                <span key={part.id} className="oc-pill oc-pill-file">
-                  <span className="oc-pillFileType">{fileTypeLabel(part)}</span>
-                  <span className="oc-pillFilePath">{attachmentFilePath(part)}</span>
-                </span>
-              ))}
-            </div>
-          ) : null}
           <div className="oc-messageActions" aria-label="Message actions">
             <button type="button" className="oc-messageActionBtn" aria-label="Copy" data-tooltip="Copy" onClick={() => onCopyUserMessage(block.message)}>
               <CopyMessageIcon />
@@ -251,6 +260,55 @@ function TimelineBlockView({
 
 const MemoTimelineBlockView = React.memo(TimelineBlockView, areTimelineBlockPropsEqual)
 
+function AttachmentPill({
+  part,
+  onOpenFileAttachment,
+  onPreviewImageAttachment,
+}: {
+  part: FilePart
+  onOpenFileAttachment: (filePath: string) => void
+  onPreviewImageAttachment: (image: { src: string; name: string }) => void
+}) {
+  const name = attachmentFilePath(part)
+  const previewSrc = attachmentPreviewSource(part)
+  const openPath = attachmentOpenPath(part)
+
+  if (previewSrc) {
+    return (
+      <button
+        type="button"
+        className="oc-pill oc-pill-file oc-pillButton"
+        aria-label={`Preview ${name}`}
+        onClick={() => onPreviewImageAttachment({ src: previewSrc, name })}
+      >
+        <span className="oc-pillFileType">{fileTypeLabel(part)}</span>
+        <span className="oc-pillFilePath">{name}</span>
+      </button>
+    )
+  }
+
+  if (openPath) {
+    return (
+      <button
+        type="button"
+        className="oc-pill oc-pill-file oc-pillButton"
+        aria-label={`Open attachment ${name}`}
+        onClick={() => onOpenFileAttachment(openPath)}
+      >
+        <span className="oc-pillFileType">{fileTypeLabel(part)}</span>
+        <span className="oc-pillFilePath">{name}</span>
+      </button>
+    )
+  }
+
+  return (
+    <span className="oc-pill oc-pill-file">
+      <span className="oc-pillFileType">{fileTypeLabel(part)}</span>
+      <span className="oc-pillFilePath">{name}</span>
+    </span>
+  )
+}
+
 function areTimelineBlockPropsEqual(prev: TimelineBlockViewProps, next: TimelineBlockViewProps) {
   if (prev.AgentBadge !== next.AgentBadge
     || prev.CompactionDivider !== next.CompactionDivider
@@ -261,6 +319,8 @@ function areTimelineBlockPropsEqual(prev: TimelineBlockViewProps, next: Timeline
     || prev.diffMode !== next.diffMode
     || prev.onCopyUserMessage !== next.onCopyUserMessage
     || prev.onForkUserMessage !== next.onForkUserMessage
+    || prev.onOpenFileAttachment !== next.onOpenFileAttachment
+    || prev.onPreviewImageAttachment !== next.onPreviewImageAttachment
     || prev.onRedoSession !== next.onRedoSession
     || prev.onUndoUserMessage !== next.onUndoUserMessage
     || prev.skillCatalog !== next.skillCatalog) {
@@ -587,6 +647,42 @@ function userHasCompaction(message: SessionMessage) {
 
 function userAttachments(message: SessionMessage) {
   return message.parts.filter((part): part is FilePart => part.type === "file")
+}
+
+export function findSkillLocation(name: string, catalog: SkillCatalogEntry[]) {
+  return catalog.find((skill) => skill.name === name)?.location
+}
+
+export function attachmentOpenPath(part: FilePart) {
+  if (part.source?.type === "file" && part.source.path.trim()) {
+    return part.source.path.trim()
+  }
+
+  const raw = part.url.trim()
+  if (!raw || raw.startsWith("data:")) {
+    return undefined
+  }
+
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) && !raw.startsWith("file://")) {
+    return undefined
+  }
+
+  return raw
+}
+
+export function attachmentPreviewSource(part: FilePart) {
+  const mime = part.mime.toLowerCase()
+  const path = attachmentFilePath(part).toLowerCase()
+  if (!mime.startsWith("image/") && !/\.(png|jpe?g|gif|webp|bmp|svg|ico|avif)$/.test(path)) {
+    return undefined
+  }
+
+  const raw = part.url.trim()
+  if (raw.startsWith("data:image/") || raw.startsWith("https://")) {
+    return raw
+  }
+
+  return undefined
 }
 
 function attachmentFilePath(part: FilePart) {

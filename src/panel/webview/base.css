@@ -220,6 +220,21 @@ button {
   background: color-mix(in srgb, var(--vscode-terminal-ansiMagenta) 78%, transparent);
 }
 
+.oc-pillButton {
+  appearance: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.oc-pillButton:hover,
+.oc-pillButton:focus-visible {
+  border-color: color-mix(in srgb, var(--oc-accent) 62%, var(--oc-border-strong) 38%);
+  background: color-mix(in srgb, var(--oc-accent) 12%, var(--oc-surface-control) 88%);
+  color: var(--oc-fg-primary);
+  outline: none;
+}
+
 .oc-chip {
   cursor: pointer;
 }

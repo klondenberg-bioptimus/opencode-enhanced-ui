@@ -4,7 +4,7 @@ import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
 import type { SkillCatalogEntry } from "../../../bridge/types"
-import type { MessageInfo, MessagePart, SessionMessage, TextPart } from "../../../core/sdk"
+import type { FilePart, MessageInfo, MessagePart, SessionMessage, TextPart } from "../../../core/sdk"
 import { Timeline } from "./timeline"
 
 function messageInfo(id: string, role: "user" | "assistant", extras?: Partial<MessageInfo>): MessageInfo {
@@ -53,7 +53,21 @@ Write long-form content that sounds like a real person or brand, not generic AI 
 
 - drafting blog posts, essays, launch posts, guides, tutorials, or newsletter issues
 `,
+  location: "/Users/lantingxin/.codex/skills/article-writing/SKILL.md",
 }]
+
+function filePart(id: string, messageID: string, extras?: Partial<FilePart>): FilePart {
+  return {
+    id,
+    sessionID: "session-1",
+    messageID,
+    type: "file",
+    mime: "text/plain",
+    filename: "notes.txt",
+    url: "file:///workspace/notes.txt",
+    ...extras,
+  }
+}
 
 describe("Timeline user message rendering", () => {
   test("does not render a dedicated You header for user messages", () => {
@@ -65,6 +79,8 @@ describe("Timeline user message rendering", () => {
         messages={[sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", "hello")])]}
         onCopyUserMessage={() => {}}
         onForkUserMessage={() => {}}
+        onOpenFileAttachment={() => {}}
+        onPreviewImageAttachment={() => {}}
         onRedoSession={() => {}}
         onUndoUserMessage={() => {}}
         showInternals={false}
@@ -91,6 +107,8 @@ describe("Timeline user message rendering", () => {
         messages={[sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", "hello")])]}
         onCopyUserMessage={() => {}}
         onForkUserMessage={() => {}}
+        onOpenFileAttachment={() => {}}
+        onPreviewImageAttachment={() => {}}
         onRedoSession={() => {}}
         onUndoUserMessage={() => {}}
         showInternals={false}
@@ -126,6 +144,8 @@ describe("Timeline user message rendering", () => {
         ]}
         onCopyUserMessage={() => {}}
         onForkUserMessage={() => {}}
+        onOpenFileAttachment={() => {}}
+        onPreviewImageAttachment={() => {}}
         onUndoUserMessage={() => {}}
         onRedoSession={() => {}}
         revertID="m1"
@@ -153,6 +173,8 @@ describe("Timeline user message rendering", () => {
         messages={[sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", `${WRAPPED_SKILL_OUTPUT}\n继续执行`)])]}
         onCopyUserMessage={() => {}}
         onForkUserMessage={() => {}}
+        onOpenFileAttachment={() => {}}
+        onPreviewImageAttachment={() => {}}
         onRedoSession={() => {}}
         onUndoUserMessage={() => {}}
         showInternals={false}
@@ -181,6 +203,8 @@ describe("Timeline user message rendering", () => {
         messages={[sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", ARTICLE_WRITING_SKILL[0]!.content)])]}
         onCopyUserMessage={() => {}}
         onForkUserMessage={() => {}}
+        onOpenFileAttachment={() => {}}
+        onPreviewImageAttachment={() => {}}
         onRedoSession={() => {}}
         onUndoUserMessage={() => {}}
         showInternals={false}
@@ -197,5 +221,72 @@ describe("Timeline user message rendering", () => {
     assert.equal(html.includes("SKILL"), true)
     assert.equal(html.includes("article-writing"), true)
     assert.equal(html.includes("Write long-form content"), false)
+  })
+
+  test("renders clickable skill and file attachments ahead of the prompt text", () => {
+    const html = renderToStaticMarkup(
+      <Timeline
+        bootstrapStatus="ready"
+        compactSkillInvocations={true}
+        diffMode="unified"
+        messages={[sessionMessage(messageInfo("m1", "user"), [
+          textPart("p1", "m1", `${ARTICLE_WRITING_SKILL[0]!.content}\n继续执行`),
+          filePart("f1", "m1"),
+        ])]}
+        onCopyUserMessage={() => {}}
+        onForkUserMessage={() => {}}
+        onOpenFileAttachment={() => {}}
+        onPreviewImageAttachment={() => {}}
+        onRedoSession={() => {}}
+        onUndoUserMessage={() => {}}
+        showInternals={false}
+        showThinking={true}
+        skillCatalog={ARTICLE_WRITING_SKILL}
+        AgentBadge={({ name }) => <span>{name}</span>}
+        CompactionDivider={() => <div>divider</div>}
+        EmptyState={({ title, text }) => <div>{title}:{text}</div>}
+        MarkdownBlock={({ content, className }) => <div className={className}>{content}</div>}
+        PartView={({ part }) => <div>{part.type}</div>}
+      />,
+    )
+
+    assert.equal(html.includes('aria-label="Open skill article-writing"'), true)
+    assert.equal(html.includes('aria-label="Open attachment notes.txt"'), true)
+    assert.ok(html.indexOf("article-writing") < html.indexOf("继续执行"))
+    assert.ok(html.indexOf("notes.txt") < html.indexOf("继续执行"))
+  })
+
+  test("renders image attachments with a preview action", () => {
+    const html = renderToStaticMarkup(
+      <Timeline
+        bootstrapStatus="ready"
+        compactSkillInvocations={true}
+        diffMode="unified"
+        messages={[sessionMessage(messageInfo("m1", "user"), [
+          textPart("p1", "m1", "这个图片看看"),
+          filePart("f1", "m1", {
+            mime: "image/png",
+            filename: "image.png",
+            url: "data:image/png;base64,abc123",
+          }),
+        ])]}
+        onCopyUserMessage={() => {}}
+        onForkUserMessage={() => {}}
+        onOpenFileAttachment={() => {}}
+        onPreviewImageAttachment={() => {}}
+        onRedoSession={() => {}}
+        onUndoUserMessage={() => {}}
+        showInternals={false}
+        showThinking={true}
+        skillCatalog={[]}
+        AgentBadge={({ name }) => <span>{name}</span>}
+        CompactionDivider={() => <div>divider</div>}
+        EmptyState={({ title, text }) => <div>{title}:{text}</div>}
+        MarkdownBlock={({ content, className }) => <div className={className}>{content}</div>}
+        PartView={({ part }) => <div>{part.type}</div>}
+      />,
+    )
+
+    assert.equal(html.includes('aria-label="Preview image.png"'), true)
   })
 })

@@ -6,6 +6,7 @@ export const SESSION_PANEL_VIEW_TYPE = "opencode-ui.session"
 export type SkillCatalogEntry = {
   name: string
   content: string
+  location?: string
 }
 
 export type WorkspaceRef = {

@@ -39,6 +39,11 @@ const persistedState = normalizePersistedState(vscode.getState<PersistedAppState
 const fileRefStatus = new Map<string, boolean>()
 const ESC_INTERRUPT_WINDOW_MS = 5000
 
+type PreviewImage = {
+  src: string
+  name: string
+}
+
 function sameAutocompleteMatch(
   left: { trigger: ComposerAutocompleteState["trigger"]; query: string; start: number; end: number } | null,
   right: { trigger: ComposerAutocompleteState["trigger"]; query: string; start: number; end: number } | null,
@@ -58,7 +63,7 @@ export function App() {
   const [fileSearch, setFileSearch] = React.useState<{ status: "idle" | "searching" | "done"; query: string }>({ status: "idle", query: "" })
   const [composerDrag, setComposerDrag] = React.useState<null | "mention">(null)
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false)
-  const [previewImage, setPreviewImage] = React.useState<ImageAttachment | null>(null)
+  const [previewImage, setPreviewImage] = React.useState<PreviewImage | null>(null)
   const [skillPickerOpen, setSkillPickerOpen] = React.useState(false)
   const [skillPickerSelectedIndex, setSkillPickerSelectedIndex] = React.useState(0)
   const timelineRef = React.useRef<HTMLDivElement | null>(null)
@@ -637,6 +642,14 @@ export function App() {
     vscode.postMessage({ type: "navigateSession", sessionID })
   }, [])
 
+  const openFileAttachment = React.useCallback((filePath: string) => {
+    vscode.postMessage({ type: "openFile", filePath })
+  }, [])
+
+  const previewAttachmentImage = React.useCallback((image: PreviewImage) => {
+    setPreviewImage(image)
+  }, [])
+
   const postNewSession = React.useCallback(() => {
     vscode.postMessage({ type: "newSessionInPlace" })
   }, [])
@@ -1034,6 +1047,8 @@ export function App() {
                     messages={state.snapshot.messages}
                     onCopyUserMessage={copyUserMessage}
                     onForkUserMessage={forkUserMessage}
+                    onOpenFileAttachment={openFileAttachment}
+                    onPreviewImageAttachment={previewAttachmentImage}
                     onRedoSession={redoSession}
                     onUndoUserMessage={undoUserMessage}
                     revertID={state.snapshot.session?.revert?.messageID}
@@ -1155,7 +1170,7 @@ export function App() {
                               src={img.dataUrl}
                               alt={img.name}
                               className="oc-composerImageThumbImg"
-                              onClick={() => setPreviewImage(img)}
+                              onClick={() => setPreviewImage({ src: img.dataUrl, name: img.name })}
                             />
                             <button
                               type="button"
@@ -1495,7 +1510,7 @@ export function App() {
             {previewImage ? (
               <div className="oc-imagePreviewOverlay" onClick={() => setPreviewImage(null)}>
                 <div className="oc-imagePreviewContent" onClick={(event) => event.stopPropagation()}>
-                  <img src={previewImage.dataUrl} alt={previewImage.name} className="oc-imagePreviewImg" />
+                  <img src={previewImage.src} alt={previewImage.name} className="oc-imagePreviewImg" />
                   <button
                     type="button"
                     className="oc-imagePreviewClose"

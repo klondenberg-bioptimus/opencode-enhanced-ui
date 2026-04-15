@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
-import type { MessageInfo, MessagePart, SessionMessage, TextPart, ToolPart } from "../../../core/sdk"
-import { createTimelineDerivationCache, reconcileTimelineBlocks } from "./timeline"
+import type { FilePart, MessageInfo, MessagePart, SessionMessage, TextPart, ToolPart } from "../../../core/sdk"
+import { attachmentOpenPath, attachmentPreviewSource, createTimelineDerivationCache, findSkillLocation, reconcileTimelineBlocks } from "./timeline"
 
 function messageInfo(id: string, role: "user" | "assistant", extras?: Partial<MessageInfo>): MessageInfo {
   return {
@@ -36,6 +36,18 @@ function toolPart(id: string, messageID: string, tool: string, status: ToolPart[
     state: {
       status,
     },
+  }
+}
+
+function filePart(id: string, messageID: string, extras?: Partial<FilePart>): FilePart {
+  return {
+    id,
+    sessionID: "session-1",
+    messageID,
+    type: "file",
+    mime: "text/plain",
+    url: "file:///workspace/notes.txt",
+    ...extras,
   }
 }
 
@@ -106,5 +118,61 @@ describe("timeline block reconciliation", () => {
     assert.equal(second[2]?.kind, "assistant-part")
     assert.equal(second[2]?.kind === "assistant-part" ? second[2].part : undefined, appendedTool)
     assert.equal(second[3]?.kind === "assistant-meta" ? second[3].messages[0] : undefined, nextAssistant)
+  })
+})
+
+describe("timeline attachment helpers", () => {
+  test("finds the configured skill file location", () => {
+    assert.equal(findSkillLocation("brainstorming", [
+      {
+        name: "brainstorming",
+        content: "# Brainstorming",
+        location: "/Users/lantingxin/.codex/superpowers/skills/brainstorming/SKILL.md",
+      },
+    ]), "/Users/lantingxin/.codex/superpowers/skills/brainstorming/SKILL.md")
+  })
+
+  test("prefers the original source path when opening file attachments", () => {
+    assert.equal(attachmentOpenPath(filePart("f1", "m1", {
+      source: {
+        type: "file",
+        path: "src/app.tsx",
+        text: {
+          value: "@src/app.tsx",
+          start: 0,
+          end: 12,
+        },
+      },
+    })), "src/app.tsx")
+  })
+
+  test("returns a preview source for inline image attachments", () => {
+    assert.equal(attachmentPreviewSource(filePart("f2", "m1", {
+      mime: "image/png",
+      filename: "image.png",
+      url: "data:image/png;base64,abc123",
+    })), "data:image/png;base64,abc123")
+  })
+
+  test("does not inline-preview local image files without a webview-safe source", () => {
+    assert.equal(attachmentPreviewSource(filePart("f3", "m1", {
+      mime: "image/png",
+      filename: "image.png",
+      url: "file:///workspace/image.png",
+    })), undefined)
+  })
+
+  test("does not inline-preview insecure http image sources", () => {
+    assert.equal(attachmentPreviewSource(filePart("f4", "m1", {
+      mime: "image/png",
+      filename: "image.png",
+      url: "http://example.com/image.png",
+    })), undefined)
+  })
+
+  test("does not route remote urls through the local file opener", () => {
+    assert.equal(attachmentOpenPath(filePart("f5", "m1", {
+      url: "https://example.com/file.txt",
+    })), undefined)
   })
 })

@@ -4,6 +4,7 @@ import type { Client } from "./sdk"
 type OfficialSkillEntry = {
   name?: string
   content?: string
+  location?: string
 }
 
 export async function loadSkillCatalog(workspaceDir: string, sdk: Pick<Client, "app">): Promise<SkillCatalogEntry[]> {
@@ -20,6 +21,7 @@ export async function loadSkillCatalog(workspaceDir: string, sdk: Pick<Client, "
 function normalizeOfficialSkillEntry(entry: OfficialSkillEntry): SkillCatalogEntry[] {
   const name = entry.name?.trim()
   const content = stripFrontmatter(entry.content ?? "").trim()
+  const location = entry.location?.trim()
   if (!name || !content) {
     return []
   }
@@ -27,6 +29,7 @@ function normalizeOfficialSkillEntry(entry: OfficialSkillEntry): SkillCatalogEnt
   return [{
     name,
     content,
+    location: location || undefined,
   }]
 }
 
