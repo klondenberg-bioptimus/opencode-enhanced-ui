@@ -144,6 +144,7 @@ export type CommandInfo = {
   agent?: string
   model?: string
   source?: "command" | "mcp" | "skill"
+  template?: string
   hints: string[]
 }
 

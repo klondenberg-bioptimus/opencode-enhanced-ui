@@ -24,6 +24,7 @@ import { buildModelPickerRecoveryActions, buildModelPickerSections, ModelPicker 
 import { buildComposerHostMessage } from "./composer-submit"
 import { mergeRestoredComposerParts, restoredComposerCursor } from "./composer-seed"
 import { activeChildSessionId } from "./session-navigation"
+import { captureCommandPromptInvocations, consumeFailedCommandPrompt, shouldTrackCommandPromptInvocation, type CommandPromptInvocation } from "./command-prompt"
 
 declare global {
   interface Window {
@@ -76,6 +77,13 @@ export function App() {
   const autocompleteDismissedRef = React.useRef<null | { trigger: ComposerAutocompleteState["trigger"]; query: string; start: number; end: number }>(null)
   const leaderTimerRef = React.useRef<number | null>(null)
   const leaderPendingRef = React.useRef(false)
+  const previousMessagesRef = React.useRef<SessionMessage[]>([])
+  const onHostErrorMessage = React.useCallback(() => {
+    setState((current) => ({
+      ...current,
+      pendingCommandPromptInvocations: consumeFailedCommandPrompt(current.pendingCommandPromptInvocations),
+    }))
+  }, [])
   const onFileSearchResults = React.useCallback((payload: { requestID: string; query: string; results: ComposerPathResult[] }) => {
     if (!searchRef.current || payload.requestID !== searchRef.current.requestID) {
       return
@@ -364,12 +372,34 @@ export function App() {
   useHostMessages({
     fileRefStatus,
     onFileSearchResults,
+    onErrorMessage: onHostErrorMessage,
     onRestoreComposer,
     onShellCommandSucceeded: exitShellMode,
     setPendingMcpActions,
     setState,
     vscode,
   })
+
+  React.useEffect(() => {
+    setState((current) => {
+      const next = captureCommandPromptInvocations(
+        previousMessagesRef.current,
+        current.snapshot.messages,
+        current.pendingCommandPromptInvocations,
+        current.commandPromptInvocations,
+      )
+      previousMessagesRef.current = current.snapshot.messages
+      if (next.pending === current.pendingCommandPromptInvocations && next.catalog === current.commandPromptInvocations) {
+        return current
+      }
+
+      return {
+        ...current,
+        pendingCommandPromptInvocations: next.pending,
+        commandPromptInvocations: next.catalog,
+      }
+    })
+  }, [state.snapshot.messages])
 
   const persistedPanelState = React.useMemo(() => persistableAppState(state), [
     state.bootstrap.sessionRef.workspaceId,
@@ -379,12 +409,17 @@ export function App() {
     state.composerFavoriteModels,
     state.composerModelOverrides,
     state.composerModelVariants,
+    state.commandPromptInvocations,
     state.composerRecentModels,
   ])
 
   React.useEffect(() => {
     vscode.setState(persistedPanelState)
   }, [persistedPanelState])
+
+  React.useEffect(() => {
+    previousMessagesRef.current = []
+  }, [state.bootstrap.sessionRef.workspaceId, state.bootstrap.sessionRef.sessionId])
 
   React.useEffect(() => {
     if (!latestUserSelection?.messageID) {
@@ -534,7 +569,6 @@ export function App() {
         openSkillPicker()
         return
       }
-
     }
 
     const mentions = mentionsFromParts(finalized)
@@ -566,6 +600,12 @@ export function App() {
       composerParts: emptyComposerParts(),
       composerMentions: [],
       composerMentionAgentOverride: undefined,
+      pendingCommandPromptInvocations: hostMessage.type === "runSlashCommand" && shouldTrackCommandPromptInvocation(hostMessage.command, state.snapshot.commands)
+        ? [...current.pendingCommandPromptInvocations, {
+            command: hostMessage.command,
+            arguments: hostMessage.arguments,
+          } satisfies CommandPromptInvocation]
+        : current.pendingCommandPromptInvocations,
       imageAttachments: [],
       error: "",
     }))
@@ -1043,6 +1083,8 @@ export function App() {
                     bootstrapStatus={state.bootstrap.status}
                     compactSkillInvocations={state.snapshot.display.compactSkillInvocations !== false}
                     bootstrapMessage={state.bootstrap.message}
+                    commandPromptInvocations={state.commandPromptInvocations}
+                    commands={state.snapshot.commands}
                     diffMode={state.snapshot.display.diffMode}
                     messages={state.snapshot.messages}
                     onCopyUserMessage={copyUserMessage}
@@ -1574,6 +1616,7 @@ function normalizePersistedState(value: PersistedAppState | SessionBootstrap["se
     composerRecentModels: maybe.composerRecentModels,
     composerFavoriteModels: maybe.composerFavoriteModels,
     composerModelVariants: maybe.composerModelVariants,
+    commandPromptInvocations: maybe.commandPromptInvocations,
   }
 }
 

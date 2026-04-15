@@ -1,8 +1,10 @@
 import React from "react"
 import { parsePatch } from "diff"
 import type { SkillCatalogEntry } from "../../../bridge/types"
-import type { FilePart, MessageInfo, MessagePart, SessionMessage, TextPart } from "../../../core/sdk"
+import type { CommandInfo, FilePart, MessageInfo, MessagePart, SessionMessage, TextPart } from "../../../core/sdk"
 import { findSkillInvocationMatch } from "../../shared/skill-invocation"
+import { commandPromptLabel, findCommandPromptInvocation, previewCommandPromptText, type CommandPromptCatalog } from "./command-prompt"
+import { CommandPill } from "./command-pill"
 import { TranscriptVisibilityContext } from "./contexts"
 import { SkillPill } from "./skill-pill"
 
@@ -38,6 +40,8 @@ export function createTimelineDerivationCache(): TimelineDerivationCache {
 type TimelineProps = {
   bootstrapStatus: "idle" | "loading" | "ready" | "error"
   bootstrapMessage?: string
+  commandPromptInvocations?: CommandPromptCatalog
+  commands?: CommandInfo[]
   compactSkillInvocations: boolean
   diffMode: "unified" | "split"
   messages: SessionMessage[]
@@ -62,6 +66,8 @@ type TimelineProps = {
 export const Timeline = React.memo(function Timeline({
   bootstrapStatus,
   bootstrapMessage,
+  commandPromptInvocations = {},
+  commands = [],
   compactSkillInvocations,
   diffMode,
   messages,
@@ -116,6 +122,8 @@ export const Timeline = React.memo(function Timeline({
             PartView={PartView}
             active={block.kind === "assistant-part" && block.part.type === "tool" && block.part.id === activeToolID}
             block={block}
+            commandPromptInvocations={commandPromptInvocations}
+            commands={commands}
             compactSkillInvocations={compactSkillInvocations}
             diffMode={diffMode}
             onCopyUserMessage={onCopyUserMessage}
@@ -139,6 +147,8 @@ type TimelineBlockViewProps = {
   PartView: ({ part, active, diffMode }: { part: MessagePart; active?: boolean; diffMode?: "unified" | "split" }) => React.JSX.Element
   active: boolean
   block: TimelineBlock
+  commandPromptInvocations: CommandPromptCatalog
+  commands: CommandInfo[]
   compactSkillInvocations: boolean
   diffMode: "unified" | "split"
   onCopyUserMessage: (message: SessionMessage) => void
@@ -157,6 +167,8 @@ function TimelineBlockView({
   PartView,
   active,
   block,
+  commandPromptInvocations,
+  commands,
   compactSkillInvocations,
   diffMode,
   onCopyUserMessage,
@@ -167,8 +179,15 @@ function TimelineBlockView({
   onUndoUserMessage,
   skillCatalog,
 }: TimelineBlockViewProps) {
+  const [commandPromptExpanded, setCommandPromptExpanded] = React.useState(false)
+
+  React.useEffect(() => {
+    setCommandPromptExpanded(false)
+  }, [block.kind === "user-message" ? block.message.info.id : block.key])
+
   if (block.kind === "user-message") {
     const userText = primaryUserText(block.message)
+    const commandPrompt = userText ? findCommandPromptInvocation(userText.text || "", commandPromptInvocations, commands) : undefined
     const skillMatch = compactSkillInvocations && userText
       ? findSkillInvocationMatch(userText.text || "", skillCatalog)
       : undefined
@@ -189,8 +208,16 @@ function TimelineBlockView({
               <div className="oc-queuedBadge">QUEUED</div>
             </div>
           ) : null}
-          {skillMatch || userFiles.length > 0 ? (
+          {commandPrompt || skillMatch || userFiles.length > 0 ? (
             <div className="oc-attachmentRow">
+              {commandPrompt ? (
+                <CommandPill
+                  label={commandPromptLabel(commandPrompt)}
+                  preview={previewCommandPromptText(userText?.text || "")}
+                  expanded={commandPromptExpanded}
+                  onClick={() => setCommandPromptExpanded((current) => !current)}
+                />
+              ) : null}
               {skillMatch ? <SkillPill name={skillMatch.name} onClick={skillLocation ? () => onOpenFileAttachment(skillLocation) : undefined} /> : null}
               {userFiles.map((part) => (
                 <AttachmentPill
@@ -202,7 +229,9 @@ function TimelineBlockView({
               ))}
             </div>
           ) : null}
-          {skillMatch?.remainder
+          {commandPrompt
+            ? (commandPromptExpanded ? <MarkdownBlock content={userText?.text || ""} /> : null)
+            : skillMatch?.remainder
             ? <MarkdownBlock content={skillMatch.remainder} />
             : skillMatch
               ? null
@@ -323,6 +352,8 @@ function areTimelineBlockPropsEqual(prev: TimelineBlockViewProps, next: Timeline
     || prev.onPreviewImageAttachment !== next.onPreviewImageAttachment
     || prev.onRedoSession !== next.onRedoSession
     || prev.onUndoUserMessage !== next.onUndoUserMessage
+    || prev.commandPromptInvocations !== next.commandPromptInvocations
+    || prev.commands !== next.commands
     || prev.skillCatalog !== next.skillCatalog) {
     return false
   }

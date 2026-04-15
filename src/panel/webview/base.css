@@ -220,6 +220,50 @@ button {
   background: color-mix(in srgb, var(--vscode-terminal-ansiMagenta) 78%, transparent);
 }
 
+.oc-pill-command .oc-pillFileType {
+  background: color-mix(in srgb, var(--vscode-terminal-ansiCyan) 72%, var(--vscode-terminal-ansiGreen) 28%);
+}
+
+.oc-pill-command.oc-pillButton {
+  position: relative;
+}
+
+.oc-pill-command.oc-pillButton::after {
+  content: attr(data-preview);
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 4;
+  display: block;
+  width: min(520px, calc(100vw - 48px));
+  max-height: 240px;
+  overflow: hidden;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--oc-border-strong) 68%, transparent 32%);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--oc-surface-canvas) 94%, var(--vscode-terminal-ansiCyan) 6%);
+  color: var(--oc-fg-primary);
+  font-size: var(--oc-font-size-sm);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 16px 34px color-mix(in srgb, black 24%, transparent 76%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.oc-pill-command.oc-pillButton[data-preview=""]::after {
+  content: none;
+}
+
+.oc-pill-command.oc-pillButton:hover::after,
+.oc-pill-command.oc-pillButton:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .oc-pillButton {
   appearance: none;
   cursor: pointer;

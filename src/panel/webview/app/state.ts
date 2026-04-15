@@ -1,6 +1,7 @@
 import type { ComposerFileSelection, ComposerPathKind, SessionBootstrap, SessionSnapshot, SkillCatalogEntry } from "../../../bridge/types"
 import type { DisplaySettings } from "../../../core/settings"
 import type { AgentInfo, CommandInfo, FileDiff, FormatterStatus, LspStatus, McpResource, McpStatus, MessageInfo, PermissionRequest, ProviderAuthMethod, ProviderInfo, QuestionRequest, SessionInfo, SessionMessage, SessionStatus, Todo } from "../../../core/sdk"
+import type { CommandPromptCatalog, CommandPromptInvocation } from "./command-prompt"
 
 export type VsCodeApi = {
   postMessage(message: unknown): void
@@ -115,6 +116,8 @@ export type AppState = {
   composerFavoriteModels: ComposerModelRef[]
   composerModelVariants: Record<string, string>
   composerHydratedMessageID?: string
+  pendingCommandPromptInvocations: CommandPromptInvocation[]
+  commandPromptInvocations: CommandPromptCatalog
   imageAttachments: ImageAttachment[]
   error: string
   form: FormState
@@ -129,6 +132,7 @@ export type PersistedAppState = {
   composerRecentModels?: ComposerModelRef[]
   composerFavoriteModels?: ComposerModelRef[]
   composerModelVariants?: Record<string, string>
+  commandPromptInvocations?: CommandPromptCatalog
 }
 
 export function createInitialState(initialRef: SessionBootstrap["sessionRef"] | null, persisted?: PersistedAppState): AppState {
@@ -183,6 +187,8 @@ export function createInitialState(initialRef: SessionBootstrap["sessionRef"] | 
     composerFavoriteModels: normalizeModelList(persisted?.composerFavoriteModels),
     composerModelVariants: sameSession ? normalizeVariantMap(persisted?.composerModelVariants) : {},
     composerHydratedMessageID: undefined,
+    pendingCommandPromptInvocations: [],
+    commandPromptInvocations: sameSession ? normalizeCommandPromptCatalog(persisted?.commandPromptInvocations) : {},
     imageAttachments: [],
     error: "",
     form: {
@@ -194,6 +200,7 @@ export function createInitialState(initialRef: SessionBootstrap["sessionRef"] | 
 }
 
 export function persistableAppState(state: AppState): PersistedAppState {
+  const commandPromptInvocations = normalizeCommandPromptCatalog(state.commandPromptInvocations)
   return {
     workspaceId: state.bootstrap.sessionRef.workspaceId,
     dir: state.bootstrap.sessionRef.dir,
@@ -203,6 +210,7 @@ export function persistableAppState(state: AppState): PersistedAppState {
     composerRecentModels: normalizeModelList(state.composerRecentModels),
     composerFavoriteModels: normalizeModelList(state.composerFavoriteModels),
     composerModelVariants: normalizeVariantMap(state.composerModelVariants),
+    ...(Object.keys(commandPromptInvocations).length > 0 ? { commandPromptInvocations } : {}),
   }
 }
 
@@ -454,6 +462,27 @@ function normalizeVariantMap(value: Record<string, string> | undefined) {
     const clean = variant.trim()
     if (clean) {
       out[key] = clean
+    }
+  }
+  return out
+}
+
+function normalizeCommandPromptCatalog(value: CommandPromptCatalog | undefined) {
+  if (!value || typeof value !== "object") {
+    return {}
+  }
+
+  const out: CommandPromptCatalog = {}
+  for (const [key, invocation] of Object.entries(value)) {
+    const fingerprint = key.trim()
+    const command = invocation?.command?.trim()
+    if (!fingerprint || !command) {
+      continue
+    }
+
+    out[fingerprint] = {
+      command,
+      arguments: invocation?.arguments?.trim() || "",
     }
   }
   return out

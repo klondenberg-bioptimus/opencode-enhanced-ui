@@ -4,7 +4,8 @@ import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
 import type { SkillCatalogEntry } from "../../../bridge/types"
-import type { FilePart, MessageInfo, MessagePart, SessionMessage, TextPart } from "../../../core/sdk"
+import type { CommandInfo, FilePart, MessageInfo, MessagePart, SessionMessage, TextPart } from "../../../core/sdk"
+import { fingerprintCommandPromptText } from "./command-prompt"
 import { Timeline } from "./timeline"
 
 function messageInfo(id: string, role: "user" | "assistant", extras?: Partial<MessageInfo>): MessageInfo {
@@ -55,6 +56,35 @@ Write long-form content that sounds like a real person or brand, not generic AI 
 `,
   location: "/Users/lantingxin/.codex/skills/article-writing/SKILL.md",
 }]
+
+const INIT_PROMPT = `Create or update AGENTS.md for this repository.
+
+The goal is a compact instruction file that helps future OpenCode sessions avoid mistakes and ramp up quickly. Every line should answer: "Would an agent likely miss this without help?" If not, leave it out.
+
+# How to investigate
+
+Read the highest-value sources first:
+
+- README, root manifests, workspace config, lockfiles
+- build, test, lint, formatter, typecheck, and codegen config
+- existing instruction files
+
+# What to extract
+
+Look for the highest-signal facts for an agent working in this repo:
+
+- exact developer commands, especially non-obvious ones
+- required command order when it matters
+- testing quirks and important constraints
+`
+
+const INIT_COMMAND: CommandInfo = {
+  name: "init",
+  description: "create/update AGENTS.md",
+  template: INIT_PROMPT,
+  hints: [],
+  source: "command",
+}
 
 function filePart(id: string, messageID: string, extras?: Partial<FilePart>): FilePart {
   return {
@@ -288,5 +318,118 @@ describe("Timeline user message rendering", () => {
     )
 
     assert.equal(html.includes('aria-label="Preview image.png"'), true)
+  })
+
+  test("renders a compact command marker for prompt-style slash command text", () => {
+    const html = renderToStaticMarkup(
+      <Timeline
+        bootstrapStatus="ready"
+        compactSkillInvocations={true}
+        diffMode="unified"
+        messages={[sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", INIT_PROMPT)])]}
+        onCopyUserMessage={() => {}}
+        onForkUserMessage={() => {}}
+        onOpenFileAttachment={() => {}}
+        onPreviewImageAttachment={() => {}}
+        onRedoSession={() => {}}
+        onUndoUserMessage={() => {}}
+        showInternals={false}
+        showThinking={true}
+        commandPromptInvocations={{}}
+        commands={[INIT_COMMAND]}
+        skillCatalog={[]}
+        AgentBadge={({ name }) => <span>{name}</span>}
+        CompactionDivider={() => <div>divider</div>}
+        EmptyState={({ title, text }) => <div>{title}:{text}</div>}
+        MarkdownBlock={({ content, className }) => <div className={className}>{content}</div>}
+        PartView={({ part }) => <div>{part.type}</div>}
+      />,
+    )
+
+    assert.equal(html.includes("COMMAND"), true)
+    assert.equal(html.includes("init"), true)
+    assert.equal(html.includes('data-preview="Create or update AGENTS.md for this repository.'), true)
+    assert.equal(html.includes("# What to extract"), false)
+    assert.equal(html.includes('aria-label="Toggle command prompt init"'), true)
+    assert.equal(html.includes('aria-expanded="false"'), true)
+    assert.equal(html.includes("data-preview="), true)
+  })
+
+  test("does not render a command pill for skill-sourced command metadata", () => {
+    const html = renderToStaticMarkup(
+      <Timeline
+        bootstrapStatus="ready"
+        compactSkillInvocations={true}
+        diffMode="unified"
+        messages={[sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", ARTICLE_WRITING_SKILL[0]!.content)])]}
+        onCopyUserMessage={() => {}}
+        onForkUserMessage={() => {}}
+        onOpenFileAttachment={() => {}}
+        onPreviewImageAttachment={() => {}}
+        onRedoSession={() => {}}
+        onUndoUserMessage={() => {}}
+        showInternals={false}
+        showThinking={true}
+        commandPromptInvocations={{}}
+        commands={[{
+          name: "article-writing",
+          description: "skill entry",
+          template: ARTICLE_WRITING_SKILL[0]!.content,
+          hints: [],
+          source: "skill",
+        }]}
+        skillCatalog={ARTICLE_WRITING_SKILL}
+        AgentBadge={({ name }) => <span>{name}</span>}
+        CompactionDivider={() => <div>divider</div>}
+        EmptyState={({ title, text }) => <div>{title}:{text}</div>}
+        MarkdownBlock={({ content, className }) => <div className={className}>{content}</div>}
+        PartView={({ part }) => <div>{part.type}</div>}
+      />,
+    )
+
+    assert.equal(html.includes("SKILL"), true)
+    assert.equal(html.includes("COMMAND"), false)
+  })
+
+  test("does not render a persisted command pill for a skill slash command", () => {
+    const fingerprint = fingerprintCommandPromptText(ARTICLE_WRITING_SKILL[0]!.content)
+
+    const html = renderToStaticMarkup(
+      <Timeline
+        bootstrapStatus="ready"
+        compactSkillInvocations={true}
+        diffMode="unified"
+        messages={[sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", ARTICLE_WRITING_SKILL[0]!.content)])]}
+        onCopyUserMessage={() => {}}
+        onForkUserMessage={() => {}}
+        onOpenFileAttachment={() => {}}
+        onPreviewImageAttachment={() => {}}
+        onRedoSession={() => {}}
+        onUndoUserMessage={() => {}}
+        showInternals={false}
+        showThinking={true}
+        commandPromptInvocations={{
+          [fingerprint]: {
+            command: "article-writing",
+            arguments: "topic",
+          },
+        }}
+        commands={[{
+          name: "article-writing",
+          description: "skill entry",
+          hints: [],
+          source: "skill",
+        }]}
+        skillCatalog={ARTICLE_WRITING_SKILL}
+        AgentBadge={({ name }) => <span>{name}</span>}
+        CompactionDivider={() => <div>divider</div>}
+        EmptyState={({ title, text }) => <div>{title}:{text}</div>}
+        MarkdownBlock={({ content, className }) => <div className={className}>{content}</div>}
+        PartView={({ part }) => <div>{part.type}</div>}
+      />,
+    )
+
+    assert.equal(html.includes("SKILL"), true)
+    assert.equal(html.includes("COMMAND"), false)
   })
 })

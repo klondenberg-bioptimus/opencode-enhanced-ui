@@ -81,6 +81,17 @@ function createSdk(current: SessionInfo, skills: Array<{ name: string; descripti
     formatter: {
       status: async () => ({ data: [] }),
     },
+    command: {
+      list: async () => ({
+        data: [{
+          name: "init",
+          description: "create/update AGENTS.md",
+          template: "Create or update AGENTS.md for this repository.",
+          hints: [],
+          source: "command",
+        }],
+      }),
+    },
     app: {
       skills: async () => ({ data: skills }),
     },
@@ -154,5 +165,42 @@ describe("buildSessionSnapshot session list filtering", () => {
     })
 
     assert.deepEqual(build.snapshot.skillCatalog, [BRAINSTORMING_SKILL])
+  })
+
+  test("loads command templates from the official sdk commands endpoint", async () => {
+    const current = session("child", "root")
+    const rt: Runtime = {
+      workspaceId: "ws-1",
+      dir: "/workspace",
+      name: "workspace",
+      state: "ready",
+      sdk: createSdk(current),
+      sessions: new Map(),
+      sessionStatuses: new Map(),
+    }
+
+    const build = await buildSessionSnapshot({
+      ref: {
+        workspaceId: rt.workspaceId,
+        dir: rt.dir,
+        sessionId: current.id,
+      },
+      mgr: {
+        get(id: string) {
+          return id === rt.workspaceId ? rt : undefined
+        },
+      } as any,
+      log() {},
+      isSubmitting: () => false,
+    })
+
+    const deferred = await build.deferred
+    assert.deepEqual(deferred?.commands, [{
+      name: "init",
+      description: "create/update AGENTS.md",
+      template: "Create or update AGENTS.md for this repository.",
+      hints: [],
+      source: "command",
+    }])
   })
 })

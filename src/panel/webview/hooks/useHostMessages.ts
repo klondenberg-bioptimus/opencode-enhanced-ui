@@ -6,6 +6,7 @@ import { bootstrapFromSnapshot, normalizeSnapshotPayload, type AppState, type Vs
 
 export function dispatchHostMessage(message: HostMessage, handlers: {
   fileRefStatus: Map<string, boolean>
+  onErrorMessage?: (message: string) => void
   onFileSearchResults: (payload: { requestID: string; query: string; results: ComposerPathResult[] }) => void
   onRestoreComposer: (payload: { parts: import("../../../bridge/types").ComposerPromptPart[] }) => void
   onShellCommandSucceeded: () => void
@@ -99,6 +100,7 @@ export function dispatchHostMessage(message: HostMessage, handlers: {
   }
 
   if (message?.type === "error") {
+    handlers.onErrorMessage?.(message.message || "Unknown error")
     handlers.setState((current) => ({ ...current, error: message.message || "Unknown error" }))
     return
   }
@@ -151,6 +153,7 @@ function asSessionSnapshot(state: AppState): SessionSnapshot {
 
 export function useHostMessages({
   fileRefStatus,
+  onErrorMessage,
   onFileSearchResults,
   onRestoreComposer,
   onShellCommandSucceeded,
@@ -159,6 +162,7 @@ export function useHostMessages({
   vscode,
 }: {
   fileRefStatus: Map<string, boolean>
+  onErrorMessage?: (message: string) => void
   onFileSearchResults: (payload: { requestID: string; query: string; results: ComposerPathResult[] }) => void
   onRestoreComposer: (payload: { parts: import("../../../bridge/types").ComposerPromptPart[] }) => void
   onShellCommandSucceeded: () => void
@@ -186,6 +190,7 @@ export function useHostMessages({
     const handler = (event: MessageEvent<HostMessage>) => {
       dispatchHostMessage(event.data, {
         fileRefStatus,
+        onErrorMessage,
         onFileSearchResults: (payload) => fileSearchHandlerRef.current(payload),
         onRestoreComposer: (payload) => restoreComposerHandlerRef.current(payload),
         onShellCommandSucceeded: () => shellSucceededHandlerRef.current(),
@@ -197,5 +202,5 @@ export function useHostMessages({
     window.addEventListener("message", handler)
     vscode.postMessage({ type: "ready" })
     return () => window.removeEventListener("message", handler)
-  }, [fileRefStatus, setPendingMcpActions, setState, vscode])
+  }, [fileRefStatus, onErrorMessage, setPendingMcpActions, setState, vscode])
 }
