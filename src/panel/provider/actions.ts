@@ -2,12 +2,14 @@ import * as vscode from "vscode"
 import * as path from "node:path"
 import { URL } from "node:url"
 import { postToWebview } from "../../bridge/host"
-import type { ComposerPromptPart, SessionPanelRef } from "../../bridge/types"
+import type { ComposerPromptPart, SessionPanelRef, SkillCatalogEntry } from "../../bridge/types"
 import type { MessageInfo, PermissionReply, PromptFilePartInput, PromptPartInput, SessionMessage } from "../../core/sdk"
 import { WorkspaceManager } from "../../core/workspace"
+import { loadSkillCatalog } from "../../core/skills"
 import { text, textError, wait } from "./utils"
 import { friendlyShellSubmitError } from "./shell-errors"
 import { parseComposerFileQuery } from "../webview/lib/composer-file-selection"
+import { compactSkillInvocationText } from "../shared/skill-invocation"
 
 export type PanelActionState = {
   disposed: boolean
@@ -347,9 +349,11 @@ export async function runComposerAction(
           return
         }
 
+        const skillCatalog = await loadSkillCatalog(rt.dir, rt.sdk)
+
         await postToWebview(ctx.panel.webview, {
           type: "restoreComposer",
-          parts: restoredPromptPartsFromMessage(msg),
+          parts: restoredPromptPartsFromMessage(msg, skillCatalog),
         })
 
         await rt.sdk.session.revert({
@@ -426,10 +430,11 @@ export async function runComposerAction(
   await fail(ctx.panel.webview, message)
 }
 
-export function restoredPromptPartsFromMessage(message: Pick<SessionMessage, "parts">): ComposerPromptPart[] {
-  const text = message.parts
+export function restoredPromptPartsFromMessage(message: Pick<SessionMessage, "parts">, skillCatalog: SkillCatalogEntry[] = []): ComposerPromptPart[] {
+  const rawText = message.parts
     .flatMap((part) => part.type === "text" && !part.synthetic ? [{ type: "text" as const, text: part.text }] : [])
     .reduce((acc, part) => acc + part.text, "")
+  const text = compactSkillInvocationText(rawText, skillCatalog)
 
   const files = message.parts.flatMap((part): ComposerPromptPart[] => {
     if (part.type !== "file" || !part.source) {

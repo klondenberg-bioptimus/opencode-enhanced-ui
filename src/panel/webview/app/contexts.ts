@@ -1,9 +1,12 @@
 import React from "react"
+import type { SkillCatalogEntry } from "../../../bridge/types"
 import type { SessionInfo, SessionMessage } from "../../../core/sdk"
 
 export const TranscriptVisibilityContext = React.createContext({
   showThinking: false,
   showInternals: false,
+  compactSkillInvocations: true,
+  skillCatalog: [] as SkillCatalogEntry[],
 })
 
 export const WorkspaceDirContext = React.createContext("")
@@ -20,4 +23,8 @@ export function useChildMessages() {
 
 export function useChildSessions() {
   return React.useContext(ChildSessionsContext)
+}
+
+export function useTranscriptVisibility() {
+  return React.useContext(TranscriptVisibilityContext)
 }

@@ -1028,6 +1028,7 @@ export function App() {
                 <div className="oc-transcriptInner">
                   <Timeline
                     bootstrapStatus={state.bootstrap.status}
+                    compactSkillInvocations={state.snapshot.display.compactSkillInvocations !== false}
                     bootstrapMessage={state.bootstrap.message}
                     diffMode={state.snapshot.display.diffMode}
                     messages={state.snapshot.messages}
@@ -1039,6 +1040,7 @@ export function App() {
                     revertDiff={state.snapshot.session?.revert?.diff}
                     showInternals={state.snapshot.display.showInternals}
                     showThinking={state.snapshot.display.showThinking}
+                    skillCatalog={state.snapshot.skillCatalog}
                     AgentBadge={AgentBadge}
                     CompactionDivider={CompactionDivider}
                     EmptyState={EmptyState}

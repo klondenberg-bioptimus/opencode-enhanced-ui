@@ -216,6 +216,10 @@ button {
   padding: 5px 9px;
 }
 
+.oc-pill-skill .oc-pillFileType {
+  background: color-mix(in srgb, var(--vscode-terminal-ansiMagenta) 78%, transparent);
+}
+
 .oc-chip {
   cursor: pointer;
 }

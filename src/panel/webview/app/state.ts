@@ -1,4 +1,4 @@
-import type { ComposerFileSelection, ComposerPathKind, SessionBootstrap, SessionSnapshot } from "../../../bridge/types"
+import type { ComposerFileSelection, ComposerPathKind, SessionBootstrap, SessionSnapshot, SkillCatalogEntry } from "../../../bridge/types"
 import type { DisplaySettings } from "../../../core/settings"
 import type { AgentInfo, CommandInfo, FileDiff, FormatterStatus, LspStatus, McpResource, McpStatus, MessageInfo, PermissionRequest, ProviderAuthMethod, ProviderInfo, QuestionRequest, SessionInfo, SessionMessage, SessionStatus, Todo } from "../../../core/sdk"
 
@@ -72,6 +72,7 @@ export type AppState = {
   snapshot: {
     session?: SessionInfo
     display: DisplaySettings
+    skillCatalog: SkillCatalogEntry[]
     messages: SessionMessage[]
     childMessages: Record<string, SessionMessage[]>
     childSessions: Record<string, SessionInfo>
@@ -146,7 +147,9 @@ export function createInitialState(initialRef: SessionBootstrap["sessionRef"] | 
         showInternals: false,
         showThinking: true,
         diffMode: "unified",
+        compactSkillInvocations: true,
       },
+      skillCatalog: [],
       childMessages: {},
       childSessions: {},
       sessionStatus: undefined,
@@ -228,7 +231,11 @@ export function bootstrapFromSnapshot(payload: SessionSnapshot): SessionBootstra
 export function normalizeSnapshotPayload(payload: SessionSnapshot, previous?: AppState["snapshot"]): AppState["snapshot"] {
   return {
     session: payload.session,
-    display: payload.display,
+    display: {
+      ...payload.display,
+      compactSkillInvocations: payload.display?.compactSkillInvocations !== false,
+    },
+    skillCatalog: Array.isArray(payload.skillCatalog) ? payload.skillCatalog : [],
     messages: reconcileMessageList(Array.isArray(payload.messages) ? payload.messages : [], previous?.messages),
     childMessages: recordOfMessageLists(payload.childMessages, previous?.childMessages),
     childSessions: recordOfSessions(payload.childSessions),

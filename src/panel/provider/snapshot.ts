@@ -1,6 +1,7 @@
 import * as path from "node:path"
 import type { SessionPanelRef, SessionSnapshot } from "../../bridge/types"
 import { syncTrackedSession } from "../../core/session-list"
+import { loadSkillCatalog } from "../../core/skills"
 import { getDisplaySettings } from "../../core/settings"
 import type { AgentInfo, Client, CommandInfo, FileDiff, FormatterStatus, LspStatus, McpResource, McpStatus, ProviderAuthMethod, ProviderInfo, SessionInfo, SessionMessage } from "../../core/sdk"
 import { WorkspaceManager } from "../../core/workspace"
@@ -53,7 +54,7 @@ export async function buildSessionSnapshot({ ref, mgr, log, isSubmitting }: Snap
   }
 
   try {
-    const [sessionRes, rootMessageRes, todoRes, diffRes, configRes, configProvidersRes, agentRes, providerRes] = await Promise.all([
+    const [sessionRes, rootMessageRes, todoRes, diffRes, configRes, configProvidersRes, agentRes, providerRes, skillCatalog] = await Promise.all([
       rt.sdk.session.get({
         sessionID: ref.sessionId,
         directory: rt.dir,
@@ -77,6 +78,7 @@ export async function buildSessionSnapshot({ ref, mgr, log, isSubmitting }: Snap
       rt.sdk.provider.list({
         directory: rt.dir,
       }),
+      loadSkillCatalog(rt.dir, rt.sdk),
     ])
 
     const session = sessionRes.data
@@ -112,6 +114,7 @@ export async function buildSessionSnapshot({ ref, mgr, log, isSubmitting }: Snap
     const snapshot = patch({
       status: "ready",
       display,
+      skillCatalog,
       sessionRef: ref,
       workspaceName,
       session,
@@ -333,6 +336,7 @@ function fallbackSnapshot(
     sessionRef: ref,
     workspaceName,
     message,
+    skillCatalog: [],
     messages: [],
     childMessages: {},
     childSessions: {},

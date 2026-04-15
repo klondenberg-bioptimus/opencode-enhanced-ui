@@ -1,9 +1,11 @@
 import React from "react"
 import type { MessagePart } from "../../../core/sdk"
 import { PartView as BasePartView, ToolPartView as BaseToolPartView } from "./part-views"
-import { useChildMessages, useChildSessions, useWorkspaceDir } from "./contexts"
+import { useChildMessages, useChildSessions, useTranscriptVisibility, useWorkspaceDir } from "./contexts"
+import { SkillPill } from "./skill-pill"
 import { renderToolRowExtra, renderToolRowTitle, taskAgentName, taskBody, taskSessionTitle, toolRowExtras } from "./tool-row-meta"
 import { TaskToolRow as BaseTaskToolRow, ToolRow as BaseToolRow, ToolStatus } from "./tool-rows"
+import { extractSkillInvocationName, findSkillInvocationMatch } from "../../shared/skill-invocation"
 import { CodeBlock as BaseCodeBlock } from "../renderers/CodeBlock"
 import { DiffBlock as BaseDiffBlock, DiffWindowBody as BaseDiffWindowBody, diffOutputLineCount } from "../renderers/DiffBlock"
 import { FileRefText as BaseFileRefText } from "../renderers/FileRefText"
@@ -39,10 +41,32 @@ function useWebviewBindings() {
 }
 
 export function PartView({ part, active = false, diffMode = "unified" }: { part: MessagePart; active?: boolean; diffMode?: "unified" | "split" }) {
+  const { compactSkillInvocations, skillCatalog } = useTranscriptVisibility()
+  if (compactSkillInvocations && part.type === "text") {
+    const skillMatch = findSkillInvocationMatch(part.text || "", skillCatalog)
+    if (skillMatch) {
+      return (
+        <section className="oc-part oc-part-text oc-part-inline">
+          <div className="oc-attachmentRow">
+            <SkillPill name={skillMatch.name} />
+          </div>
+          {skillMatch.remainder ? <MarkdownBlock content={skillMatch.remainder} /> : null}
+        </section>
+      )
+    }
+  }
+
   return <BasePartView DividerPartView={DividerPartView} MarkdownBlock={MarkdownBlock} ToolPartView={ToolPartView} diffMode={diffMode} part={part} active={active} cleanReasoning={cleanReasoning} fileLabel={fileLabel} isDividerPart={isDividerPart} partMeta={partMeta} partTitle={partTitle} renderPartBody={renderPartBody} />
 }
 
 export function ToolPartView({ part, active = false, diffMode = "unified" }: { part: Extract<MessagePart, { type: "tool" }>; active?: boolean; diffMode?: "unified" | "split" }) {
+  const { compactSkillInvocations } = useTranscriptVisibility()
+  if (part.tool === "skill") {
+    return compactSkillInvocations
+      ? <SkillToolRow part={part} active={active} />
+      : <ToolTextPanel part={part} active={active} />
+  }
+
   return <BaseToolPartView ToolFilesPanel={ToolFilesPanel} ToolLinksPanel={ToolLinksPanel} ToolLspPanel={ToolLspPanel} ToolQuestionPanel={ToolQuestionPanel} ToolRow={ToolRow} ToolShellPanel={ToolShellPanel} ToolTextPanel={ToolTextPanel} ToolTodosPanel={ToolTodosPanel} active={active} diffMode={diffMode} isMcpTool={isMcpTool} lspRendersInline={lspRendersInline} part={part} />
 }
 
@@ -54,6 +78,23 @@ export function ToolRow({ part, active = false }: { part: Extract<MessagePart, {
   const workspaceDir = useWorkspaceDir()
   const extras = toolRowExtras(part)
   return <BaseToolRow ToolStatus={ToolStatus} active={active} isMcpTool={isMcpTool} part={part} renderToolRowExtra={(current, item) => renderToolRowExtra(current, item, FileRefText)} renderToolRowTitle={(current) => renderToolRowTitle(current, toolDetails(current), { FileRefText, renderLspToolTitle: renderInlineLspToolTitle, workspaceDir })} extras={extras} toolLabel={toolLabel} />
+}
+
+export function SkillToolRow({ part, active = false }: { part: Extract<MessagePart, { type: "tool" }>; active?: boolean }) {
+  const details = toolDetails(part)
+  const title = extractSkillInvocationName(part.state?.output || "", details.title)
+  return (
+    <BaseToolRow
+      ToolStatus={ToolStatus}
+      active={active}
+      isMcpTool={isMcpTool}
+      part={part}
+      renderToolRowExtra={() => null}
+      renderToolRowTitle={() => <SkillPill name={title || "Skill"} />}
+      extras={[]}
+      toolLabel={toolLabel}
+    />
+  )
 }
 
 export function TaskToolRow({ part, active = false }: { part: Extract<MessagePart, { type: "tool" }>; active?: boolean }) {

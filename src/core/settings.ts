@@ -6,6 +6,7 @@ export type DisplaySettings = {
   showInternals: boolean
   showThinking: boolean
   diffMode: DiffMode
+  compactSkillInvocations?: boolean
 }
 
 const SECTION = "opencode-ui"
@@ -14,6 +15,7 @@ export const HTTP_PROXY_KEY = "httpProxy"
 export const SHOW_INTERNALS_KEY = "showInternals"
 export const SHOW_THINKING_KEY = "showThinking"
 export const DIFF_MODE_KEY = "diffMode"
+export const COMPACT_SKILL_INVOCATIONS_KEY = "compactSkillInvocations"
 
 export function getDisplaySettings(): DisplaySettings {
   const config = vscode.workspace.getConfiguration(SECTION)
@@ -21,6 +23,7 @@ export function getDisplaySettings(): DisplaySettings {
     showInternals: config.get<boolean>(SHOW_INTERNALS_KEY, false),
     showThinking: config.get<boolean>(SHOW_THINKING_KEY, true),
     diffMode: config.get<DiffMode>(DIFF_MODE_KEY, "unified") === "split" ? "split" : "unified",
+    compactSkillInvocations: config.get<boolean>(COMPACT_SKILL_INVOCATIONS_KEY, true),
   }
 }
 
@@ -43,6 +46,7 @@ export function affectsDisplaySettings(event: vscode.ConfigurationChangeEvent) {
   return event.affectsConfiguration(`${SECTION}.${SHOW_INTERNALS_KEY}`)
     || event.affectsConfiguration(`${SECTION}.${SHOW_THINKING_KEY}`)
     || event.affectsConfiguration(`${SECTION}.${DIFF_MODE_KEY}`)
+    || event.affectsConfiguration(`${SECTION}.${COMPACT_SKILL_INVOCATIONS_KEY}`)
 }
 
 export function affectsHttpProxySetting(event: vscode.ConfigurationChangeEvent) {

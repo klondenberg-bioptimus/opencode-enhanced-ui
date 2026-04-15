@@ -3,6 +3,11 @@ import type { DisplaySettings } from "../core/settings"
 
 export const SESSION_PANEL_VIEW_TYPE = "opencode-ui.session"
 
+export type SkillCatalogEntry = {
+  name: string
+  content: string
+}
+
 export type WorkspaceRef = {
   workspaceId: string
   dir: string
@@ -24,6 +29,7 @@ export type SessionBootstrap = {
 
 export type SessionSnapshot = SessionBootstrap & {
   display: DisplaySettings
+  skillCatalog?: SkillCatalogEntry[]
   sessionStatus?: SessionStatus
   messages: SessionMessage[]
   childMessages: Record<string, SessionMessage[]>

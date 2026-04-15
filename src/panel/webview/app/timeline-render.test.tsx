@@ -3,6 +3,7 @@ import { describe, test } from "node:test"
 import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
+import type { SkillCatalogEntry } from "../../../bridge/types"
 import type { MessageInfo, MessagePart, SessionMessage, TextPart } from "../../../core/sdk"
 import { Timeline } from "./timeline"
 
@@ -33,11 +34,33 @@ function sessionMessage(info: MessageInfo, parts: MessagePart[]): SessionMessage
   return { info, parts }
 }
 
+const WRAPPED_SKILL_OUTPUT = `<skill_content name="using-superpowers">
+# Skill: using-superpowers
+
+# Using Skills
+
+Always check the skill list first.
+
+</skill_content>`
+
+const ARTICLE_WRITING_SKILL: SkillCatalogEntry[] = [{
+  name: "article-writing",
+  content: `# Article Writing
+
+Write long-form content that sounds like a real person or brand, not generic AI output.
+
+## When to Activate
+
+- drafting blog posts, essays, launch posts, guides, tutorials, or newsletter issues
+`,
+}]
+
 describe("Timeline user message rendering", () => {
   test("does not render a dedicated You header for user messages", () => {
     const html = renderToStaticMarkup(
       <Timeline
         bootstrapStatus="ready"
+        compactSkillInvocations={true}
         diffMode="unified"
         messages={[sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", "hello")])]}
         onCopyUserMessage={() => {}}
@@ -46,6 +69,7 @@ describe("Timeline user message rendering", () => {
         onUndoUserMessage={() => {}}
         showInternals={false}
         showThinking={true}
+        skillCatalog={[]}
         AgentBadge={({ name }) => <span>{name}</span>}
         CompactionDivider={() => <div>divider</div>}
         EmptyState={({ title, text }) => <div>{title}:{text}</div>}
@@ -62,6 +86,7 @@ describe("Timeline user message rendering", () => {
     const html = renderToStaticMarkup(
       <Timeline
         bootstrapStatus="ready"
+        compactSkillInvocations={true}
         diffMode="unified"
         messages={[sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", "hello")])]}
         onCopyUserMessage={() => {}}
@@ -70,6 +95,7 @@ describe("Timeline user message rendering", () => {
         onUndoUserMessage={() => {}}
         showInternals={false}
         showThinking={true}
+        skillCatalog={[]}
         AgentBadge={({ name }) => <span>{name}</span>}
         CompactionDivider={() => <div>divider</div>}
         EmptyState={({ title, text }) => <div>{title}:{text}</div>}
@@ -92,6 +118,7 @@ describe("Timeline user message rendering", () => {
     const html = renderToStaticMarkup(
       <Timeline
         bootstrapStatus="ready"
+        compactSkillInvocations={true}
         diffMode="unified"
         messages={[
           sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", "hello")]),
@@ -104,6 +131,7 @@ describe("Timeline user message rendering", () => {
         revertID="m1"
         showInternals={false}
         showThinking={true}
+        skillCatalog={[]}
         AgentBadge={({ name }) => <span>{name}</span>}
         CompactionDivider={() => <div>divider</div>}
         EmptyState={({ title, text }) => <div>{title}:{text}</div>}
@@ -114,5 +142,60 @@ describe("Timeline user message rendering", () => {
 
     assert.equal(html.includes('aria-label="Redo"'), true)
     assert.equal(html.includes('data-tooltip="Redo"'), true)
+  })
+
+  test("renders a compact skill marker for wrapped user text", () => {
+    const html = renderToStaticMarkup(
+      <Timeline
+        bootstrapStatus="ready"
+        compactSkillInvocations={true}
+        diffMode="unified"
+        messages={[sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", `${WRAPPED_SKILL_OUTPUT}\n继续执行`)])]}
+        onCopyUserMessage={() => {}}
+        onForkUserMessage={() => {}}
+        onRedoSession={() => {}}
+        onUndoUserMessage={() => {}}
+        showInternals={false}
+        showThinking={true}
+        skillCatalog={[]}
+        AgentBadge={({ name }) => <span>{name}</span>}
+        CompactionDivider={() => <div>divider</div>}
+        EmptyState={({ title, text }) => <div>{title}:{text}</div>}
+        MarkdownBlock={({ content, className }) => <div className={className}>{content}</div>}
+        PartView={({ part }) => <div>{part.type}</div>}
+      />,
+    )
+
+    assert.equal(html.includes("SKILL"), true)
+    assert.equal(html.includes("using-superpowers"), true)
+    assert.equal(html.includes("继续执行"), true)
+    assert.equal(html.includes("Always check the skill list first."), false)
+  })
+
+  test("renders a compact skill marker for exact matched skill content", () => {
+    const html = renderToStaticMarkup(
+      <Timeline
+        bootstrapStatus="ready"
+        compactSkillInvocations={true}
+        diffMode="unified"
+        messages={[sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", ARTICLE_WRITING_SKILL[0]!.content)])]}
+        onCopyUserMessage={() => {}}
+        onForkUserMessage={() => {}}
+        onRedoSession={() => {}}
+        onUndoUserMessage={() => {}}
+        showInternals={false}
+        showThinking={true}
+        skillCatalog={ARTICLE_WRITING_SKILL}
+        AgentBadge={({ name }) => <span>{name}</span>}
+        CompactionDivider={() => <div>divider</div>}
+        EmptyState={({ title, text }) => <div>{title}:{text}</div>}
+        MarkdownBlock={({ content, className }) => <div className={className}>{content}</div>}
+        PartView={({ part }) => <div>{part.type}</div>}
+      />,
+    )
+
+    assert.equal(html.includes("SKILL"), true)
+    assert.equal(html.includes("article-writing"), true)
+    assert.equal(html.includes("Write long-form content"), false)
   })
 })

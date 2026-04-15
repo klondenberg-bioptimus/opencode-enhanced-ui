@@ -3,7 +3,37 @@ import { describe, test } from "node:test"
 import * as vscode from "vscode"
 
 import type { SessionMessage } from "../../core/sdk"
+import type { SkillCatalogEntry } from "../../bridge/types"
 import { providerAuthAction, restoredPromptPartsFromMessage, runComposerAction, runMcpAction, runShellCommand, runSlashCommand, submit } from "./actions"
+
+const WRAPPED_SKILL_OUTPUT = `<skill_content name="using-superpowers">
+# Skill: using-superpowers
+
+# Using Skills
+
+Always check the skill list first.
+
+</skill_content>`
+
+const ARTICLE_WRITING_SKILL: SkillCatalogEntry[] = [{
+  name: "article-writing",
+  content: `# Article Writing
+
+Write long-form content that sounds like a real person or brand, not generic AI output.
+`,
+}]
+
+const BRAINSTORMING_SKILL: SkillCatalogEntry[] = [{
+  name: "brainstorming",
+  content: `# Brainstorming Ideas Into Designs
+
+Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+
+<HARD-GATE>
+Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it.
+</HARD-GATE>
+`,
+}]
 
 async function withImmediateTimeout<T>(run: () => Promise<T>) {
   const original = globalThis.setTimeout
@@ -36,6 +66,7 @@ function createContext(overrides?: {
   mcpDisconnect?: (input: unknown) => Promise<unknown>
   mcpAuthenticate?: (input: unknown) => Promise<unknown>
   mcpRemoveAuth?: (input: unknown) => Promise<unknown>
+  skills?: (input: unknown) => Promise<{ data?: Array<{ name: string; description: string; location: string; content: string }> }>
 }): {
   ctx: Parameters<typeof submit>[0]
   posted: unknown[]
@@ -71,6 +102,9 @@ function createContext(overrides?: {
           authenticate: overrides?.mcpAuthenticate ?? (async () => ({ data: undefined })),
           remove: overrides?.mcpRemoveAuth ?? (async () => ({ data: undefined })),
         },
+      },
+      app: {
+        skills: overrides?.skills ?? (async () => ({ data: [] })),
       },
     },
   }
@@ -293,6 +327,47 @@ describe("provider actions submitting", () => {
     })
   })
 
+  test("runComposerAction compacts brainstorming skill content using the official sdk skill catalog", async () => {
+    const userMessage = {
+      info: {
+        id: "msg-user-7",
+        sessionID: "session-1",
+        role: "user",
+        time: { created: 7 },
+      },
+      parts: [{
+        id: "part-text-7",
+        sessionID: "session-1",
+        messageID: "msg-user-7",
+        type: "text",
+        text: BRAINSTORMING_SKILL[0]!.content,
+      }],
+    } satisfies SessionMessage
+
+    const { ctx, posted } = createContext({
+      get: async () => ({ data: { id: "session-1" } }),
+      messages: async () => ({ data: [userMessage] }),
+      revert: async () => ({ data: undefined }),
+      skills: async () => ({
+        data: [{
+          name: "brainstorming",
+          description: "Turn ideas into designs.",
+          location: "/Users/lantingxin/.codex/superpowers/skills/brainstorming/SKILL.md",
+          content: BRAINSTORMING_SKILL[0]!.content,
+        }],
+      }),
+    })
+
+    await withImmediateTimeout(async () => {
+      await runComposerAction(ctx, "undoSession", undefined, "msg-user-7")
+    })
+
+    assert.deepEqual(posted, [{
+      type: "restoreComposer",
+      parts: [{ type: "text", text: "/brainstorming " }],
+    }])
+  })
+
   test("providerAuthAction requests provider auth metadata and opens the OAuth URL for auth-capable providers", async () => {
     let authPayload: unknown
     let authorizePayload: unknown
@@ -419,5 +494,80 @@ describe("restoredPromptPartsFromMessage", () => {
         },
       },
     ])
+  })
+
+  test("keeps the original visible text intact", () => {
+    const message: SessionMessage = {
+      info: {
+        id: "msg-user-4",
+        sessionID: "session-1",
+        role: "user",
+        time: { created: 4 },
+      },
+      parts: [{
+        id: "part-text-2",
+        sessionID: "session-1",
+        messageID: "msg-user-4",
+        type: "text",
+        text: "写一个中国近代史关键事件节点，中文",
+      }],
+    }
+
+    const parts = restoredPromptPartsFromMessage(message)
+
+    assert.deepEqual(parts, [{
+      type: "text",
+      text: "写一个中国近代史关键事件节点，中文",
+    }])
+  })
+
+  test("compacts wrapped skill text back into a slash command", () => {
+    const message: SessionMessage = {
+      info: {
+        id: "msg-user-5",
+        sessionID: "session-1",
+        role: "user",
+        time: { created: 5 },
+      },
+      parts: [{
+        id: "part-text-3",
+        sessionID: "session-1",
+        messageID: "msg-user-5",
+        type: "text",
+        text: `${WRAPPED_SKILL_OUTPUT}\n继续执行`,
+      }],
+    }
+
+    const parts = restoredPromptPartsFromMessage(message)
+
+    assert.deepEqual(parts, [{
+      type: "text",
+      text: "/using-superpowers\n\n继续执行",
+    }])
+  })
+
+  test("compacts exact matched skill content back into a slash command", () => {
+    const message: SessionMessage = {
+      info: {
+        id: "msg-user-6",
+        sessionID: "session-1",
+        role: "user",
+        time: { created: 6 },
+      },
+      parts: [{
+        id: "part-text-4",
+        sessionID: "session-1",
+        messageID: "msg-user-6",
+        type: "text",
+        text: ARTICLE_WRITING_SKILL[0]!.content,
+      }],
+    }
+
+    const parts = restoredPromptPartsFromMessage(message, ARTICLE_WRITING_SKILL)
+
+    assert.deepEqual(parts, [{
+      type: "text",
+      text: "/article-writing ",
+    }])
   })
 })

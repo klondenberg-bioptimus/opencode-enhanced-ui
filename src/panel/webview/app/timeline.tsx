@@ -1,7 +1,10 @@
 import React from "react"
 import { parsePatch } from "diff"
+import type { SkillCatalogEntry } from "../../../bridge/types"
 import type { FilePart, MessageInfo, MessagePart, SessionMessage, TextPart } from "../../../core/sdk"
+import { findSkillInvocationMatch } from "../../shared/skill-invocation"
 import { TranscriptVisibilityContext } from "./contexts"
+import { SkillPill } from "./skill-pill"
 
 export type TimelineBlock =
   | { kind: "user-message"; key: string; message: SessionMessage; queued: boolean }
@@ -35,6 +38,7 @@ export function createTimelineDerivationCache(): TimelineDerivationCache {
 type TimelineProps = {
   bootstrapStatus: "idle" | "loading" | "ready" | "error"
   bootstrapMessage?: string
+  compactSkillInvocations: boolean
   diffMode: "unified" | "split"
   messages: SessionMessage[]
   onCopyUserMessage: (message: SessionMessage) => void
@@ -45,6 +49,7 @@ type TimelineProps = {
   revertID?: string
   showInternals: boolean
   showThinking: boolean
+  skillCatalog: SkillCatalogEntry[]
   AgentBadge: ({ name }: { name: string }) => React.JSX.Element
   CompactionDivider: () => React.JSX.Element
   EmptyState: ({ title, text }: { title: string; text: string }) => React.JSX.Element
@@ -55,6 +60,7 @@ type TimelineProps = {
 export const Timeline = React.memo(function Timeline({
   bootstrapStatus,
   bootstrapMessage,
+  compactSkillInvocations,
   diffMode,
   messages,
   onCopyUserMessage,
@@ -65,6 +71,7 @@ export const Timeline = React.memo(function Timeline({
   revertID,
   showInternals,
   showThinking,
+  skillCatalog,
   AgentBadge,
   CompactionDivider,
   EmptyState,
@@ -94,7 +101,7 @@ export const Timeline = React.memo(function Timeline({
   }
 
   return (
-    <TranscriptVisibilityContext.Provider value={{ showThinking, showInternals }}>
+    <TranscriptVisibilityContext.Provider value={{ showThinking, showInternals, compactSkillInvocations, skillCatalog }}>
       <div className="oc-log">
         {blocks.map((block) => (
           <MemoTimelineBlockView
@@ -105,11 +112,13 @@ export const Timeline = React.memo(function Timeline({
             PartView={PartView}
             active={block.kind === "assistant-part" && block.part.type === "tool" && block.part.id === activeToolID}
             block={block}
+            compactSkillInvocations={compactSkillInvocations}
             diffMode={diffMode}
             onCopyUserMessage={onCopyUserMessage}
             onForkUserMessage={onForkUserMessage}
             onRedoSession={onRedoSession}
             onUndoUserMessage={onUndoUserMessage}
+            skillCatalog={skillCatalog}
           />
         ))}
       </div>
@@ -124,11 +133,13 @@ type TimelineBlockViewProps = {
   PartView: ({ part, active, diffMode }: { part: MessagePart; active?: boolean; diffMode?: "unified" | "split" }) => React.JSX.Element
   active: boolean
   block: TimelineBlock
+  compactSkillInvocations: boolean
   diffMode: "unified" | "split"
   onCopyUserMessage: (message: SessionMessage) => void
   onForkUserMessage: (message: SessionMessage) => void
   onRedoSession: () => void
   onUndoUserMessage: (message: SessionMessage) => void
+  skillCatalog: SkillCatalogEntry[]
 }
 
 function TimelineBlockView({
@@ -138,14 +149,19 @@ function TimelineBlockView({
   PartView,
   active,
   block,
+  compactSkillInvocations,
   diffMode,
   onCopyUserMessage,
   onForkUserMessage,
   onRedoSession,
   onUndoUserMessage,
+  skillCatalog,
 }: TimelineBlockViewProps) {
   if (block.kind === "user-message") {
     const userText = primaryUserText(block.message)
+    const skillMatch = compactSkillInvocations && userText
+      ? findSkillInvocationMatch(userText.text || "", skillCatalog)
+      : undefined
     const userFiles = userAttachments(block.message)
     const hasCompaction = userHasCompaction(block.message)
     const hasSyntheticText = userHasSyntheticText(block.message)
@@ -162,7 +178,18 @@ function TimelineBlockView({
               <div className="oc-queuedBadge">QUEUED</div>
             </div>
           ) : null}
-          {userText ? <MarkdownBlock content={userText.text || ""} /> : (showEmptyPrompt ? <div className="oc-partEmpty">No visible prompt text.</div> : null)}
+          {skillMatch ? (
+            <div className="oc-attachmentRow">
+              <SkillPill name={skillMatch.name} />
+            </div>
+          ) : null}
+          {skillMatch?.remainder
+            ? <MarkdownBlock content={skillMatch.remainder} />
+            : skillMatch
+              ? null
+            : userText
+              ? <MarkdownBlock content={userText.text || ""} />
+            : (showEmptyPrompt ? <div className="oc-partEmpty">No visible prompt text.</div> : null)}
           {userFiles.length > 0 ? (
             <div className="oc-attachmentRow">
               {userFiles.map((part) => (
@@ -230,11 +257,13 @@ function areTimelineBlockPropsEqual(prev: TimelineBlockViewProps, next: Timeline
     || prev.MarkdownBlock !== next.MarkdownBlock
     || prev.PartView !== next.PartView
     || prev.active !== next.active
+    || prev.compactSkillInvocations !== next.compactSkillInvocations
     || prev.diffMode !== next.diffMode
     || prev.onCopyUserMessage !== next.onCopyUserMessage
     || prev.onForkUserMessage !== next.onForkUserMessage
     || prev.onRedoSession !== next.onRedoSession
-    || prev.onUndoUserMessage !== next.onUndoUserMessage) {
+    || prev.onUndoUserMessage !== next.onUndoUserMessage
+    || prev.skillCatalog !== next.skillCatalog) {
     return false
   }
 

@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 
 import { buildSessionSnapshot } from "./snapshot"
+import type { SkillCatalogEntry } from "../../bridge/types"
 import type { SessionInfo, SessionMessage, SessionStatus } from "../../core/sdk"
 
 type Runtime = {
@@ -27,7 +28,15 @@ function session(id: string, parentID?: string): SessionInfo {
   }
 }
 
-function createSdk(current: SessionInfo) {
+const BRAINSTORMING_SKILL: SkillCatalogEntry = {
+  name: "brainstorming",
+  content: `# Brainstorming Ideas Into Designs
+
+Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+`.trim(),
+}
+
+function createSdk(current: SessionInfo, skills: Array<{ name: string; description: string; location: string; content: string }> = []) {
   const root = session("root")
 
   return {
@@ -71,6 +80,9 @@ function createSdk(current: SessionInfo) {
     formatter: {
       status: async () => ({ data: [] }),
     },
+    app: {
+      skills: async () => ({ data: skills }),
+    },
   }
 }
 
@@ -106,5 +118,40 @@ describe("buildSessionSnapshot session list filtering", () => {
     assert.equal(build.snapshot.session?.id, child.id)
     assert.deepEqual([...rt.sessions.keys()], [root.id])
     assert.equal(rt.sessionStatuses.has(child.id), false)
+  })
+
+  test("loads the skill catalog from the official sdk skills endpoint", async () => {
+    const current = session("child", "root")
+    const rt: Runtime = {
+      workspaceId: "ws-1",
+      dir: "/workspace",
+      name: "workspace",
+      state: "ready",
+      sdk: createSdk(current, [{
+        name: "brainstorming",
+        description: "Turn ideas into designs.",
+        location: "/Users/lantingxin/.codex/superpowers/skills/brainstorming/SKILL.md",
+        content: BRAINSTORMING_SKILL.content,
+      }]),
+      sessions: new Map(),
+      sessionStatuses: new Map(),
+    }
+
+    const build = await buildSessionSnapshot({
+      ref: {
+        workspaceId: rt.workspaceId,
+        dir: rt.dir,
+        sessionId: current.id,
+      },
+      mgr: {
+        get(id: string) {
+          return id === rt.workspaceId ? rt : undefined
+        },
+      } as any,
+      log() {},
+      isSubmitting: () => false,
+    })
+
+    assert.deepEqual(build.snapshot.skillCatalog, [BRAINSTORMING_SKILL])
   })
 })

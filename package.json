@@ -276,6 +276,12 @@
           "description": "Choose how diffs render in session panels.",
           "scope": "machine-overridable"
         },
+        "opencode-ui.compactSkillInvocations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Render OpenCode skill usage as a compact skill marker in session panels.",
+          "scope": "machine-overridable"
+        },
         "opencode-ui.httpProxy": {
           "type": "string",
           "default": "",

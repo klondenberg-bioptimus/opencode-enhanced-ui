@@ -193,6 +193,9 @@ export function defaultToolExpanded(part: Extract<MessagePart, { type: "tool" }>
   if (active || status === "running" || status === "pending" || status === "error") {
     return true
   }
+  if (part.tool === "skill") {
+    return false
+  }
   if (part.tool === "bash" || part.tool === "apply_patch") {
     return true
   }
