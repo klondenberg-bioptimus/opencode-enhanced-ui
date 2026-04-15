@@ -70,6 +70,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         sessionRef: state.ref,
         todos: state.todos,
         diff: state.diff,
+        subagents: state.subagents,
         branch: state.branch,
         defaultBranch: state.defaultBranch,
         error: state.error,

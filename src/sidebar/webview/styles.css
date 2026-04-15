@@ -28,7 +28,8 @@ body {
 }
 
 .sv-todo,
-.sv-diff {
+.sv-diff,
+.sv-subagent {
   display: grid;
   align-items: start;
   gap: 6px;
@@ -63,7 +64,26 @@ body {
   gap: 0;
 }
 
+.sv-subagent {
+  width: 100%;
+  border: 0;
+  padding: 4px 8px;
+  margin: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: inherit;
+  text-align: left;
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .sv-diff:hover {
+  background: color-mix(in srgb, var(--vscode-list-hoverBackground) 82%, transparent 18%);
+}
+
+.sv-subagent:hover,
+.sv-subagent.is-clickable:hover {
   background: color-mix(in srgb, var(--vscode-list-hoverBackground) 82%, transparent 18%);
 }
 
@@ -86,6 +106,14 @@ body {
   cursor: pointer;
 }
 
+.sv-subagent:disabled {
+  cursor: default;
+}
+
+.sv-subagent.is-clickable {
+  cursor: pointer;
+}
+
 .sv-todoBody {
   min-width: 0;
   display: grid;
@@ -101,7 +129,9 @@ body {
 }
 
 .sv-diffPath,
-.sv-todoText {
+.sv-todoText,
+.sv-subagentTitle,
+.sv-subagentMeta {
   min-width: 0;
 }
 
@@ -139,6 +169,27 @@ body {
 .sv-todo-completed .sv-todoPrefix,
 .sv-todo-completed .sv-todoText {
   color: var(--vscode-descriptionForeground);
+}
+
+.sv-subagentTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sv-subagentMeta {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.sv-subagent-busy .sv-subagentTitle {
+  color: var(--vscode-terminal-ansiYellow);
+  font-weight: 700;
+}
+
+.sv-subagent-retry .sv-subagentTitle {
+  color: var(--vscode-terminal-ansiRed);
+  font-weight: 700;
 }
 
 .sv-taskSummary {

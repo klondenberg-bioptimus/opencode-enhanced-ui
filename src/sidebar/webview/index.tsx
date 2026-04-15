@@ -1,6 +1,6 @@
 import React from "react"
 import { createRoot } from "react-dom/client"
-import type { SidebarHostMessage, SidebarViewMode, SidebarViewState, SidebarWebviewMessage, TaskFilter } from "../view-types"
+import type { SidebarHostMessage, SidebarSubagent, SidebarViewMode, SidebarViewState, SidebarWebviewMessage, TaskFilter } from "../view-types"
 import type { SessionPanelRef } from "../../bridge/types"
 import type { Todo } from "../../core/sdk"
 import "./styles.css"
@@ -24,13 +24,18 @@ const vscodeGlobal = globalThis as GlobalWithVsCodeApi
 const vscode: VsCodeApi = typeof vscodeGlobal.acquireVsCodeApi === "function"
   ? vscodeGlobal.acquireVsCodeApi()
   : { postMessage() {} }
-const mode = typeof window !== "undefined" && window.__OPENCODE_SIDEBAR_MODE__ === "diff" ? "diff" : "todo"
+const mode = typeof window !== "undefined" && window.__OPENCODE_SIDEBAR_MODE__ === "diff"
+  ? "diff"
+  : typeof window !== "undefined" && window.__OPENCODE_SIDEBAR_MODE__ === "subagents"
+    ? "subagents"
+    : "todo"
 
 const initialState: SidebarViewState = {
   status: "idle",
   mode,
   todos: [],
   diff: [],
+  subagents: [],
 }
 
 function App() {
@@ -50,11 +55,12 @@ function App() {
 
   return (
     <div className="sv-shell">
-      {state.status === "idle" ? <Empty title="No selected session" text={mode === "todo" ? "Select or focus an OpenCode session to view todos" : "Select or focus an OpenCode session to view changed files"} /> : null}
-      {state.status === "loading" ? <Empty title={mode === "todo" ? "Loading todos..." : "Loading modified files..."} text="From selected session" /> : null}
+      {state.status === "idle" ? <Empty title="No selected session" text={idleText(mode)} /> : null}
+      {state.status === "loading" ? <Empty title={loadingTitle(mode)} text="From selected session" /> : null}
       {state.status === "error" ? <Empty title="Unavailable" text={state.error || "Failed to load view"} /> : null}
       {state.status === "ready" && mode === "todo" ? <TodoList state={state} /> : null}
       {state.status === "ready" && mode === "diff" ? <DiffList state={state} /> : null}
+      {state.status === "ready" && mode === "subagents" ? <SubagentsList state={state} /> : null}
     </div>
   )
 }
@@ -156,6 +162,57 @@ function DiffList({ state }: { state: SidebarViewState }) {
         ))}
       </div>
     </section>
+  )
+}
+
+export function SubagentsList({ state }: { state: SidebarViewState }) {
+  const view = buildSubagentPanelView({
+    subagents: state.subagents,
+  })
+
+  if (state.subagents.length === 0) {
+    return <Empty title="No subagents yet" text="Subagents from the selected session will appear here" />
+  }
+
+  return (
+    <section className="sv-group">
+      {view.inProgress.length > 0 ? (
+        <div className="sv-taskSection">
+          <div className="sv-taskSectionTitle">In Progress</div>
+          <div className="sv-list">
+            {view.inProgress.map((item) => <SubagentRow key={item.session.id} state={state} item={item} />)}
+          </div>
+        </div>
+      ) : null}
+      {view.done.length > 0 ? (
+        <div className="sv-taskSection">
+          <div className="sv-taskSectionTitle">Done</div>
+          <div className="sv-list">
+            {view.done.map((item) => <SubagentRow key={item.session.id} state={state} item={item} />)}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function SubagentRow({ state, item }: { state: SidebarViewState; item: SidebarSubagent }) {
+  const message = buildSubagentOpenMessage(state.sessionRef, item.session.id)
+
+  return (
+    <button
+      type="button"
+      className={`sv-subagent sv-subagent-${item.status.type}${message ? " is-clickable" : ""}`}
+      onClick={() => {
+        if (message) {
+          vscode.postMessage(message)
+        }
+      }}
+      disabled={!message}
+    >
+      <span className="sv-subagentTitle">{item.session.title || item.session.id}</span>
+      <span className="sv-subagentMeta">{subagentStatusLabel(item.status.type)}</span>
+    </button>
   )
 }
 
@@ -263,6 +320,30 @@ export function buildDiffPanelView(input: {
   }
 }
 
+export function buildSubagentPanelView(input: {
+  subagents: SidebarSubagent[]
+}) {
+  const sorted = [...input.subagents].sort((a, b) => b.session.time.updated - a.session.time.updated)
+
+  return {
+    inProgress: sorted.filter((item) => item.status.type === "busy" || item.status.type === "retry"),
+    done: sorted.filter((item) => item.status.type === "idle"),
+  }
+}
+
+export function buildSubagentOpenMessage(ref: SessionPanelRef | undefined, sessionId: string): SidebarWebviewMessage | undefined {
+  if (!ref) {
+    return undefined
+  }
+
+  return {
+    type: "openSession",
+    workspaceId: ref.workspaceId,
+    dir: ref.dir,
+    sessionId,
+  }
+}
+
 const taskStatusOrder = ["in_progress", "pending", "completed"] as const
 
 function taskStatusLabel(status: string) {
@@ -287,6 +368,42 @@ function taskFilterLabel(filter: TaskFilter) {
   }
 
   return "All"
+}
+
+function subagentStatusLabel(status: SidebarSubagent["status"]["type"]) {
+  if (status === "busy") {
+    return "running"
+  }
+
+  if (status === "retry") {
+    return "retrying"
+  }
+
+  return "done"
+}
+
+function idleText(mode: SidebarViewMode) {
+  if (mode === "diff") {
+    return "Select or focus an OpenCode session to view changed files"
+  }
+
+  if (mode === "subagents") {
+    return "Select or focus an OpenCode session to view subagents"
+  }
+
+  return "Select or focus an OpenCode session to view todos"
+}
+
+function loadingTitle(mode: SidebarViewMode) {
+  if (mode === "diff") {
+    return "Loading modified files..."
+  }
+
+  if (mode === "subagents") {
+    return "Loading subagents..."
+  }
+
+  return "Loading todos..."
 }
 
 function normalizedTaskStatus(status: string) {

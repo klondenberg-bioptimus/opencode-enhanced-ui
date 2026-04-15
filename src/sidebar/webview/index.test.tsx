@@ -4,7 +4,7 @@ import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
 import type { SidebarViewState } from "../view-types"
-import { TodoList } from "./index"
+import { buildSubagentOpenMessage, buildSubagentPanelView, SubagentsList, TodoList } from "./index"
 
 describe("sidebar todo list", () => {
   test("does not render the session title under each todo item", () => {
@@ -20,6 +20,7 @@ describe("sidebar todo list", () => {
         },
       ],
       diff: [],
+      subagents: [],
     }
 
     const html = renderToStaticMarkup(<TodoList state={state} />)
@@ -27,4 +28,77 @@ describe("sidebar todo list", () => {
     assert.equal(html.includes("Research and define the time period"), true)
     assert.equal(html.includes("Fujian milestones planning"), false)
   })
+
+  test("renders subagents grouped into in progress and done", () => {
+    const state: SidebarViewState = {
+      status: "ready",
+      mode: "subagents" as any,
+      todos: [],
+      diff: [],
+      subagents: [
+        { session: sessionInfo("child-a", 5, "Builder"), status: { type: "busy" } },
+        { session: sessionInfo("child-b", 4, "Planner"), status: { type: "idle" } },
+      ],
+    } as any
+
+    const html = renderToStaticMarkup(<SubagentsList state={state} />)
+
+    assert.equal(html.includes("In Progress"), true)
+    assert.equal(html.includes("Done"), true)
+    assert.equal(html.includes("Builder"), true)
+    assert.equal(html.includes("Planner"), true)
+  })
+
+  test("buildSubagentPanelView sorts by update time descending within each group", () => {
+    const view = buildSubagentPanelView({
+      subagents: [
+        { session: sessionInfo("child-old", 2, "Older busy"), status: { type: "busy" } },
+        { session: sessionInfo("child-new", 5, "Newer busy"), status: { type: "busy" } },
+        { session: sessionInfo("done-old", 1, "Older done"), status: { type: "idle" } },
+        { session: sessionInfo("done-new", 4, "Newer done"), status: { type: "idle" } },
+      ],
+    } as any)
+
+    assert.deepEqual(view.inProgress.map((item) => item.session.id), ["child-new", "child-old"])
+    assert.deepEqual(view.done.map((item) => item.session.id), ["done-new", "done-old"])
+  })
+
+  test("buildSubagentOpenMessage reuses the openSession payload shape", () => {
+    assert.deepEqual(buildSubagentOpenMessage({
+      workspaceId: "ws-1",
+      dir: "/workspace",
+      sessionId: "root",
+    }, "child-a"), {
+      type: "openSession",
+      workspaceId: "ws-1",
+      dir: "/workspace",
+      sessionId: "child-a",
+    })
+  })
+
+  test("renders an empty subagents state", () => {
+    const state: SidebarViewState = {
+      status: "ready",
+      mode: "subagents" as any,
+      todos: [],
+      diff: [],
+      subagents: [],
+    } as any
+
+    const html = renderToStaticMarkup(<SubagentsList state={state} />)
+
+    assert.equal(html.includes("No subagents yet"), true)
+  })
 })
+
+function sessionInfo(id: string, updated: number, title = id) {
+  return {
+    id,
+    directory: "/workspace",
+    title,
+    time: {
+      created: updated,
+      updated,
+    },
+  }
+}
