@@ -27,6 +27,7 @@ import { buildComposerHostMessage } from "./composer-submit"
 import { mergeRestoredComposerParts, restoredComposerCursor } from "./composer-seed"
 import { activeChildSessionId } from "./session-navigation"
 import { captureCommandPromptInvocations, consumeFailedCommandPrompt, shouldTrackCommandPromptInvocation, type CommandPromptInvocation } from "./command-prompt"
+import { CodexTodoPopover } from "./codex-todo-popover"
 
 declare global {
   interface Window {
@@ -1127,12 +1128,15 @@ export function App() {
     setState((current) => ({ ...current, error: "" }))
   }, [state.form.custom, state.form.selected])
 
+  const panelTheme = resolvePanelThemeValue(state.snapshot.display.panelTheme)
+  const showCodexTodoPopover = panelTheme === "codex" && state.snapshot.todos.length > 0
+
   return (
     <WorkspaceDirContext.Provider value={state.bootstrap.sessionRef.dir || ""}>
       <ChildMessagesContext.Provider value={state.snapshot.childMessages}>
         <ChildSessionsContext.Provider value={state.snapshot.childSessions}>
           <WebviewBindingsProvider fileRefStatus={fileRefStatus} vscode={vscode}>
-            <div className="oc-shell" data-oc-theme={resolvePanelThemeValue(state.snapshot.display.panelTheme)}>
+            <div className="oc-shell" data-oc-theme={panelTheme}>
               <main ref={timelineRef} className="oc-transcript">
                 <div className="oc-transcriptInner">
                   <Timeline
@@ -1252,14 +1256,16 @@ export function App() {
             {!blocked && !isChildSession ? <RetryStatus status={state.snapshot.sessionStatus} /> : null}
             {isChildSession ? <SessionNav navigation={state.snapshot.navigation} onNavigate={(sessionID) => vscode.postMessage({ type: "navigateSession", sessionID })} /> : null}
 
-          {!blocked && !isChildSession ? (
-            <section
-              className={`oc-composer${leaderPending ? " is-leaderPending" : ""}${composerMode === "shell" ? " is-shell" : ""}`}
-              onDragOver={onComposerDragOver}
-              onDragLeave={onComposerDragLeave}
-              onDrop={onComposerDrop}
-            >
-              <div className="oc-composerBody">
+            {!blocked && !isChildSession ? (
+              <>
+                {showCodexTodoPopover ? <CodexTodoPopover todos={state.snapshot.todos} /> : null}
+                <section
+                  className={`oc-composer${leaderPending ? " is-leaderPending" : ""}${composerMode === "shell" ? " is-shell" : ""}`}
+                  onDragOver={onComposerDragOver}
+                  onDragLeave={onComposerDragLeave}
+                  onDrop={onComposerDrop}
+                >
+                  <div className="oc-composerBody">
                     {composerDrag ? <div className="oc-composerDropOverlay">Drop to @mention file</div> : null}
                     {state.imageAttachments.length > 0 ? (
                       <div className="oc-composerImageStrip">
@@ -1287,8 +1293,8 @@ export function App() {
                       </div>
                     ) : null}
                     <div className="oc-composerInputWrap">
-                        {leaderPending ? <div className="oc-composerLeaderOverlay"><span className="oc-composerLeaderOverlayText">Ctrl + X Pressed</span></div> : null}
-                        <div
+                      {leaderPending ? <div className="oc-composerLeaderOverlay"><span className="oc-composerLeaderOverlayText">Ctrl + X Pressed</span></div> : null}
+                      <div
                     ref={composerRef}
                     className={`oc-composerInput${composerMode === "shell" ? " is-shell" : ""}`}
                     role="textbox"
@@ -1569,9 +1575,9 @@ export function App() {
                       event.preventDefault()
                       submit()
                     }}
-                  />
-                        {!state.draft.trim() && !composerFocused ? <div className="oc-composerPlaceholder" aria-hidden="true">{composerPlaceholder}</div> : null}
-                      </div>
+                      />
+                      {!state.draft.trim() && !composerFocused ? <div className="oc-composerPlaceholder" aria-hidden="true">{composerPlaceholder}</div> : null}
+                    </div>
                     <div className="oc-modelPickerLayer" ref={modelPickerRef}>
                       <div className="oc-composerInfoWrap">
                         <ComposerInfo state={state} leaderPending={leaderPending} modelPickerOpen={modelPickerOpen} onToggleModelPicker={toggleModelPicker} onCycleVariant={() => cycleComposerVariant()} />
@@ -1593,24 +1599,25 @@ export function App() {
                     </div>
                     {activeAutocomplete ? <ComposerAutocompletePopup state={activeAutocomplete} fileSearch={fileSearch} onSelect={acceptComposerAutocomplete} /> : null}
                   </div>
-                <ComposerFooter
-                  metrics={composerFooterMetrics.items}
-                  contextPercent={composerFooterMetrics.contextPercent}
-                  badges={composerFooterBadges}
-                  error={state.error || undefined}
-                  pendingActions={pendingMcpActions}
-                  onActionStart={(name) => setPendingMcpActions((current) => ({ ...current, [name]: true }))}
-                  onBadgeAction={(item) => {
-                    if (!item.action) {
-                      return
-                    }
-                    vscode.postMessage({ type: "mcpAction", name: item.name, action: item.action })
-                  }}
-                />
-              </section>
-          ) : null}
+                  <ComposerFooter
+                    metrics={composerFooterMetrics.items}
+                    contextPercent={composerFooterMetrics.contextPercent}
+                    badges={composerFooterBadges}
+                    error={state.error || undefined}
+                    pendingActions={pendingMcpActions}
+                    onActionStart={(name) => setPendingMcpActions((current) => ({ ...current, [name]: true }))}
+                    onBadgeAction={(item) => {
+                      if (!item.action) {
+                        return
+                      }
+                      vscode.postMessage({ type: "mcpAction", name: item.name, action: item.action })
+                    }}
+                  />
+                </section>
+              </>
+            ) : null}
 
-               {!blocked && isChildSession ? <SubagentNotice /> : null}
+            {!blocked && isChildSession ? <SubagentNotice /> : null}
               </div>
             </footer>
             {previewImage ? (

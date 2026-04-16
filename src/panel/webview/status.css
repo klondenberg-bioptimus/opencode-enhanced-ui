@@ -1152,6 +1152,10 @@
   stroke-linecap: round;
 }
 
+.oc-codexTodoPopover {
+  display: none;
+}
+
 .oc-shell[data-oc-theme="claude"] .oc-composerBody {
   border-color: color-mix(in srgb, var(--oc-border-strong) 58%, transparent 42%);
   border-radius: calc(var(--oc-radius-md) + 4px);
@@ -1198,6 +1202,75 @@
   border-radius: calc(var(--oc-radius-md) + 6px);
   background: color-mix(in srgb, var(--oc-composer-surface) 94%, var(--oc-surface-elevated) 6%);
   padding-bottom: 62px;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoPopover {
+  display: grid;
+  gap: 0;
+  border: 1px solid color-mix(in srgb, var(--oc-border-strong) 62%, transparent 38%);
+  border-radius: 12px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--oc-surface-block) 96%, var(--oc-surface-elevated) 4%);
+  box-shadow: var(--oc-card-shadow);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--oc-border) 78%, transparent 22%);
+  color: var(--oc-fg-muted);
+  font-size: var(--oc-font-size-lg);
+  font-weight: 600;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoList {
+  display: grid;
+  gap: 0;
+  padding: 8px 0;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoItem {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  padding: 8px 14px;
+  color: var(--oc-fg-primary);
+  line-height: 1.5;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoItem + .oc-codexTodoItem {
+  border-top: 1px solid color-mix(in srgb, var(--oc-border) 68%, transparent 32%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoMarker {
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border: 1.5px solid color-mix(in srgb, var(--oc-fg-muted) 72%, transparent 28%);
+  border-radius: 999px;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoItem.is-completed .oc-codexTodoMarker {
+  border-color: color-mix(in srgb, var(--oc-success) 82%, transparent 18%);
+  background: color-mix(in srgb, var(--oc-success) 82%, transparent 18%);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--oc-success) 16%, transparent 84%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoItem.is-in_progress .oc-codexTodoMarker {
+  border-color: color-mix(in srgb, var(--oc-accent) 82%, transparent 18%);
+  background: color-mix(in srgb, var(--oc-accent) 18%, transparent 82%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoItem.is-pending .oc-codexTodoMarker {
+  border-color: color-mix(in srgb, var(--oc-fg-muted) 64%, transparent 36%);
+  background: transparent;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoText {
+  min-width: 0;
 }
 
 .oc-shell[data-oc-theme="codex"] .oc-composerInfo {

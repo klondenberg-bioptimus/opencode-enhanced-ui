@@ -191,4 +191,13 @@ describe("panel theme settings", () => {
     assert.match(toolCss, /\.oc-shell\[data-oc-theme=\"claude\"\]\s+\.oc-outputWindow\s*\{/)
     assert.match(toolCss, /\.oc-shell\[data-oc-theme=\"codex\"\]\s+\.oc-outputWindowHead\s*\{/)
   })
+
+  test("adds a codex todo popover and hides transcript todo panels for codex", () => {
+    const statusCss = readFileSync(resolve(process.cwd(), "src/panel/webview/status.css"), "utf8")
+    const toolCss = readFileSync(resolve(process.cwd(), "src/panel/webview/tool.css"), "utf8")
+
+    assert.match(statusCss, /\.oc-shell\[data-oc-theme=\"codex\"\]\s+\.oc-codexTodoPopover\s*\{/)
+    assert.match(statusCss, /\.oc-shell\[data-oc-theme=\"codex\"\]\s+\.oc-codexTodoItem\.is-completed\s+\.oc-codexTodoMarker\s*\{/)
+    assert.match(toolCss, /\.oc-shell\[data-oc-theme=\"codex\"\]\s+\.oc-toolPanel-todos\s*\{[\s\S]*display:\s*none;/)
+  })
 })
