@@ -1,20 +1,20 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "opencode-vscode-ui",
-  "displayName": "OpenCode UI",
-  "description": "VS Code UI for opencode sessions",
+  "name": "opencode-enhanced-ui",
+  "displayName": "OpenCode Enhanced UI",
+  "description": "VS Code enhanced UI for opencode",
   "private": true,
-  "version": "0.0.6",
-  "publisher": "zgy",
+  "version": "0.0.1",
+  "publisher": "LanTingxin",
   "icon": "images/logo.png",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/a710128/opencode-vscode-ui.git"
+    "url": "https://github.com/LanTingxin/opencode-enhanced.git"
   },
-  "homepage": "https://github.com/a710128/opencode-vscode-ui#readme",
+  "homepage": "https://github.com/LanTingxin/opencode-enhanced#readme",
   "bugs": {
-    "url": "https://github.com/a710128/opencode-vscode-ui/issues"
+    "url": "https://github.com/LanTingxin/opencode-enhanced/issues"
   },
   "engines": {
     "vscode": "^1.94.0"
@@ -25,6 +25,7 @@
   "keywords": [
     "opencode",
     "ai",
+    "enhanced",
     "assistant",
     "sessions",
     "remote-ssh"
@@ -254,7 +255,7 @@
       }
     ],
     "configuration": {
-      "title": "OpenCode UI",
+      "title": "OpenCode Enhanced UI",
       "properties": {
         "opencode-ui.showThinking": {
           "type": "boolean",
