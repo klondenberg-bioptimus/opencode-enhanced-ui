@@ -352,3 +352,103 @@ button {
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+.oc-shell[data-oc-theme="claude"] .oc-pill-command,
+.oc-shell[data-oc-theme="claude"] .oc-pill-skill {
+  border-color: color-mix(in srgb, var(--oc-border-strong) 42%, transparent 58%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--oc-surface-elevated) 82%, var(--oc-surface-control) 18%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 22%, transparent 78%);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-pill-command .oc-pillFileType,
+.oc-shell[data-oc-theme="claude"] .oc-pill-skill .oc-pillFileType {
+  padding: 4px 7px;
+  border-right: 1px solid color-mix(in srgb, var(--oc-border-strong) 28%, transparent 72%);
+  color: color-mix(in srgb, var(--oc-fg-primary) 82%, var(--oc-surface-canvas) 18%);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-pill-command .oc-pillFileType {
+  background: color-mix(in srgb, var(--oc-accent) 18%, var(--oc-surface-elevated) 82%);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-pill-skill .oc-pillFileType {
+  background: color-mix(in srgb, var(--oc-pill-skill-fill) 72%, white 28%);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-pill-command.oc-pillButton::after {
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--oc-surface-elevated) 96%, var(--oc-surface-control) 4%);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-btn {
+  border-color: color-mix(in srgb, var(--oc-border-strong) 42%, transparent 58%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--oc-surface-elevated) 86%, var(--oc-surface-control) 14%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 22%, transparent 78%);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-btn-primary {
+  background: color-mix(in srgb, var(--oc-accent) 82%, var(--oc-surface-block) 18%);
+  color: var(--oc-accent-text);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-toggleBtn {
+  border-radius: 12px;
+  border-color: color-mix(in srgb, var(--oc-border-strong) 48%, transparent 52%);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-inlineLinkBtn {
+  color: color-mix(in srgb, var(--oc-accent) 78%, var(--oc-fg-primary) 22%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-pill-command,
+.oc-shell[data-oc-theme="codex"] .oc-pill-skill {
+  border-color: color-mix(in srgb, var(--oc-border-strong) 68%, transparent 32%);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--oc-surface-control) 90%, var(--oc-surface-elevated) 10%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 8%, transparent 92%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-pill-command .oc-pillFileType,
+.oc-shell[data-oc-theme="codex"] .oc-pill-skill .oc-pillFileType {
+  min-width: 62px;
+  justify-content: center;
+  padding: 4px 8px;
+  letter-spacing: 0.08em;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-pill-command .oc-pillFileType {
+  background: color-mix(in srgb, var(--oc-accent-strong) 76%, var(--oc-surface-elevated) 24%);
+  color: var(--oc-text-accent);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-pill-skill .oc-pillFileType {
+  background: color-mix(in srgb, var(--oc-pill-skill-fill) 82%, black 18%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-pill-command.oc-pillButton::after {
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--oc-surface-elevated) 96%, var(--oc-accent) 4%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-btn {
+  border-color: color-mix(in srgb, var(--oc-border-strong) 72%, transparent 28%);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--oc-surface-control) 92%, var(--oc-surface-elevated) 8%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-btn-primary {
+  background: color-mix(in srgb, var(--oc-accent) 18%, var(--oc-surface-block) 82%);
+  color: var(--oc-accent);
+  border: 1px solid color-mix(in srgb, var(--oc-accent) 34%, transparent 66%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-toggleBtn {
+  border-radius: 10px;
+  border-color: color-mix(in srgb, var(--oc-border-strong) 72%, transparent 28%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-inlineLinkBtn {
+  color: color-mix(in srgb, var(--oc-accent-strong) 88%, var(--oc-fg-primary) 12%);
+}

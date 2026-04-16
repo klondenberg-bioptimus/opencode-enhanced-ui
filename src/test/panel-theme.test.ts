@@ -162,4 +162,33 @@ describe("panel theme settings", () => {
     assert.match(toolCss, /\.oc-shell\[data-oc-theme=\"claude\"\]\s+\.oc-toolRowWrap\s*\{/)
     assert.match(toolCss, /\.oc-shell\[data-oc-theme=\"codex\"\]\s+\.oc-toolPanel\.is-active\s*\{/)
   })
+
+  test("tightens codex user prompts and centers claude prompts with a toolflow connector", () => {
+    const timelineCss = readFileSync(resolve(process.cwd(), "src/panel/webview/timeline.css"), "utf8")
+    const toolCss = readFileSync(resolve(process.cwd(), "src/panel/webview/tool.css"), "utf8")
+
+    assert.match(timelineCss, /\.oc-shell\[data-oc-theme=\"codex\"\]\s+\.oc-turnUser\s*\{[\s\S]*padding:\s*10px 16px;/)
+    assert.match(timelineCss, /\.oc-shell\[data-oc-theme=\"claude\"\]\s+\.oc-turnUser\s*\{[\s\S]*justify-self:\s*center;/)
+    assert.match(timelineCss, /\.oc-shell\[data-oc-theme=\"claude\"\]\s+\.oc-turnUser\s*\{[\s\S]*max-width:\s*min\(860px,\s*calc\(100% - 28px\)\);/)
+    assert.match(toolCss, /\.oc-shell\[data-oc-theme=\"claude\"\]\s+\.oc-toolRowWrap::before\s*,/)
+    assert.match(toolCss, /\.oc-shell\[data-oc-theme=\"claude\"\]\s+\.oc-toolPanel::before\s*\{/)
+  })
+
+  test("adds theme-specific pills, markdown, and output window treatments", () => {
+    const baseCss = readFileSync(resolve(process.cwd(), "src/panel/webview/base.css"), "utf8")
+    const markdownCss = readFileSync(resolve(process.cwd(), "src/panel/webview/markdown.css"), "utf8")
+    const toolCss = readFileSync(resolve(process.cwd(), "src/panel/webview/tool.css"), "utf8")
+
+    assert.match(baseCss, /\.oc-shell\[data-oc-theme=\"claude\"\]\s+\.oc-pill-command\s*,/)
+    assert.match(baseCss, /\.oc-shell\[data-oc-theme=\"claude\"\]\s+\.oc-pill-skill\s*\{/)
+    assert.match(baseCss, /\.oc-shell\[data-oc-theme=\"codex\"\]\s+\.oc-pill-command\s*,/)
+    assert.match(baseCss, /\.oc-shell\[data-oc-theme=\"codex\"\]\s+\.oc-pill-skill\s*\{/)
+
+    assert.match(markdownCss, /\.oc-shell\[data-oc-theme=\"claude\"\]\s+\.oc-markdown blockquote\s*\{/)
+    assert.match(markdownCss, /\.oc-shell\[data-oc-theme=\"codex\"\]\s+\.oc-markdown h1::before\s*,/)
+    assert.match(markdownCss, /\.oc-shell\[data-oc-theme=\"codex\"\]\s+\.oc-inlineCode\s*\{/)
+
+    assert.match(toolCss, /\.oc-shell\[data-oc-theme=\"claude\"\]\s+\.oc-outputWindow\s*\{/)
+    assert.match(toolCss, /\.oc-shell\[data-oc-theme=\"codex\"\]\s+\.oc-outputWindowHead\s*\{/)
+  })
 })

@@ -323,3 +323,60 @@
 .oc-markdown .hljs-strong {
   font-weight: 700;
 }
+
+.oc-shell[data-oc-theme="claude"] .oc-markdown {
+  line-height: 1.72;
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-markdown h1::before,
+.oc-shell[data-oc-theme="claude"] .oc-markdown h2::before,
+.oc-shell[data-oc-theme="claude"] .oc-markdown h3::before {
+  content: "";
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-markdown h1,
+.oc-shell[data-oc-theme="claude"] .oc-markdown h2,
+.oc-shell[data-oc-theme="claude"] .oc-markdown h3 {
+  letter-spacing: 0;
+  font-weight: 650;
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-markdown blockquote {
+  padding: 10px 14px;
+  border-left: 1px solid color-mix(in srgb, var(--oc-md-current-quote) 34%, transparent 66%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--oc-surface-elevated) 78%, transparent 22%);
+  font-style: normal;
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-markdown pre {
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--oc-code-surface) 94%, var(--oc-surface-elevated) 6%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-markdown {
+  line-height: 1.58;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-markdown h1::before,
+.oc-shell[data-oc-theme="codex"] .oc-markdown h2::before,
+.oc-shell[data-oc-theme="codex"] .oc-markdown h3::before {
+  color: color-mix(in srgb, var(--oc-accent) 72%, var(--oc-fg-muted) 28%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-markdown blockquote {
+  border-left-width: 1px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--oc-surface-secondary) 82%, transparent 18%);
+  font-style: normal;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-inlineCode {
+  padding: 1px 4px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--oc-accent) 8%, var(--oc-surface-secondary) 92%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-markdown pre {
+  border-radius: 10px;
+}
