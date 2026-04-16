@@ -70,6 +70,10 @@
   padding: 0 var(--oc-shell-gutter);
 }
 
+.oc-shell[data-oc-theme="codex"] .oc-footerInner {
+  position: relative;
+}
+
 @media (max-width: 720px) {
   .oc-footer,
   .oc-transcript {

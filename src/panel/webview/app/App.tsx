@@ -70,6 +70,7 @@ export function App() {
   const [previewImage, setPreviewImage] = React.useState<PreviewImage | null>(null)
   const [skillPickerOpen, setSkillPickerOpen] = React.useState(false)
   const [skillPickerSelectedIndex, setSkillPickerSelectedIndex] = React.useState(0)
+  const [codexTodoCollapsed, setCodexTodoCollapsed] = React.useState(false)
   const timelineRef = React.useRef<HTMLDivElement | null>(null)
   const composerRef = React.useRef<HTMLDivElement | null>(null)
   const modelPickerRef = React.useRef<HTMLDivElement | null>(null)
@@ -1131,6 +1132,12 @@ export function App() {
   const panelTheme = resolvePanelThemeValue(state.snapshot.display.panelTheme)
   const showCodexTodoPopover = panelTheme === "codex" && state.snapshot.todos.length > 0
 
+  React.useEffect(() => {
+    if (!showCodexTodoPopover) {
+      setCodexTodoCollapsed(false)
+    }
+  }, [showCodexTodoPopover])
+
   return (
     <WorkspaceDirContext.Provider value={state.bootstrap.sessionRef.dir || ""}>
       <ChildMessagesContext.Provider value={state.snapshot.childMessages}>
@@ -1258,7 +1265,15 @@ export function App() {
 
             {!blocked && !isChildSession ? (
               <>
-                {showCodexTodoPopover ? <CodexTodoPopover todos={state.snapshot.todos} /> : null}
+                {showCodexTodoPopover ? (
+                  <div className={`oc-codexTodoDock${codexTodoCollapsed ? " is-collapsed" : ""}`}>
+                    <CodexTodoPopover
+                      todos={state.snapshot.todos}
+                      collapsed={codexTodoCollapsed}
+                      onToggle={() => setCodexTodoCollapsed((current) => !current)}
+                    />
+                  </div>
+                ) : null}
                 <section
                   className={`oc-composer${leaderPending ? " is-leaderPending" : ""}${composerMode === "shell" ? " is-shell" : ""}`}
                   onDragOver={onComposerDragOver}
@@ -1295,287 +1310,287 @@ export function App() {
                     <div className="oc-composerInputWrap">
                       {leaderPending ? <div className="oc-composerLeaderOverlay"><span className="oc-composerLeaderOverlayText">Ctrl + X Pressed</span></div> : null}
                       <div
-                    ref={composerRef}
-                    className={`oc-composerInput${composerMode === "shell" ? " is-shell" : ""}`}
-                    role="textbox"
-                    aria-multiline="true"
-                    aria-label={composerAriaLabel}
-                    contentEditable={state.bootstrap.status === "ready" && !blocked && !leaderPending}
-                    suppressContentEditableWarning
-                    spellCheck
-                    onInput={(event) => {
-                      const selection = getSelectionOffsets(event.currentTarget)
-                      const rawParts = ensureTextPart(parseComposerEditor(event.currentTarget))
-                      const normalized = absorbFileSelectionSuffix(rawParts)
-                      const composerParts = ensureTextPart(normalized.parts)
-                      const draft = composerText(composerParts)
-                      const composerMentions = mentionsFromParts(composerParts)
-                      syncComposerInput(draft, selection.start, selection.end, "input")
-                      setState((current) => ({
-                        ...current,
-                        draft,
-                        composerParts,
-                        composerMentions,
-                        composerMentionAgentOverride: composerMentionAgentOverride(composerMentions),
-                      }))
-                      if (normalized.changed) {
-                        composerCursorRef.current = selection.end
-                      }
-                      resizeComposer(event.currentTarget)
-                      ensureComposerCursorVisible(event.currentTarget)
-                    }}
-                    onPaste={(event) => {
-                      const items = Array.from(event.clipboardData.items)
-                      const imageItems = items.filter((item) => item.kind === "file" && item.type.startsWith("image/"))
-                      if (imageItems.length > 0) {
-                        event.preventDefault()
-                        for (const item of imageItems) {
-                          const file = item.getAsFile()
-                          if (!file) {
-                            continue
-                          }
-                          const reader = new FileReader()
-                          reader.onload = () => {
-                            const dataUrl = reader.result as string
-                            const attachment: ImageAttachment = {
-                              id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                              dataUrl,
-                              mime: file.type || "image/png",
-                              name: file.name || `image.${(file.type || "image/png").split("/")[1] || "png"}`,
-                            }
+                          ref={composerRef}
+                          className={`oc-composerInput${composerMode === "shell" ? " is-shell" : ""}`}
+                          role="textbox"
+                          aria-multiline="true"
+                          aria-label={composerAriaLabel}
+                          contentEditable={state.bootstrap.status === "ready" && !blocked && !leaderPending}
+                          suppressContentEditableWarning
+                          spellCheck
+                          onInput={(event) => {
+                            const selection = getSelectionOffsets(event.currentTarget)
+                            const rawParts = ensureTextPart(parseComposerEditor(event.currentTarget))
+                            const normalized = absorbFileSelectionSuffix(rawParts)
+                            const composerParts = ensureTextPart(normalized.parts)
+                            const draft = composerText(composerParts)
+                            const composerMentions = mentionsFromParts(composerParts)
+                            syncComposerInput(draft, selection.start, selection.end, "input")
                             setState((current) => ({
                               ...current,
-                              imageAttachments: [...current.imageAttachments, attachment],
+                              draft,
+                              composerParts,
+                              composerMentions,
+                              composerMentionAgentOverride: composerMentionAgentOverride(composerMentions),
                             }))
-                          }
-                          reader.readAsDataURL(file)
-                        }
-                        return
-                      }
+                            if (normalized.changed) {
+                              composerCursorRef.current = selection.end
+                            }
+                            resizeComposer(event.currentTarget)
+                            ensureComposerCursorVisible(event.currentTarget)
+                          }}
+                          onPaste={(event) => {
+                            const items = Array.from(event.clipboardData.items)
+                            const imageItems = items.filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+                            if (imageItems.length > 0) {
+                              event.preventDefault()
+                              for (const item of imageItems) {
+                                const file = item.getAsFile()
+                                if (!file) {
+                                  continue
+                                }
+                                const reader = new FileReader()
+                                reader.onload = () => {
+                                  const dataUrl = reader.result as string
+                                  const attachment: ImageAttachment = {
+                                    id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                                    dataUrl,
+                                    mime: file.type || "image/png",
+                                    name: file.name || `image.${(file.type || "image/png").split("/")[1] || "png"}`,
+                                  }
+                                  setState((current) => ({
+                                    ...current,
+                                    imageAttachments: [...current.imageAttachments, attachment],
+                                  }))
+                                }
+                                reader.readAsDataURL(file)
+                              }
+                              return
+                            }
 
-                      const text = event.clipboardData.getData("text/plain")
-                      if (!text) {
-                        return
-                      }
-                      event.preventDefault()
-                      const selection = getSelectionOffsets(event.currentTarget)
-                      const next = replaceRangeWithText(state.composerParts, selection.start, selection.end, text.replace(/\r\n?/g, "\n"))
-                      const result = setComposerState(next.parts, "")
-                      restoreComposerCursor(result.draft, next.cursor)
-                    }}
-                    onKeyUp={() => {
-                      const input = composerRef.current
-                      if (!input) {
-                        return
-                      }
-                      const selection = getSelectionOffsets(input)
-                      ensureComposerCursorVisible(input)
-                      syncComposerInput(state.draft, selection.start, selection.end, "passive")
-                    }}
-                    onMouseUp={() => {
-                      const input = composerRef.current
-                      if (!input) {
-                        return
-                      }
-                      const selection = getSelectionOffsets(input)
-                      ensureComposerCursorVisible(input)
-                      syncComposerInput(state.draft, selection.start, selection.end, "passive")
-                    }}
-                    onFocus={() => {
-                      setComposerFocused(true)
-                      const input = composerRef.current
-                      if (!input) {
-                        return
-                      }
-                      const selection = getSelectionOffsets(input)
-                      ensureComposerCursorVisible(input)
-                      syncComposerInput(state.draft, selection.start, selection.end, "passive")
-                    }}
-                    onBlur={() => {
-                      setComposerFocused(false)
-                      setComposing(false)
-                      clearLeaderPending()
-                      window.setTimeout(() => composerAutocomplete.close(), 0)
-                    }}
-                    onCompositionStart={() => setComposing(true)}
-                    onCompositionEnd={() => {
-                      setComposing(false)
-                      const input = composerRef.current
-                      if (!input) {
-                        return
-                      }
-                      const selection = getSelectionOffsets(input)
-                      ensureComposerCursorVisible(input)
-                      syncComposerInput(state.draft, selection.start, selection.end, "passive")
-                    }}
-                    onKeyDown={(event) => {
-                      const native = event.nativeEvent as KeyboardEvent & { keyCode?: number }
-                      const isImeComposing = native.isComposing || composing || native.keyCode === 229
-                      const selection = getSelectionOffsets(event.currentTarget)
-                      const enterIntent = composerEnterIntent({
-                        mode: composerMode,
-                        key: event.key,
-                        metaKey: event.metaKey,
-                        ctrlKey: event.ctrlKey,
-                        shiftKey: event.shiftKey,
-                        hasAutocomplete: !!activeAutocomplete,
-                        isImeComposing,
-                      })
+                            const text = event.clipboardData.getData("text/plain")
+                            if (!text) {
+                              return
+                            }
+                            event.preventDefault()
+                            const selection = getSelectionOffsets(event.currentTarget)
+                            const next = replaceRangeWithText(state.composerParts, selection.start, selection.end, text.replace(/\r\n?/g, "\n"))
+                            const result = setComposerState(next.parts, "")
+                            restoreComposerCursor(result.draft, next.cursor)
+                          }}
+                          onKeyUp={() => {
+                            const input = composerRef.current
+                            if (!input) {
+                              return
+                            }
+                            const selection = getSelectionOffsets(input)
+                            ensureComposerCursorVisible(input)
+                            syncComposerInput(state.draft, selection.start, selection.end, "passive")
+                          }}
+                          onMouseUp={() => {
+                            const input = composerRef.current
+                            if (!input) {
+                              return
+                            }
+                            const selection = getSelectionOffsets(input)
+                            ensureComposerCursorVisible(input)
+                            syncComposerInput(state.draft, selection.start, selection.end, "passive")
+                          }}
+                          onFocus={() => {
+                            setComposerFocused(true)
+                            const input = composerRef.current
+                            if (!input) {
+                              return
+                            }
+                            const selection = getSelectionOffsets(input)
+                            ensureComposerCursorVisible(input)
+                            syncComposerInput(state.draft, selection.start, selection.end, "passive")
+                          }}
+                          onBlur={() => {
+                            setComposerFocused(false)
+                            setComposing(false)
+                            clearLeaderPending()
+                            window.setTimeout(() => composerAutocomplete.close(), 0)
+                          }}
+                          onCompositionStart={() => setComposing(true)}
+                          onCompositionEnd={() => {
+                            setComposing(false)
+                            const input = composerRef.current
+                            if (!input) {
+                              return
+                            }
+                            const selection = getSelectionOffsets(input)
+                            ensureComposerCursorVisible(input)
+                            syncComposerInput(state.draft, selection.start, selection.end, "passive")
+                          }}
+                          onKeyDown={(event) => {
+                            const native = event.nativeEvent as KeyboardEvent & { keyCode?: number }
+                            const isImeComposing = native.isComposing || composing || native.keyCode === 229
+                            const selection = getSelectionOffsets(event.currentTarget)
+                            const enterIntent = composerEnterIntent({
+                              mode: composerMode,
+                              key: event.key,
+                              metaKey: event.metaKey,
+                              ctrlKey: event.ctrlKey,
+                              shiftKey: event.shiftKey,
+                              hasAutocomplete: !!activeAutocomplete,
+                              isImeComposing,
+                            })
 
-                      if (shouldEnterShellMode({
-                        mode: composerMode,
-                        draft: state.draft,
-                        key: event.key,
-                        start: selection.start,
-                        end: selection.end,
-                        metaKey: event.metaKey,
-                        ctrlKey: event.ctrlKey,
-                        altKey: event.altKey,
-                      })) {
-                        event.preventDefault()
-                        enterShellMode()
-                        return
-                      }
+                            if (shouldEnterShellMode({
+                              mode: composerMode,
+                              draft: state.draft,
+                              key: event.key,
+                              start: selection.start,
+                              end: selection.end,
+                              metaKey: event.metaKey,
+                              ctrlKey: event.ctrlKey,
+                              altKey: event.altKey,
+                            })) {
+                              event.preventDefault()
+                              enterShellMode()
+                              return
+                            }
 
-                      if (shouldExitShellModeOnBackspace({
-                        mode: composerMode,
-                        draft: state.draft,
-                        key: event.key,
-                        start: selection.start,
-                        end: selection.end,
-                        metaKey: event.metaKey,
-                        ctrlKey: event.ctrlKey,
-                        altKey: event.altKey,
-                      })) {
-                        event.preventDefault()
-                        exitShellMode()
-                        return
-                      }
+                            if (shouldExitShellModeOnBackspace({
+                              mode: composerMode,
+                              draft: state.draft,
+                              key: event.key,
+                              start: selection.start,
+                              end: selection.end,
+                              metaKey: event.metaKey,
+                              ctrlKey: event.ctrlKey,
+                              altKey: event.altKey,
+                            })) {
+                              event.preventDefault()
+                              exitShellMode()
+                              return
+                            }
 
-                      if (!event.metaKey && !event.ctrlKey && !event.altKey && (event.key === "Backspace" || event.key === "Delete")) {
-                        const next = deleteStructuredRange(state.composerParts, selection.start, selection.end, event.key)
-                        if (next) {
-                          event.preventDefault()
-                          const result = setComposerState(next.parts, "")
-                          restoreComposerCursor(result.draft, next.cursor)
-                          return
-                        }
-                      }
+                            if (!event.metaKey && !event.ctrlKey && !event.altKey && (event.key === "Backspace" || event.key === "Delete")) {
+                              const next = deleteStructuredRange(state.composerParts, selection.start, selection.end, event.key)
+                              if (next) {
+                                event.preventDefault()
+                                const result = setComposerState(next.parts, "")
+                                restoreComposerCursor(result.draft, next.cursor)
+                                return
+                              }
+                            }
 
-                      if (enterIntent === "ignore") {
-                        return
-                      }
+                            if (enterIntent === "ignore") {
+                              return
+                            }
 
-                      if (activeAutocomplete) {
-                        if (event.key === "ArrowDown") {
-                          event.preventDefault()
-                          if (skillPickerOpen) {
-                            moveSkillPicker(1)
-                          } else {
-                            composerAutocomplete.move(1)
-                          }
-                          return
-                        }
+                            if (activeAutocomplete) {
+                              if (event.key === "ArrowDown") {
+                                event.preventDefault()
+                                if (skillPickerOpen) {
+                                  moveSkillPicker(1)
+                                } else {
+                                  composerAutocomplete.move(1)
+                                }
+                                return
+                              }
 
-                        if (event.key === "ArrowUp") {
-                          event.preventDefault()
-                          if (skillPickerOpen) {
-                            moveSkillPicker(-1)
-                          } else {
-                            composerAutocomplete.move(-1)
-                          }
-                          return
-                        }
+                              if (event.key === "ArrowUp") {
+                                event.preventDefault()
+                                if (skillPickerOpen) {
+                                  moveSkillPicker(-1)
+                                } else {
+                                  composerAutocomplete.move(-1)
+                                }
+                                return
+                              }
 
-                        if (event.key === "Escape") {
-                          event.preventDefault()
-                          closeComposerAutocomplete()
-                          return
-                        }
+                              if (event.key === "Escape") {
+                                event.preventDefault()
+                                closeComposerAutocomplete()
+                                return
+                              }
 
-                        if (enterIntent === "acceptAutocomplete") {
-                          event.preventDefault()
-                          if (activeAutocompleteItem) {
-                            acceptComposerAutocomplete(activeAutocompleteItem)
-                          }
-                          return
-                        }
+                              if (enterIntent === "acceptAutocomplete") {
+                                event.preventDefault()
+                                if (activeAutocompleteItem) {
+                                  acceptComposerAutocomplete(activeAutocompleteItem)
+                                }
+                                return
+                              }
 
-                        if (event.key === "Tab" && activeAutocompleteItem) {
-                          event.preventDefault()
-                          acceptComposerAutocomplete(activeAutocompleteItem, { completeDirectory: activeAutocompleteItem.kind === "directory" })
-                          return
-                        }
-                      }
+                              if (event.key === "Tab" && activeAutocompleteItem) {
+                                event.preventDefault()
+                                acceptComposerAutocomplete(activeAutocompleteItem, { completeDirectory: activeAutocompleteItem.kind === "directory" })
+                                return
+                              }
+                            }
 
-                      if (event.key === "Escape" && composerMode === "shell" && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
-                        event.preventDefault()
-                        exitShellMode()
-                        return
-                      }
+                            if (event.key === "Escape" && composerMode === "shell" && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
+                              event.preventDefault()
+                              exitShellMode()
+                              return
+                            }
 
-                      if (enterIntent === "newline") {
-                        event.preventDefault()
-                        const next = replaceRangeWithText(state.composerParts, selection.start, selection.end, "\n")
-                        const result = setComposerState(next.parts, "")
-                        restoreComposerCursor(result.draft, next.cursor)
-                        return
-                      }
+                            if (enterIntent === "newline") {
+                              event.preventDefault()
+                              const next = replaceRangeWithText(state.composerParts, selection.start, selection.end, "\n")
+                              const result = setComposerState(next.parts, "")
+                              restoreComposerCursor(result.draft, next.cursor)
+                              return
+                            }
 
-                      if (event.key === "Escape" && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
-                        if (!isSessionRunning(state.snapshot.sessionStatus)) {
-                          return
-                        }
+                            if (event.key === "Escape" && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
+                              if (!isSessionRunning(state.snapshot.sessionStatus)) {
+                                return
+                              }
 
-                        event.preventDefault()
-                        if (escPendingRef.current) {
-                          clearEscPending()
-                          postComposerAction("interruptSession")
-                          return
-                        }
+                              event.preventDefault()
+                              if (escPendingRef.current) {
+                                clearEscPending()
+                                postComposerAction("interruptSession")
+                                return
+                              }
 
-                        startEscPending()
-                        return
-                      }
+                              startEscPending()
+                              return
+                            }
 
-                      if (event.key === "Tab") {
-                        const nextAgent = cycleAgentName(state.snapshot.agents, currentSelection.agent)
-                        const tabIntent = composerTabIntent({
-                          mode: composerMode,
-                          hasAutocomplete: !!activeAutocomplete,
-                          hasCurrentItem: !!activeAutocompleteItem,
-                          metaKey: event.metaKey,
-                          ctrlKey: event.ctrlKey,
-                          altKey: event.altKey,
-                          canCycleAgent: !!nextAgent,
-                        })
+                            if (event.key === "Tab") {
+                              const nextAgent = cycleAgentName(state.snapshot.agents, currentSelection.agent)
+                              const tabIntent = composerTabIntent({
+                                mode: composerMode,
+                                hasAutocomplete: !!activeAutocomplete,
+                                hasCurrentItem: !!activeAutocompleteItem,
+                                metaKey: event.metaKey,
+                                ctrlKey: event.ctrlKey,
+                                altKey: event.altKey,
+                                canCycleAgent: !!nextAgent,
+                              })
 
-                        if (tabIntent === "ignore") {
-                          event.preventDefault()
-                          return
-                        }
+                              if (tabIntent === "ignore") {
+                                event.preventDefault()
+                                return
+                              }
 
-                        if (tabIntent === "cycleAgent" && cycleComposerAgent()) {
-                          event.preventDefault()
-                          return
-                        }
-                      }
+                              if (tabIntent === "cycleAgent" && cycleComposerAgent()) {
+                                event.preventDefault()
+                                return
+                              }
+                            }
 
-                      if (!event.shiftKey && !event.altKey && !event.metaKey && event.ctrlKey && event.key.toLowerCase() === "t") {
-                        if (modelVariants(state.snapshot.providers, currentSelection.model).length > 0) {
-                          event.preventDefault()
-                          cycleComposerVariant()
-                          return
-                        }
-                      }
+                            if (!event.shiftKey && !event.altKey && !event.metaKey && event.ctrlKey && event.key.toLowerCase() === "t") {
+                              if (modelVariants(state.snapshot.providers, currentSelection.model).length > 0) {
+                                event.preventDefault()
+                                cycleComposerVariant()
+                                return
+                              }
+                            }
 
-                      if (enterIntent !== "submit") {
-                        return
-                      }
-                      event.preventDefault()
-                      submit()
-                    }}
-                      />
+                            if (enterIntent !== "submit") {
+                              return
+                            }
+                            event.preventDefault()
+                            submit()
+                          }}
+                        />
                       {!state.draft.trim() && !composerFocused ? <div className="oc-composerPlaceholder" aria-hidden="true">{composerPlaceholder}</div> : null}
                     </div>
                     <div className="oc-modelPickerLayer" ref={modelPickerRef}>

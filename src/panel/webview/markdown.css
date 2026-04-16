@@ -346,12 +346,18 @@
   border-left: 1px solid color-mix(in srgb, var(--oc-md-current-quote) 34%, transparent 66%);
   border-radius: 12px;
   background: color-mix(in srgb, var(--oc-surface-elevated) 78%, transparent 22%);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--oc-accent) 14%, transparent 86%);
   font-style: normal;
 }
 
 .oc-shell[data-oc-theme="claude"] .oc-markdown pre {
   border-radius: 12px;
   background: color-mix(in srgb, var(--oc-code-surface) 94%, var(--oc-surface-elevated) 6%);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-markdown a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
 }
 
 .oc-shell[data-oc-theme="codex"] .oc-markdown {
@@ -365,9 +371,11 @@
 }
 
 .oc-shell[data-oc-theme="codex"] .oc-markdown blockquote {
+  border: 1px solid color-mix(in srgb, var(--oc-border) 72%, transparent 28%);
   border-left-width: 1px;
   border-radius: 10px;
   background: color-mix(in srgb, var(--oc-surface-secondary) 82%, transparent 18%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 6%, transparent 94%);
   font-style: normal;
 }
 
@@ -379,4 +387,6 @@
 
 .oc-shell[data-oc-theme="codex"] .oc-markdown pre {
   border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--oc-border) 72%, transparent 28%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 5%, transparent 95%);
 }

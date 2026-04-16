@@ -1156,6 +1156,10 @@
   display: none;
 }
 
+.oc-codexTodoDock {
+  display: contents;
+}
+
 .oc-shell[data-oc-theme="claude"] .oc-composerBody {
   border-color: color-mix(in srgb, var(--oc-border-strong) 58%, transparent 42%);
   border-radius: calc(var(--oc-radius-md) + 4px);
@@ -1204,41 +1208,138 @@
   padding-bottom: 62px;
 }
 
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoDock {
+  position: absolute;
+  left: var(--oc-shell-gutter);
+  right: var(--oc-shell-gutter);
+  bottom: calc(100% - 10px);
+  z-index: 6;
+  display: flex;
+  justify-content: flex-start;
+  pointer-events: none;
+}
+
 .oc-shell[data-oc-theme="codex"] .oc-codexTodoPopover {
   display: grid;
+  position: relative;
+  z-index: 2;
   gap: 0;
+  width: min(560px, calc(100vw - 84px));
+  max-height: min(46vh, 420px);
+  margin: 0;
   border: 1px solid color-mix(in srgb, var(--oc-border-strong) 62%, transparent 38%);
   border-radius: 12px;
   overflow: hidden;
-  background: color-mix(in srgb, var(--oc-surface-block) 96%, var(--oc-surface-elevated) 4%);
-  box-shadow: var(--oc-card-shadow);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--oc-surface-elevated) 96%, white 4%) 0%, color-mix(in srgb, var(--oc-surface-block) 98%, transparent 2%) 100%);
+  backdrop-filter: blur(10px) saturate(1.04);
+  -webkit-backdrop-filter: blur(10px) saturate(1.04);
+  box-shadow: 0 14px 28px color-mix(in srgb, black 20%, transparent 80%), 0 0 0 1px color-mix(in srgb, white 3%, transparent 97%);
+  pointer-events: auto;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoPopover.is-collapsed {
+  width: min(320px, calc(100vw - 84px));
+  max-height: none;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoPopover::after {
+  content: "";
+  position: absolute;
+  left: 24px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  border-right: 1px solid color-mix(in srgb, var(--oc-border-strong) 62%, transparent 38%);
+  border-bottom: 1px solid color-mix(in srgb, var(--oc-border-strong) 62%, transparent 38%);
+  background: color-mix(in srgb, var(--oc-surface-block) 98%, var(--oc-surface-elevated) 2%);
+  transform: rotate(45deg);
 }
 
 .oc-shell[data-oc-theme="codex"] .oc-codexTodoHeader {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px 8px;
   border-bottom: 1px solid color-mix(in srgb, var(--oc-border) 78%, transparent 22%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoHeaderText {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoEyebrow {
+  color: color-mix(in srgb, var(--oc-accent) 70%, var(--oc-fg-muted) 30%);
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoSummary {
   color: var(--oc-fg-muted);
-  font-size: var(--oc-font-size-lg);
+  font-size: 11px;
+  line-height: 1.35;
   font-weight: 600;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--oc-border) 72%, transparent 28%);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--oc-surface-control) 88%, transparent 12%);
+  color: color-mix(in srgb, var(--oc-fg-muted) 78%, var(--oc-accent) 22%);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoToggle:hover {
+  background: color-mix(in srgb, var(--oc-accent) 10%, var(--oc-surface-control) 90%);
+  color: var(--oc-fg-primary);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoToggleIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoTogglePath {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoToggle.is-collapsed .oc-codexTodoToggleIcon {
+  transform: rotate(180deg);
 }
 
 .oc-shell[data-oc-theme="codex"] .oc-codexTodoList {
   display: grid;
   gap: 0;
-  padding: 8px 0;
+  padding: 4px 0;
+  max-height: min(34vh, 300px);
+  overflow: auto;
 }
 
 .oc-shell[data-oc-theme="codex"] .oc-codexTodoItem {
   display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
+  grid-template-columns: 14px minmax(0, 1fr);
   align-items: start;
-  gap: 10px;
-  padding: 8px 14px;
+  gap: 8px;
+  padding: 6px 12px;
   color: var(--oc-fg-primary);
-  line-height: 1.5;
+  line-height: 1.35;
 }
 
 .oc-shell[data-oc-theme="codex"] .oc-codexTodoItem + .oc-codexTodoItem {
@@ -1271,6 +1372,13 @@
 
 .oc-shell[data-oc-theme="codex"] .oc-codexTodoText {
   min-width: 0;
+  font-size: 12px;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-codexTodoText.is-completed {
+  color: var(--oc-fg-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .oc-shell[data-oc-theme="codex"] .oc-composerInfo {

@@ -261,15 +261,19 @@
 
 .oc-shell[data-oc-theme="claude"] .oc-toolRowWrap {
   position: relative;
+  width: calc(100% - 28px);
+  max-width: calc(100% - 28px);
   margin-left: 28px;
   border: 1px solid color-mix(in srgb, var(--oc-border-strong) 48%, transparent 52%);
   border-radius: calc(var(--oc-radius-sm) + 4px);
   background: color-mix(in srgb, var(--oc-surface-elevated) 72%, var(--oc-surface-block) 28%);
-  box-shadow: var(--oc-tool-shadow);
+  box-shadow: var(--oc-tool-shadow), inset 0 1px 0 color-mix(in srgb, white 18%, transparent 82%);
 }
 
 .oc-shell[data-oc-theme="claude"] .oc-toolPanel {
   position: relative;
+  width: calc(100% - 28px);
+  max-width: calc(100% - 28px);
   margin-left: 28px;
   border-color: color-mix(in srgb, var(--oc-border-strong) 54%, transparent 46%);
   border-radius: calc(var(--oc-radius-md) - 2px);
@@ -284,9 +288,9 @@
   left: -18px;
   top: -14px;
   bottom: -14px;
-  width: 2px;
+  width: 3px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--oc-accent) 18%, var(--oc-border) 82%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--oc-accent) 30%, transparent 70%) 0%, color-mix(in srgb, var(--oc-accent) 12%, var(--oc-border) 88%) 52%, color-mix(in srgb, var(--oc-accent) 22%, transparent 78%) 100%);
 }
 
 .oc-shell[data-oc-theme="claude"] .oc-toolRowWrap::after,
@@ -300,6 +304,7 @@
   border: 2px solid color-mix(in srgb, var(--oc-accent) 28%, transparent 72%);
   border-radius: 999px;
   background: var(--oc-surface-canvas);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--oc-accent) 8%, transparent 92%);
 }
 
 .oc-shell[data-oc-theme="claude"] .oc-toolPanel.is-active {
@@ -307,10 +312,20 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--oc-accent) 10%, transparent 90%), var(--oc-card-shadow);
 }
 
+.oc-shell[data-oc-theme="claude"] .oc-toolRowTitle {
+  color: color-mix(in srgb, var(--oc-fg-primary) 74%, var(--oc-fg-muted) 26%);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-toolRowSummary,
+.oc-shell[data-oc-theme="claude"] .oc-toolRowExtra {
+  color: color-mix(in srgb, var(--oc-fg-muted) 88%, var(--oc-accent) 12%);
+}
+
 .oc-shell[data-oc-theme="codex"] .oc-toolRowWrap {
   border: 1px solid color-mix(in srgb, var(--oc-border) 72%, transparent 28%);
   border-radius: calc(var(--oc-radius-sm) + 2px);
   background: color-mix(in srgb, var(--oc-surface-block) 94%, var(--oc-surface-elevated) 6%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 4%, transparent 96%);
 }
 
 .oc-shell[data-oc-theme="codex"] .oc-toolPanel {
@@ -343,6 +358,13 @@
   letter-spacing: 0.04em;
 }
 
+.oc-shell[data-oc-theme="claude"] .oc-outputWindowCopyBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in srgb, white 10%, transparent 90%);
+}
+
 .oc-shell[data-oc-theme="claude"] .oc-outputWindowContent-shell,
 .oc-shell[data-oc-theme="claude"] .oc-outputWindowContent-diff {
   padding: 10px 12px 12px;
@@ -364,9 +386,38 @@
   font-weight: 500;
 }
 
+.oc-shell[data-oc-theme="codex"] .oc-outputWindowAction {
+  color: color-mix(in srgb, var(--oc-accent-strong) 82%, var(--oc-outputWindow-head-fg) 18%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-outputWindowAction::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--oc-accent) 78%, transparent 22%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--oc-accent) 18%, transparent 82%);
+  vertical-align: middle;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-outputWindowCopyBtn {
+  width: 20px;
+  height: 20px;
+  border: 1px solid color-mix(in srgb, var(--oc-outputWindow-border) 72%, transparent 28%);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--oc-surface-control) 84%, transparent 16%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-outputWindowCopyBtn:hover {
+  background: color-mix(in srgb, var(--oc-accent) 10%, var(--oc-surface-control) 90%);
+}
+
 .oc-shell[data-oc-theme="codex"] .oc-outputWindowContent-shell,
 .oc-shell[data-oc-theme="codex"] .oc-outputWindowContent-diff {
   padding: 7px 10px;
+  line-height: 1.58;
 }
 
 .oc-toolPanel-lsp {

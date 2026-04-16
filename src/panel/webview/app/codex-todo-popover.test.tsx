@@ -22,6 +22,8 @@ describe("CodexTodoPopover", () => {
       />,
     )
 
+    assert.equal(html.includes("Collapse task list"), true)
+    assert.equal(html.includes("ACTIVE TASKS"), true)
     assert.equal(html.includes("共 3 个任务，已经完成 1 个"), true)
     assert.equal(html.includes("Write tests"), true)
     assert.equal(html.includes("Implement popover"), true)
@@ -29,6 +31,22 @@ describe("CodexTodoPopover", () => {
     assert.equal(html.includes("oc-codexTodoItem is-completed"), true)
     assert.equal(html.includes("oc-codexTodoItem is-in_progress"), true)
     assert.equal(html.includes("oc-codexTodoItem is-pending"), true)
+  })
+
+  test("renders a collapsed floating summary state", () => {
+    const html = renderToStaticMarkup(
+      <CodexTodoPopover
+        todos={[
+          todo("Write tests", "completed"),
+          todo("Implement popover", "in_progress"),
+        ]}
+        collapsed
+      />,
+    )
+
+    assert.equal(html.includes("oc-codexTodoPopover is-collapsed"), true)
+    assert.equal(html.includes("Expand task list"), true)
+    assert.equal(html.includes("oc-codexTodoList"), false)
   })
 
   test("renders nothing when there are no todos", () => {
