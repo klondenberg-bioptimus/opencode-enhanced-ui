@@ -66,6 +66,7 @@
   border-radius: var(--oc-radius-md);
   background: color-mix(in srgb, var(--oc-accent) 8%, var(--oc-composer-surface) 92%);
   padding-bottom: 58px;
+  box-shadow: var(--oc-composer-shadow);
 }
 
 .oc-composer.is-leaderPending .oc-composerBody {
@@ -779,7 +780,9 @@
 
 .oc-statusBadge {
   padding: 4px 8px;
-  border: 1px solid var(--oc-border-strong);
+  border: 1px solid var(--oc-status-badge-border, var(--oc-border-strong));
+  border-radius: var(--oc-radius-sm);
+  background: var(--oc-status-badge-bg);
   color: var(--oc-fg-primary);
   font-size: var(--oc-font-size-sm);
   line-height: 1.4;
@@ -1147,4 +1150,79 @@
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-composerBody {
+  border-color: color-mix(in srgb, var(--oc-border-strong) 58%, transparent 42%);
+  border-radius: calc(var(--oc-radius-md) + 4px);
+  background: color-mix(in srgb, var(--oc-composer-surface) 92%, var(--oc-surface-elevated) 8%);
+  padding-bottom: 64px;
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-composerInfo {
+  min-height: 57px;
+  padding: 14px 60px 14px 14px;
+  border-top: 1px solid color-mix(in srgb, var(--oc-border) 72%, transparent 28%);
+  background: color-mix(in srgb, var(--oc-surface-control) 36%, transparent 64%);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-statusBadge {
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 18%, transparent 82%);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-composerPrimaryAction {
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
+  border-color: transparent;
+  background: color-mix(in srgb, var(--oc-accent-strong) 88%, var(--oc-surface-block) 12%);
+  color: var(--oc-text-accent);
+  box-shadow: 0 14px 24px color-mix(in srgb, var(--oc-accent-strong) 24%, transparent 76%);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-composerPrimaryAction:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--oc-accent-strong) 94%, var(--oc-surface-block) 6%);
+  transform: translateY(-1px) scale(1.01);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-composerAutocomplete,
+.oc-shell[data-oc-theme="claude"] .oc-modelPicker,
+.oc-shell[data-oc-theme="claude"] .oc-statusPopover {
+  border-radius: calc(var(--oc-radius-md) - 2px);
+  background: color-mix(in srgb, var(--oc-status-popover-bg) 96%, var(--oc-surface-elevated) 4%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-composerBody {
+  border-color: color-mix(in srgb, var(--oc-border-strong) 66%, transparent 34%);
+  border-radius: calc(var(--oc-radius-md) + 6px);
+  background: color-mix(in srgb, var(--oc-composer-surface) 94%, var(--oc-surface-elevated) 6%);
+  padding-bottom: 62px;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-composerInfo {
+  min-height: 55px;
+  padding: 12px 56px 12px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--oc-border) 80%, transparent 20%);
+  background: color-mix(in srgb, var(--oc-surface-control) 74%, transparent 26%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-statusBadge {
+  border-radius: calc(var(--oc-radius-sm) + 2px);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 10%, transparent 90%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-composerPrimaryAction {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--oc-accent) 18%, var(--oc-surface-block) 82%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 8%, transparent 92%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-composerAutocomplete,
+.oc-shell[data-oc-theme="codex"] .oc-modelPicker,
+.oc-shell[data-oc-theme="codex"] .oc-statusPopover {
+  border-radius: calc(var(--oc-radius-md) + 2px);
+  background: color-mix(in srgb, var(--oc-status-popover-bg) 96%, var(--oc-surface-elevated) 4%);
 }

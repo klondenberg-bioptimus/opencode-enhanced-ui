@@ -184,3 +184,32 @@ label.oc-questionOption:hover {
 .oc-dock-error {
   border-color: color-mix(in srgb, var(--oc-error) 42%, var(--oc-border) 58%);
 }
+
+.oc-shell[data-oc-theme="claude"] .oc-questionCard {
+  border-color: color-mix(in srgb, var(--oc-border-strong) 52%, transparent 48%);
+  background: color-mix(in srgb, var(--oc-surface-elevated) 80%, var(--oc-surface-block) 20%);
+  box-shadow: var(--oc-card-shadow);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-questionOption {
+  border-radius: calc(var(--oc-radius-sm) + 2px);
+  background: color-mix(in srgb, var(--oc-surface-control) 78%, var(--oc-surface-block) 22%);
+}
+
+.oc-shell[data-oc-theme="claude"] .oc-dock-warning .oc-dockHeader {
+  border-radius: calc(var(--oc-radius-md) - 6px) calc(var(--oc-radius-md) - 6px) 0 0;
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-questionCard {
+  border-color: color-mix(in srgb, var(--oc-border) 76%, transparent 24%);
+  background: color-mix(in srgb, var(--oc-surface-block) 94%, var(--oc-surface-elevated) 6%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-questionOption {
+  border-radius: calc(var(--oc-radius-sm) + 1px);
+  background: color-mix(in srgb, var(--oc-surface-control) 88%, var(--oc-surface-block) 12%);
+}
+
+.oc-shell[data-oc-theme="codex"] .oc-dock-warning .oc-dockHeader {
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, black 10%, transparent 90%);
+}
