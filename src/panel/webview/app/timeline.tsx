@@ -186,7 +186,7 @@ function TimelineBlockView({
   }, [block.kind === "user-message" ? block.message.info.id : block.key])
 
   if (block.kind === "user-message") {
-    const userText = primaryUserText(block.message)
+    const userText = visibleUserText(block.message)
     const commandPrompt = userText ? findCommandPromptInvocation(userText.text || "", commandPromptInvocations, commands) : undefined
     const skillMatch = compactSkillInvocations && userText
       ? findSkillInvocationMatch(userText.text || "", skillCatalog)
@@ -668,6 +668,23 @@ function primaryUserText(message: SessionMessage) {
   return message.parts.find((part): part is TextPart => part.type === "text" && !part.synthetic && !part.ignored)
 }
 
+function visibleUserText(message: SessionMessage) {
+  const textPart = primaryUserText(message)
+  if (!textPart) {
+    return undefined
+  }
+
+  const stripped = stripAttachmentSourceText(textPart.text || "", userAttachments(message))
+  if (stripped === textPart.text) {
+    return textPart
+  }
+
+  return {
+    ...textPart,
+    text: stripped,
+  }
+}
+
 function userHasSyntheticText(message: SessionMessage) {
   return message.parts.some((part) => part.type === "text" && !!part.synthetic)
 }
@@ -678,6 +695,48 @@ function userHasCompaction(message: SessionMessage) {
 
 function userAttachments(message: SessionMessage) {
   return message.parts.filter((part): part is FilePart => part.type === "file")
+}
+
+function stripAttachmentSourceText(text: string, attachments: FilePart[]) {
+  const ranges = attachments
+    .flatMap((part) => {
+      const source = part.source
+      const start = source?.text?.start
+      const end = source?.text?.end
+      if (typeof start !== "number" || typeof end !== "number" || start < 0 || end <= start || start >= text.length) {
+        return []
+      }
+      return [{
+        start,
+        end: Math.min(end, text.length),
+      }]
+    })
+    .sort((a, b) => a.start - b.start)
+
+  if (ranges.length === 0) {
+    return text
+  }
+
+  let cursor = 0
+  let result = ""
+
+  for (const range of ranges) {
+    if (range.end <= cursor) {
+      continue
+    }
+
+    const nextStart = Math.max(range.start, cursor)
+    if (nextStart > cursor) {
+      result += text.slice(cursor, nextStart)
+    }
+    cursor = Math.max(cursor, range.end)
+  }
+
+  if (cursor < text.length) {
+    result += text.slice(cursor)
+  }
+
+  return result
 }
 
 export function findSkillLocation(name: string, catalog: SkillCatalogEntry[]) {

@@ -1,7 +1,7 @@
 import React from "react"
 import MarkdownIt from "markdown-it"
 import { renderMarkdownCodeWindow } from "./CodeBlock"
-import { parseFileReference, syncMarkdownFileRefs } from "./FileRefText"
+import { parseAnchorFileReference, parseFileReference, syncMarkdownFileRefs } from "./FileRefText"
 
 const markdown = createMarkdown()
 const copyTipTimers = new WeakMap<HTMLButtonElement, number>()
@@ -28,7 +28,7 @@ export function MarkdownBlock({ fileRefStatus, onOpenFile, onResolveFileRefs, co
     }
     const link = target.closest("a")
     if (link instanceof HTMLAnchorElement) {
-      const fileRef = parseFileReference(link.getAttribute("href") || "")
+      const fileRef = parseAnchorFileReference(link.getAttribute("href") || "", link.textContent || "")
       if (fileRef && fileRefStatus.get(fileRef.key) !== false) {
         event.preventDefault()
         event.stopPropagation()
@@ -85,8 +85,11 @@ function createMarkdown() {
   const linkDefault = instance.renderer.rules.link_open
   instance.renderer.rules.link_open = (...args: Parameters<NonNullable<typeof linkDefault>>) => {
     const [tokens, idx, options, env, self] = args
-    tokens[idx]?.attrSet("target", "_blank")
-    tokens[idx]?.attrSet("rel", "noreferrer noopener")
+    const href = tokens[idx]?.attrGet("href") || ""
+    if (!parseAnchorFileReference(href, linkLabel(tokens, idx))) {
+      tokens[idx]?.attrSet("target", "_blank")
+      tokens[idx]?.attrSet("rel", "noreferrer noopener")
+    }
     return linkDefault ? linkDefault(tokens, idx, options, env, self) : self.renderToken(tokens, idx, options)
   }
   const codeInlineDefault = instance.renderer.rules.code_inline
@@ -100,6 +103,18 @@ function createMarkdown() {
     return `<p>${instance.utils.escapeHtml(value)}</p>`
   }
   return instance
+}
+
+function linkLabel(tokens: Parameters<NonNullable<MarkdownIt["renderer"]["rules"]["link_open"]>>[0], idx: number) {
+  let value = ""
+  for (let i = idx + 1; i < tokens.length; i += 1) {
+    const token = tokens[i]
+    if (!token || token.type === "link_close") {
+      break
+    }
+    value += token.content || ""
+  }
+  return value
 }
 
 function copyText(value: string) {

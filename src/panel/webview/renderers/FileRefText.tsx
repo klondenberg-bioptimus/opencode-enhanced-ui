@@ -42,22 +42,55 @@ export function FileRefText({ fileRefStatus, onOpenFile, onResolveFileRefs, valu
 
 export function parseFileReference(value: string) {
   const input = value.trim()
-  if (!input || isExternalTarget(input)) {
+  if (!input) {
     return undefined
   }
   const lineMatch = input.match(/:(\d+)$/)
   const filePath = lineMatch ? input.slice(0, -lineMatch[0].length) : input
   const normalized = normalizeFileReference(filePath)
-  if (!normalized || !looksLikeFilePath(normalized)) {
+  if (!normalized || isExternalTarget(normalized) || !looksLikeFilePath(normalized)) {
     return undefined
   }
   return { key: fileRefKey(normalized), filePath: normalized, line: lineMatch ? Number.parseInt(lineMatch[1] || "", 10) : undefined } satisfies FileRef
 }
 
+export function parseAnchorFileReference(href: string, label = "") {
+  const direct = parseFileReference(href)
+  if (direct) {
+    return direct
+  }
+
+  const text = label.trim()
+  if (!text) {
+    return undefined
+  }
+
+  const labelRef = parseFileReference(text)
+  if (!labelRef) {
+    return undefined
+  }
+
+  try {
+    const parsed = new URL(href)
+    const isAutoLinkedFilename = /^(http|https):$/.test(parsed.protocol)
+      && !parsed.username
+      && !parsed.password
+      && !parsed.search
+      && !parsed.hash
+      && (parsed.pathname === "/" || parsed.pathname === "")
+      && parsed.hostname.toLowerCase() === labelRef.filePath.toLowerCase()
+      && (parsed.port ? Number(parsed.port) === labelRef.line : typeof labelRef.line !== "number")
+
+    return isAutoLinkedFilename ? labelRef : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function syncMarkdownFileRefs(root: HTMLElement, fileRefStatus: Map<string, boolean>, onResolveFileRefs: (refs: Array<{ key: string; filePath: string }>) => void) {
   const refs = new Map<string, string>()
   for (const link of Array.from(root.querySelectorAll("a"))) {
-    const fileRef = parseFileReference(link.getAttribute("href") || "")
+    const fileRef = parseAnchorFileReference(link.getAttribute("href") || "", link.textContent || "")
     if (!fileRef) {
       link.removeAttribute("data-file-ref")
       continue

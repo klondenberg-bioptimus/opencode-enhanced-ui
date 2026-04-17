@@ -320,6 +320,55 @@ describe("Timeline user message rendering", () => {
     assert.equal(html.includes('aria-label="Preview image.png"'), true)
   })
 
+  test("hides inline file mention text when the same file is rendered as an attachment pill", () => {
+    const seenMarkdown: string[] = []
+
+    const html = renderToStaticMarkup(
+      <Timeline
+        bootstrapStatus="ready"
+        compactSkillInvocations={true}
+        diffMode="unified"
+        messages={[sessionMessage(messageInfo("m1", "user"), [
+          textPart("p1", "m1", "我已经截了一些图片放到screenshot目录了，@README.md，图片可以重命名一下"),
+          filePart("f1", "m1", {
+            mime: "text/markdown",
+            filename: "README.md",
+            url: "file:///workspace/README.md",
+            source: {
+              type: "file",
+              path: "/workspace/README.md",
+              text: {
+                value: "@README.md",
+                start: 25,
+                end: 35,
+              },
+            },
+          }),
+        ])]}
+        onCopyUserMessage={() => {}}
+        onForkUserMessage={() => {}}
+        onOpenFileAttachment={() => {}}
+        onPreviewImageAttachment={() => {}}
+        onRedoSession={() => {}}
+        onUndoUserMessage={() => {}}
+        showInternals={false}
+        showThinking={true}
+        skillCatalog={[]}
+        AgentBadge={({ name }) => <span>{name}</span>}
+        CompactionDivider={() => <div>divider</div>}
+        EmptyState={({ title, text }) => <div>{title}:{text}</div>}
+        MarkdownBlock={({ content, className }) => {
+          seenMarkdown.push(content)
+          return <div className={className}>{content}</div>
+        }}
+        PartView={({ part }) => <div>{part.type}</div>}
+      />,
+    )
+
+    assert.equal(html.includes('aria-label="Open attachment README.md"'), true)
+    assert.deepEqual(seenMarkdown, ["我已经截了一些图片放到screenshot目录了，，图片可以重命名一下"])
+  })
+
   test("renders a compact command marker for prompt-style slash command text", () => {
     const html = renderToStaticMarkup(
       <Timeline
