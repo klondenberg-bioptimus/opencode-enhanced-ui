@@ -6,3 +6,5 @@
 /dist
 /*.vsix
 /package-lock.json
+docs/.DS_Store
+docs/screenshots/.DS_Store

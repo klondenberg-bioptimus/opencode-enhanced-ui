@@ -60,7 +60,7 @@ export function affectsHttpProxySetting(event: vscode.ConfigurationChangeEvent) 
 }
 
 export function openSettingsQuery() {
-  return "@ext:zgy.opencode-vscode-ui"
+  return "@ext:lantingxin.opencode-enhanced-ui"
 }
 
 export function proxyRestartMessage() {

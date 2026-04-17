@@ -34,7 +34,6 @@ This enhanced version extends the original OpenCode UI with:
 - **Catch missing `opencode` setup early** with built-in environment checks
 
 ![Get the full OpenCode Enhanced UI workflow inside VS Code](docs/screenshots/overview.png)
-<!-- 📸 SCREENSHOT NEEDED: Overview showing main interface with sidebar, session panel, and companion views -->
 
 ## Visual tour 👀
 
@@ -44,8 +43,7 @@ The sidebar gives you a workspace-first view of your OpenCode sessions. Create, 
 
 Search sessions within one workspace at a time, or filter by tags to organize your active work.
 
-![Browse OpenCode sessions by workspace folder from the Activity Bar](docs/screenshots/sidebar.png)
-<!-- 📸 SCREENSHOT NEEDED: Updated sidebar showing search and tag filtering UI -->
+![Browse OpenCode sessions by workspace folder from the Activity Bar](docs/screenshots/sidebar-search-tags.png)
 
 ### Panel theme system
 
@@ -53,24 +51,20 @@ Choose from three visual presets to match your workflow preference. All themes a
 
 | Default Theme | Codex Theme | Claude Theme |
 | --- | --- | --- |
+| ![Default theme](docs/screenshots/theme-default.png) | ![Codex theme](docs/screenshots/theme-codex.png) | ![Claude theme](docs/screenshots/theme-claude.png) |
 | Standard OpenCode styling | Tool-like preset with stronger framing | Softer preset with gentler surfaces |
-
-![Panel theme comparison](docs/screenshots/panel-themes.png)
-<!-- 📸 SCREENSHOT NEEDED: Side-by-side comparison of all three panel themes -->
 
 ### Dedicated conversation tabs
 
 Each session opens in its own tab, making it easier to keep multiple threads organized while you continue editing code in the same window.
 
 ![Open each session in a dedicated tab without leaving VS Code](docs/screenshots/session-tab.png)
-<!-- 📸 SCREENSHOT NEEDED: Updated session tab showing enhanced composer and skill rendering -->
 
 ### Subagents companion view
 
 Track subagent sessions spawned by the focused session in a dedicated sidebar panel. Monitor their status and navigate between parent and child sessions effortlessly.
 
-![Monitor subagents in real-time](docs/screenshots/subagents-view.png)
-<!-- 📸 SCREENSHOT NEEDED: Subagents companion view showing active subagent sessions -->
+![Monitor subagents in real-time](docs/screenshots/skill-rendering.png)
 
 ### Enhanced todo and modified files views
 
@@ -79,22 +73,18 @@ Companion views help you triage focused-session tasks with grouped sections and 
 | Enhanced Todo View | Modified Files Tracking |
 | --- | --- |
 | ![Track session todos with grouping and filters](docs/screenshots/todo-view.png) | ![See which files changed during the session](docs/screenshots/modified-files.png) |
-<!-- 📸 SCREENSHOT NEEDED: Updated todo view showing grouping features -->
-<!-- 📸 SCREENSHOT NEEDED: Modified files view scoped to selected session -->
 
 ### Compact skill invocations
 
 Skill usage is rendered as clean, compact markers that don't clutter your transcript while still providing full visibility into what skills are being used.
 
-![Compact skill rendering](docs/screenshots/skill-rendering.png)
-<!-- 📸 SCREENSHOT NEEDED: Example of compact skill invocation rendering in transcript -->
+![Compact skill rendering in transcript](docs/screenshots/session-view-secondary.png)
 
 ### Session view in secondary sidebar
 
 Open the dedicated session view in VS Code's secondary sidebar for a focused conversation experience alongside your primary sidebar.
 
-![Session view in secondary sidebar](docs/screenshots/session-view-secondary.png)
-<!-- 📸 SCREENSHOT NEEDED: Session view panel in secondary sidebar -->
+![Session view in secondary sidebar](docs/screenshots/secondary-sidebar-view.png)
 
 ## Key Features 🎯
 
