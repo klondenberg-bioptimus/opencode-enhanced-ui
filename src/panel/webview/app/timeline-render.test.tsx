@@ -194,6 +194,46 @@ describe("Timeline user message rendering", () => {
     assert.equal(html.includes('data-tooltip="Redo"'), true)
   })
 
+  test("renders assistant message errors as a dedicated transcript block before metadata", () => {
+    const html = renderToStaticMarkup(
+      <Timeline
+        bootstrapStatus="ready"
+        compactSkillInvocations={true}
+        diffMode="unified"
+        messages={[
+          sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", "hello")]),
+          sessionMessage({
+            ...messageInfo("m2", "assistant", { agent: "build" }),
+            error: {
+              name: "UnknownError",
+              data: {
+                message: "unknown certificate verification error",
+              },
+            },
+          } as MessageInfo, []),
+        ]}
+        onCopyUserMessage={() => {}}
+        onForkUserMessage={() => {}}
+        onOpenFileAttachment={() => {}}
+        onPreviewImageAttachment={() => {}}
+        onRedoSession={() => {}}
+        onUndoUserMessage={() => {}}
+        showInternals={false}
+        showThinking={true}
+        skillCatalog={[]}
+        AgentBadge={({ name }) => <span>{name}</span>}
+        CompactionDivider={() => <div>divider</div>}
+        EmptyState={({ title, text }) => <div>{title}:{text}</div>}
+        MarkdownBlock={({ content, className }) => <div className={className}>{content}</div>}
+        PartView={({ part }) => <div>{part.type}</div>}
+      />,
+    )
+
+    assert.equal(html.includes("unknown certificate verification error"), true)
+    assert.equal(html.includes("oc-assistantError"), true)
+    assert.ok(html.indexOf("unknown certificate verification error") < html.indexOf("build"))
+  })
+
   test("renders a compact skill marker for wrapped user text", () => {
     const html = renderToStaticMarkup(
       <Timeline

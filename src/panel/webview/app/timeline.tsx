@@ -11,6 +11,7 @@ import { SkillPill } from "./skill-pill"
 export type TimelineBlock =
   | { kind: "user-message"; key: string; message: SessionMessage; queued: boolean }
   | { kind: "assistant-part"; key: string; part: MessagePart }
+  | { kind: "assistant-error"; key: string; message: SessionMessage; text: string }
   | { kind: "assistant-meta"; key: string; messages: SessionMessage[] }
   | { kind: "revert"; key: string; count: number; files: Array<{ filename: string; additions: number; deletions: number }> }
 
@@ -22,6 +23,7 @@ type TimelineDerivationOptions = {
 }
 
 export type TimelineDerivationCache = {
+  assistantErrorBlocks: Map<string, Extract<TimelineBlock, { kind: "assistant-error" }>>
   assistantMetaBlocks: Map<string, Extract<TimelineBlock, { kind: "assistant-meta" }>>
   assistantPartBlocks: Map<string, Extract<TimelineBlock, { kind: "assistant-part" }>>
   revertBlocks: Map<string, Extract<TimelineBlock, { kind: "revert" }>>
@@ -30,6 +32,7 @@ export type TimelineDerivationCache = {
 
 export function createTimelineDerivationCache(): TimelineDerivationCache {
   return {
+    assistantErrorBlocks: new Map(),
     assistantMetaBlocks: new Map(),
     assistantPartBlocks: new Map(),
     revertBlocks: new Map(),
@@ -283,6 +286,14 @@ function TimelineBlockView({
     )
   }
 
+  if (block.kind === "assistant-error") {
+    return (
+      <section className="oc-assistantError">
+        <pre className="oc-errorBlock">{block.text}</pre>
+      </section>
+    )
+  }
+
   const part = block.part
   return <PartView part={part} active={active} diffMode={diffMode} />
 }
@@ -374,6 +385,10 @@ function sameTimelineBlock(prev: TimelineBlock, next: TimelineBlock) {
     return prev.part === next.part
   }
 
+  if (prev.kind === "assistant-error" && next.kind === "assistant-error") {
+    return prev.message === next.message && prev.text === next.text
+  }
+
   if (prev.kind === "assistant-meta" && next.kind === "assistant-meta") {
     return sameMessageList(prev.messages, next.messages)
   }
@@ -453,6 +468,7 @@ function AssistantTurnMeta({ AgentBadge, messages }: { AgentBadge: ({ name }: { 
 }
 
 export function reconcileTimelineBlocks(cache: TimelineDerivationCache, messages: SessionMessage[], options: TimelineDerivationOptions) {
+  const nextAssistantErrorBlocks = new Map<string, Extract<TimelineBlock, { kind: "assistant-error" }>>()
   const nextAssistantMetaBlocks = new Map<string, Extract<TimelineBlock, { kind: "assistant-meta" }>>()
   const nextAssistantPartBlocks = new Map<string, Extract<TimelineBlock, { kind: "assistant-part" }>>()
   const nextRevertBlocks = new Map<string, Extract<TimelineBlock, { kind: "revert" }>>()
@@ -486,10 +502,15 @@ export function reconcileTimelineBlocks(cache: TimelineDerivationCache, messages
     for (const part of parts) {
       blocks.push(assistantPartBlock(cache.assistantPartBlocks, nextAssistantPartBlocks, part))
     }
+    const errorText = assistantErrorText(message.info)
+    if (errorText) {
+      blocks.push(assistantErrorBlock(cache.assistantErrorBlocks, nextAssistantErrorBlocks, message, errorText))
+    }
     assistants.push(message)
   }
 
   flush()
+  cache.assistantErrorBlocks = nextAssistantErrorBlocks
   cache.assistantMetaBlocks = nextAssistantMetaBlocks
   cache.assistantPartBlocks = nextAssistantPartBlocks
   cache.revertBlocks = nextRevertBlocks
@@ -536,6 +557,29 @@ function assistantPartBlock(
     kind: "assistant-part",
     key,
     part,
+  }
+  nextCache.set(key, next)
+  return next
+}
+
+function assistantErrorBlock(
+  cache: Map<string, Extract<TimelineBlock, { kind: "assistant-error" }>>,
+  nextCache: Map<string, Extract<TimelineBlock, { kind: "assistant-error" }>>,
+  message: SessionMessage,
+  text: string,
+) {
+  const key = `error:${message.info.id}`
+  const prev = cache.get(key)
+  if (prev && prev.message === message && prev.text === text) {
+    nextCache.set(key, prev)
+    return prev
+  }
+
+  const next: Extract<TimelineBlock, { kind: "assistant-error" }> = {
+    kind: "assistant-error",
+    key,
+    message,
+    text,
   }
   nextCache.set(key, next)
   return next
@@ -939,6 +983,11 @@ function assistantTokens(info?: MessageInfo) {
   if (typeof output === "number" && output > 0) tokens.push(`${output} out`)
   if (typeof reasoning === "number" && reasoning > 0) tokens.push(`${reasoning} reasoning`)
   return tokens.join(" · ")
+}
+
+function assistantErrorText(info?: MessageInfo) {
+  const message = info?.error?.data && "message" in info.error.data ? info.error.data.message : undefined
+  return typeof message === "string" ? message.trim() : ""
 }
 
 function formatTime(value?: number) {

@@ -51,6 +51,7 @@
 }
 
 .oc-turnUser,
+.oc-assistantError,
 .oc-turnMeta,
 .oc-revertNotice,
 .oc-toolRowWrap,
@@ -115,6 +116,29 @@
 .oc-revertNotice:hover .oc-revertActions,
 .oc-revertNotice:focus-within .oc-revertActions {
   transform: translateY(-50%);
+}
+
+.oc-assistantError {
+  position: relative;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--oc-radius-lg);
+  background: var(--oc-message-assistant-bg);
+}
+
+.oc-assistantError::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--oc-error);
+  border-radius: var(--oc-radius-sm);
+}
+
+.oc-assistantError .oc-errorBlock {
+  font-family: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
 }
 
 .oc-messageActionBtn {

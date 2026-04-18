@@ -148,6 +148,76 @@ export type CommandInfo = {
   hints: string[]
 }
 
+export type ProviderAuthError = {
+  name: "ProviderAuthError"
+  data: {
+    providerID: string
+    message: string
+  }
+}
+
+export type UnknownError = {
+  name: "UnknownError"
+  data: {
+    message: string
+  }
+}
+
+export type MessageOutputLengthError = {
+  name: "MessageOutputLengthError"
+  data: {
+    [key: string]: unknown
+  }
+}
+
+export type MessageAbortedError = {
+  name: "MessageAbortedError"
+  data: {
+    message: string
+  }
+}
+
+export type StructuredOutputError = {
+  name: "StructuredOutputError"
+  data: {
+    message: string
+    retries: number
+  }
+}
+
+export type ContextOverflowError = {
+  name: "ContextOverflowError"
+  data: {
+    message: string
+    responseBody?: string
+  }
+}
+
+export type ApiError = {
+  name: "APIError"
+  data: {
+    message: string
+    statusCode?: number
+    isRetryable: boolean
+    responseHeaders?: {
+      [key: string]: string
+    }
+    responseBody?: string
+    metadata?: {
+      [key: string]: string
+    }
+  }
+}
+
+export type MessageError =
+  | ProviderAuthError
+  | UnknownError
+  | MessageOutputLengthError
+  | MessageAbortedError
+  | StructuredOutputError
+  | ContextOverflowError
+  | ApiError
+
 export type MessageInfo = {
   id: string
   sessionID: string
@@ -157,6 +227,7 @@ export type MessageInfo = {
     completed?: number
   }
   agent?: string
+  error?: MessageError
   cost?: number
   tokens?: {
     input: number
@@ -292,6 +363,13 @@ export type SessionEvent =
       type: "server.instance.disposed"
       properties?: {
         workspaceID?: string
+      }
+    }
+  | {
+      type: "session.error"
+      properties: {
+        sessionID?: string
+        error?: MessageError
       }
     }
   | {

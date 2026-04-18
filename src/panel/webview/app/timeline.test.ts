@@ -119,6 +119,26 @@ describe("timeline block reconciliation", () => {
     assert.equal(second[2]?.kind === "assistant-part" ? second[2].part : undefined, appendedTool)
     assert.equal(second[3]?.kind === "assistant-meta" ? second[3].messages[0] : undefined, nextAssistant)
   })
+
+  test("adds an assistant error block ahead of assistant metadata", () => {
+    const user = sessionMessage(messageInfo("m1", "user"), [textPart("p1", "m1", "hello")])
+    const assistant = sessionMessage({
+      ...messageInfo("m2", "assistant", { agent: "build" }),
+      error: {
+        name: "UnknownError",
+        data: {
+          message: "unknown certificate verification error",
+        },
+      },
+    } as MessageInfo, [])
+
+    const blocks = reconcileTimelineBlocks(createTimelineDerivationCache(), [user, assistant], defaultOptions)
+
+    assert.equal(blocks.length, 3)
+    assert.equal(blocks[1]?.kind, "assistant-error")
+    assert.equal(blocks[1]?.kind === "assistant-error" ? blocks[1].message.info.id : undefined, "m2")
+    assert.equal(blocks[2]?.kind, "assistant-meta")
+  })
 })
 
 describe("timeline attachment helpers", () => {

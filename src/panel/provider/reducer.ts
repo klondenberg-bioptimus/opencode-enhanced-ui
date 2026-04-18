@@ -11,6 +11,11 @@ export function needsRefresh(event: SessionEvent, payload: SessionSnapshot) {
     return true
   }
 
+  if (event.type === "session.error") {
+    const props = event.properties as { sessionID?: string }
+    return !!props.sessionID && payload.relatedSessionIds.includes(props.sessionID)
+  }
+
   if (event.type === "session.deleted") {
     const props = event.properties as { info: { id: string; parentID?: string } }
     if (props.info.id === payload.sessionRef.sessionId) {

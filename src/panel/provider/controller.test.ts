@@ -4,7 +4,7 @@ import * as vscode from "vscode"
 
 import type { HostMessage, SessionSnapshot } from "../../bridge/types"
 import type { PermissionRequest, QuestionRequest, SessionEvent, SessionInfo, SessionMessage } from "../../core/sdk"
-import { SessionPanelController } from "./controller"
+import { preserveIncrementalTranscript, SessionPanelController } from "./controller"
 import { panelTitle } from "./utils"
 
 type Harness = {
@@ -354,6 +354,31 @@ describe("SessionPanelController.handle", () => {
     assert.deepEqual(pushes, [{ force: true, reason: "event:session.updated:refresh:reparent-in" }])
   })
 
+  test("refreshes when the current session emits a session.error event", async () => {
+    const current = snapshot()
+    const { controller, pushes, snapshots, events } = createHarness(current)
+    const event = {
+      type: "session.error",
+      properties: {
+        sessionID: "root",
+        error: {
+          name: "APIError" as const,
+          data: {
+            message: "Bad Request",
+            statusCode: 400,
+            isRetryable: false,
+          },
+        },
+      },
+    } as const satisfies SessionEvent
+
+    await handle(controller, event)
+
+    assert.deepEqual(events, [])
+    assert.deepEqual(snapshots, [])
+    assert.deepEqual(pushes, [{ force: true, reason: "event:session.error:refresh" }])
+  })
+
   test("keeps transcript events incremental while a refresh is in progress and transcript state is already hydrated", async () => {
     const eventsUnderTest = [
       {
@@ -571,6 +596,57 @@ describe("SessionPanelController.handle", () => {
       directory: "/workspace",
     })
     controller.dispose()
+  })
+})
+
+describe("preserveIncrementalTranscript", () => {
+  test("keeps newer transcript messages collected during a pending refresh", () => {
+    const currentAtStart = snapshot({
+      messages: [{
+        info: {
+          id: "m1",
+          sessionID: "root",
+          role: "assistant",
+          time: { created: 1 },
+        },
+        parts: [],
+      }],
+    })
+    const currentNow = snapshot({
+      messages: [{
+        info: {
+          id: "m1",
+          sessionID: "root",
+          role: "assistant",
+          time: { created: 1 },
+          error: {
+            name: "APIError",
+            data: {
+              message: "Bad Request",
+              statusCode: 400,
+              isRetryable: false,
+            },
+          },
+        },
+        parts: [],
+      }],
+    })
+    const staleRefreshSnapshot = snapshot({
+      messages: [{
+        info: {
+          id: "m1",
+          sessionID: "root",
+          role: "assistant",
+          time: { created: 1 },
+        },
+        parts: [],
+      }],
+    })
+
+    const next = preserveIncrementalTranscript(staleRefreshSnapshot, currentAtStart, currentNow)
+
+    assert.deepEqual(next.messages, currentNow.messages)
+    assert.equal(next.messages[0]?.info.error?.name, "APIError")
   })
 })
 

@@ -262,6 +262,7 @@ export class SessionPanelController implements vscode.Disposable {
 
   private async refresh(reason: string) {
     const seq = ++this.refreshSeq
+    const currentAtStart = this.current
     this.incrementalReady = false
     this.deferredDirty = {
       sessionStatus: false,
@@ -281,7 +282,9 @@ export class SessionPanelController implements vscode.Disposable {
     // deferred path. Seed those deferred fields from the current snapshot first
     // so the webview does not briefly fall back to empty defaults during a
     // forced refresh.
-    const payload = this.seedDeferredFields(build.snapshot)
+    const payload = this.seedDeferredFields(
+      preserveIncrementalTranscript(build.snapshot, currentAtStart, this.current),
+    )
     this.current = payload
     await this.post(payload, `${reason}:snapshot`)
     this.incrementalReady = true
@@ -475,6 +478,27 @@ export class SessionPanelController implements vscode.Disposable {
   }
 }
 
+export function preserveIncrementalTranscript(
+  snapshot: SessionSnapshot,
+  currentAtStart: SessionSnapshot | undefined,
+  currentNow: SessionSnapshot | undefined,
+) {
+  if (!currentAtStart || !currentNow || currentNow === currentAtStart) {
+    return snapshot
+  }
+
+  if (currentAtStart.status !== "ready" || currentNow.status !== "ready" || snapshot.status !== "ready") {
+    return snapshot
+  }
+
+  return patch({
+    ...snapshot,
+    messages: currentNow.messages,
+    childMessages: currentNow.childMessages,
+    agentMode: currentNow.agentMode,
+  })
+}
+
 function canPostIncrementalSessionEvent(event: SessionEvent) {
   return event.type === "session.diff"
     || event.type === "session.status"
@@ -495,6 +519,15 @@ function canPostIncrementalSessionEvent(event: SessionEvent) {
 }
 
 function summarizePanelEvent(sessionId: string, event: SessionEvent) {
+  if (event.type === "session.error") {
+    const props = event.properties as { sessionID?: string; error?: { name?: string } }
+    if (props.sessionID !== sessionId) {
+      return undefined
+    }
+
+    return `event session.error session=${props.sessionID} error=${props.error?.name || "unknown"}`
+  }
+
   if (event.type === "session.status") {
     const props = event.properties as { sessionID: string; status: { type: string } }
     if (props.sessionID !== sessionId) {
