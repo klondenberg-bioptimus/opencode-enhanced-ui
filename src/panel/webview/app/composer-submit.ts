@@ -9,6 +9,7 @@ type ComposerHostMessage = Extract<WebviewMessage, { type: "submit" | "runSlashC
 type BuildComposerHostMessageInput = {
   draft: string
   commands: CommandInfo[]
+  showSkillsInSlashAutocomplete?: boolean
   parts: ComposerPromptPart[]
   images: ComposerImageInput
   agent?: string
@@ -17,7 +18,9 @@ type BuildComposerHostMessageInput = {
 }
 
 export function buildComposerHostMessage(input: BuildComposerHostMessageInput): ComposerHostMessage {
-  const slashAction = resolveComposerSlashAction(input.draft, input.commands)
+  const slashAction = resolveComposerSlashAction(input.draft, input.commands, {
+    showSkillsInSlashAutocomplete: input.showSkillsInSlashAutocomplete,
+  })
   const commandParts = input.images.map((attachment) => ({
     type: "file" as const,
     mime: attachment.mime,

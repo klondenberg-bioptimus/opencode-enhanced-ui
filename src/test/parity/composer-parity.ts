@@ -105,7 +105,7 @@ export function runComposerParity(fix: ComposerParityFixture): ComposerParityRes
   }
 
   if (!item.mention) {
-    if (item.kind === "command") {
+    if (item.kind === "command" || item.kind === "SKILL") {
       return {
         ...out,
         accepted: {

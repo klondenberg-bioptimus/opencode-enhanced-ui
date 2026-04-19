@@ -15,6 +15,21 @@ afterEach(() => {
 })
 
 describe("panel theme settings", () => {
+  test("reads showSkillsInSlashAutocomplete from display settings", () => {
+    ;(vscode.workspace as typeof vscode.workspace & {
+      getConfiguration: typeof vscode.workspace.getConfiguration
+    }).getConfiguration = ((section?: string) => ({
+      get: <T,>(key: string, fallback: T) => {
+        if (section === "opencode-ui" && key === "showSkillsInSlashAutocomplete") {
+          return true as T
+        }
+        return fallback
+      },
+    })) as typeof vscode.workspace.getConfiguration
+
+    assert.equal(getDisplaySettings().showSkillsInSlashAutocomplete, true)
+  })
+
   test("reads panelTheme from display settings", () => {
     ;(vscode.workspace as typeof vscode.workspace & {
       getConfiguration: typeof vscode.workspace.getConfiguration
@@ -48,6 +63,14 @@ describe("panel theme settings", () => {
   test("treats panelTheme changes as display setting changes", () => {
     const event = {
       affectsConfiguration: (key: string) => key === "opencode-ui.panelTheme",
+    } as vscode.ConfigurationChangeEvent
+
+    assert.equal(affectsDisplaySettings(event), true)
+  })
+
+  test("treats showSkillsInSlashAutocomplete changes as display setting changes", () => {
+    const event = {
+      affectsConfiguration: (key: string) => key === "opencode-ui.showSkillsInSlashAutocomplete",
     } as vscode.ConfigurationChangeEvent
 
     assert.equal(affectsDisplaySettings(event), true)
@@ -107,6 +130,20 @@ describe("panel theme settings", () => {
     assert.match(baseCss, /\.oc-composer\s*\{[\s\S]*padding:\s*0;/)
     assert.match(baseCss, /\.oc-composer\s*\{[\s\S]*gap:\s*8px;/)
     assert.match(statusCss, /\.oc-composerBody\s*\{[\s\S]*border:\s*1px solid var\(--oc-composer-border\);/)
+  })
+
+  test("keeps autocomplete rows compact without horizontal scrolling and preserves a visible kind column", () => {
+    const statusCss = readFileSync(resolve(process.cwd(), "src/panel/webview/status.css"), "utf8")
+
+    assert.match(statusCss, /\.oc-composerAutocompleteList\s*\{[\s\S]*overflow-x:\s*hidden;/)
+    assert.doesNotMatch(statusCss, /\.oc-composerAutocompleteItem\s*\{[^}]*overflow:\s*hidden;/)
+    assert.match(statusCss, /\.oc-composerAutocompleteItem\s*\{[^}]*box-sizing:\s*border-box;/)
+    assert.match(statusCss, /\.oc-composerAutocompleteLabelWrap\s*\{[^}]*display:\s*grid;/)
+    assert.match(statusCss, /\.oc-composerAutocompleteLabelWrap\s*\{[^}]*width:\s*100%;/)
+    assert.match(statusCss, /\.oc-composerAutocompleteLabelWrap\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*max-content\)\s+minmax\(0,\s*1fr\)\s+max-content;/)
+    assert.match(statusCss, /\.oc-composerAutocompleteKind\s*\{[^}]*padding-left:\s*8px;/)
+    assert.match(statusCss, /\.oc-composerAutocompleteKind\s*\{[^}]*justify-self:\s*end;/)
+    assert.doesNotMatch(statusCss, /\.oc-composerAutocompleteKind\s*\{[^}]*margin-left:\s*auto;/)
   })
 
   test("keeps the footer spacing aligned with the current transcript shell", () => {

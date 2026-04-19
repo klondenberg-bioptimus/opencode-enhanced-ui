@@ -14,22 +14,36 @@ describe("resolveComposerSlashAction", () => {
   })
 
   test("routes /skills to the local skill-picker action", () => {
-    assert.deepEqual(resolveComposerSlashAction("/skills", []), {
+    assert.deepEqual(resolveComposerSlashAction("/skills", [], {
+      showSkillsInSlashAutocomplete: false,
+    }), {
       type: "openSkillPicker",
     })
   })
 
+  test("does not route /skills to the local skill-picker action when slash autocomplete shows skills directly", () => {
+    assert.equal(resolveComposerSlashAction("/skills", [], {
+      showSkillsInSlashAutocomplete: true,
+    }), undefined)
+  })
+
   test("routes /sessions to a local session-picker action", () => {
-    assert.deepEqual(resolveComposerSlashAction("/sessions", []), {
+    assert.deepEqual(resolveComposerSlashAction("/sessions", [], {
+      showSkillsInSlashAutocomplete: false,
+    }), {
       type: "openSessionPicker",
     })
-    assert.deepEqual(resolveComposerSlashAction("  /sessions  ", []), {
+    assert.deepEqual(resolveComposerSlashAction("  /sessions  ", [], {
+      showSkillsInSlashAutocomplete: false,
+    }), {
       type: "openSessionPicker",
     })
   })
 
   test("routes /theme to the local theme-picker action", () => {
-    assert.deepEqual(resolveComposerSlashAction("/theme", []), {
+    assert.deepEqual(resolveComposerSlashAction("/theme", [], {
+      showSkillsInSlashAutocomplete: false,
+    }), {
       type: "openThemePicker",
     })
   })
@@ -40,7 +54,9 @@ describe("resolveComposerSlashAction", () => {
       description: "Compact the session",
       hints: [],
       source: "command",
-    }]), {
+    }], {
+      showSkillsInSlashAutocomplete: false,
+    }), {
       type: "command",
       command: "compact",
       arguments: "now",
@@ -53,7 +69,9 @@ describe("resolveComposerSlashAction", () => {
       description: "Load the superpowers workflow",
       hints: [],
       source: "skill",
-    }]), {
+    }], {
+      showSkillsInSlashAutocomplete: false,
+    }), {
       type: "command",
       command: "using-superpowers",
       arguments: "",
@@ -61,7 +79,9 @@ describe("resolveComposerSlashAction", () => {
   })
 
   test("ignores unknown slash commands", () => {
-    assert.equal(resolveComposerSlashAction("/missing", []), undefined)
+    assert.equal(resolveComposerSlashAction("/missing", [], {
+      showSkillsInSlashAutocomplete: false,
+    }), undefined)
   })
 })
 

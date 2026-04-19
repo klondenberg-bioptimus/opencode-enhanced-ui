@@ -587,7 +587,9 @@ export function App() {
       return
     }
 
-    const slashAction = resolveComposerSlashAction(draft, state.snapshot.commands)
+    const slashAction = resolveComposerSlashAction(draft, state.snapshot.commands, {
+      showSkillsInSlashAutocomplete: state.snapshot.display.showSkillsInSlashAutocomplete,
+    })
     if (slashAction) {
       if (slashAction.type === "newSession") {
         setState((current) => ({
@@ -642,6 +644,7 @@ export function App() {
     const hostMessage = buildComposerHostMessage({
       draft,
       commands: state.snapshot.commands,
+      showSkillsInSlashAutocomplete: state.snapshot.display.showSkillsInSlashAutocomplete,
       parts,
       images,
       agent: selection.agent,
@@ -1188,7 +1191,7 @@ export function App() {
       }
     }
 
-    if (item.kind === "command") {
+    if (item.kind === "command" || item.kind === "SKILL") {
       const cmdDraft = item.trigger === "skill"
         ? `/${item.label} `
         : `/${item.label} `
@@ -1881,7 +1884,7 @@ function renderComposerAutocompleteItem(state: ComposerAutocompleteState, item: 
     >
       <div className="oc-composerAutocompleteLabelWrap">
         <div className="oc-composerAutocompleteLabel">{highlightAutocompleteText(view.label, item.match?.label)}</div>
-        <div className="oc-composerAutocompleteDetail" title={view.detail}>{highlightAutocompleteText(view.detail, item.match?.detail)}</div>
+        <div className="oc-composerAutocompleteDetail" title={view.fullDetail}>{highlightAutocompleteText(view.detail, item.match?.detail)}</div>
         <div className="oc-composerAutocompleteKind">{view.kind}</div>
       </div>
     </button>

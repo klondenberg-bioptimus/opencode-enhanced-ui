@@ -46,14 +46,6 @@ export function buildComposerMenuItems(state: AppState, files: ComposerPathResul
       kind: "action",
     },
     {
-      id: "slash-skills",
-      label: "skills",
-      detail: "Open the skill picker and insert a skill command.",
-      keywords: ["skill", "picker", "workflow"],
-      trigger: "slash",
-      kind: "action",
-    },
-    {
       id: "slash-undo",
       label: "undo",
       detail: "Revert the previous user turn immediately.",
@@ -70,6 +62,17 @@ export function buildComposerMenuItems(state: AppState, files: ComposerPathResul
       kind: "action",
     },
   ]
+
+  if (state.snapshot.display.showSkillsInSlashAutocomplete !== true) {
+    slashItems.push({
+      id: "slash-skills",
+      label: "skills",
+      detail: "Open the skill picker and insert a skill command.",
+      keywords: ["skill", "picker", "workflow"],
+      trigger: "slash",
+      kind: "action",
+    })
+  }
 
   if (state.snapshot.session?.revert?.messageID) {
     slashItems.push({
@@ -114,8 +117,8 @@ export function buildComposerMenuItems(state: AppState, files: ComposerPathResul
       label: cmd.name,
       detail: cmd.description ?? "",
       keywords: [cmd.agent ?? "", ...cmd.hints].filter(Boolean),
-      trigger: "skill" as const,
-      kind: "command" as const,
+      trigger: state.snapshot.display.showSkillsInSlashAutocomplete === true ? "slash" as const : "skill" as const,
+      kind: "SKILL" as const,
     }))
 
   const agentItems = state.snapshot.agents
@@ -189,15 +192,11 @@ export function mentionForQuery(mention: Extract<NonNullable<ComposerAutocomplet
 export function autocompleteItemView(query: string, item: ComposerAutocompleteItem) {
   const mention = item.mention
   if (!mention || mention.type === "agent") {
-    return { label: item.label, detail: item.detail, kind: item.kind }
+    return autocompleteItemDisplay(item.label, item.detail, item.kind)
   }
 
   if (mention.type === "resource") {
-    return {
-      label: item.label,
-      detail: item.detail,
-      kind: item.kind,
-    }
+    return autocompleteItemDisplay(item.label, item.detail, item.kind)
   }
 
   const next = mentionForQuery(mention, query)
@@ -207,5 +206,19 @@ export function autocompleteItemView(query: string, item: ComposerAutocompleteIt
   const detail = next.selection
     ? formatComposerFileDisplay(item.detail, next.selection)
     : item.detail
-  return { label, detail, kind: item.kind }
+  return autocompleteItemDisplay(label, detail, item.kind)
+}
+
+function autocompleteItemDisplay(label: string, detail: string, kind: ComposerAutocompleteItem["kind"]) {
+  const normalizedDetail = normalizeAutocompleteDetail(detail)
+  return {
+    label,
+    detail: normalizedDetail,
+    fullDetail: normalizedDetail,
+    kind,
+  }
+}
+
+function normalizeAutocompleteDetail(detail: string) {
+  return detail.replace(/\s+/g, " ").trim()
 }

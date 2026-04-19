@@ -289,6 +289,12 @@
           "description": "Render OpenCode skill usage as a compact skill marker in session panels.",
           "scope": "machine-overridable"
         },
+        "opencode-ui.showSkillsInSlashAutocomplete": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show all skill commands directly in slash autocomplete. When enabled, the local /skills picker entry is hidden.",
+          "scope": "machine-overridable"
+        },
         "opencode-ui.panelTheme": {
           "type": "string",
           "default": "default",

@@ -1,5 +1,9 @@
 import type { CommandInfo } from "../../../core/sdk"
 
+type ComposerSlashActionOptions = {
+  showSkillsInSlashAutocomplete?: boolean
+}
+
 export type ComposerSlashAction =
   | {
       type: "newSession"
@@ -82,7 +86,11 @@ export function resolveComposerAutocompleteAction(item: { id: string; kind: stri
   }
 }
 
-export function resolveComposerSlashAction(draft: string, commands: CommandInfo[]): ComposerSlashAction | undefined {
+export function resolveComposerSlashAction(
+  draft: string,
+  commands: CommandInfo[],
+  options?: ComposerSlashActionOptions,
+): ComposerSlashAction | undefined {
   const slashMatch = draft.trim().match(/^\/(\S+)(?:\s+([\s\S]*))?$/)
   if (!slashMatch) {
     return undefined
@@ -99,7 +107,7 @@ export function resolveComposerSlashAction(draft: string, commands: CommandInfo[
     return { type: "openSessionPicker" }
   }
 
-  if (command === "skills" && !args) {
+  if (command === "skills" && !args && options?.showSkillsInSlashAutocomplete !== true) {
     return { type: "openSkillPicker" }
   }
 

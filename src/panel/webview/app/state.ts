@@ -153,6 +153,7 @@ export function createInitialState(initialRef: SessionBootstrap["sessionRef"] | 
         showThinking: true,
         diffMode: "unified",
         compactSkillInvocations: true,
+        showSkillsInSlashAutocomplete: false,
         panelTheme: "default",
       },
       skillCatalog: [],
@@ -283,6 +284,7 @@ export function normalizeSnapshotPayload(payload: SessionSnapshot, previous?: Ap
     display: {
       ...payload.display,
       compactSkillInvocations: payload.display?.compactSkillInvocations !== false,
+      showSkillsInSlashAutocomplete: payload.display?.showSkillsInSlashAutocomplete === true,
       panelTheme: resolvePanelThemeValue(payload.display?.panelTheme),
     },
     skillCatalog: Array.isArray(payload.skillCatalog) ? payload.skillCatalog : [],

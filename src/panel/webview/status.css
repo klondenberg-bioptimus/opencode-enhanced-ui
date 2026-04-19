@@ -179,6 +179,7 @@
   gap: 0;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .oc-composerAutocompleteItem,
@@ -192,9 +193,11 @@
 .oc-composerAutocompleteItem {
   width: 100%;
   display: flex;
+  position: relative;
   align-items: center;
   text-align: left;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .oc-composerAutocompleteItem.is-active {
@@ -206,11 +209,15 @@
   color: var(--oc-fg-primary);
   font-size: var(--oc-font-size);
   line-height: 1.45;
-  flex: 0 0 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .oc-composerAutocompleteLabelWrap {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr) max-content;
   align-items: center;
   gap: 10px;
   min-width: 0;
@@ -224,7 +231,9 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   white-space: nowrap;
-  flex: 0 0 auto;
+  padding-left: 8px;
+  justify-self: end;
+  text-align: right;
 }
 
 .oc-composerAutocompleteDetail,
@@ -235,7 +244,6 @@
 }
 
 .oc-composerAutocompleteDetail {
-  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -247,12 +255,6 @@
   background: transparent;
   color: var(--oc-warning);
   font-weight: 600;
-}
-
-@media (max-width: 560px) {
-  .oc-composerAutocompleteKind {
-    margin-left: auto;
-  }
 }
 
 .oc-answerInput {

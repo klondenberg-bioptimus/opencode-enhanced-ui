@@ -52,6 +52,27 @@ describe("buildComposerHostMessage", () => {
     })
   })
 
+  test("does not treat /skills as a local action when slash autocomplete shows skills directly", () => {
+    assert.deepEqual(buildComposerHostMessage({
+      draft: "/skills",
+      commands,
+      showSkillsInSlashAutocomplete: true,
+      parts: [{ type: "text", text: "/skills" }],
+      images: [],
+      agent: "build",
+      model,
+      variant: "default",
+    }), {
+      type: "submit",
+      text: "/skills",
+      parts: [{ type: "text", text: "/skills" }],
+      images: undefined,
+      agent: "build",
+      model,
+      variant: "default",
+    })
+  })
+
   test("keeps skill slash commands on the slash-command path and forwards image parts", () => {
     const parts: ComposerPromptPart[] = [{ type: "text", text: "/using-superpowers " }]
 

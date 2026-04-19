@@ -30,6 +30,7 @@ describe("panel webview persisted state", () => {
     const state = createInitialState(initialRef)
 
     assert.equal(state.snapshot.display.panelTheme, "default")
+    assert.equal(state.snapshot.display.showSkillsInSlashAutocomplete, false)
   })
 
   test("reuses session-scoped composer state when workspace id and session id match", () => {
@@ -183,6 +184,44 @@ describe("normalizeSnapshotPayload", () => {
     } as unknown as SessionSnapshot
 
     assert.equal(normalizeSnapshotPayload(snapshot).display.panelTheme, "default")
+  })
+
+  test("defaults missing showSkillsInSlashAutocomplete to false when normalizing older snapshots", () => {
+    const snapshot = {
+      status: "ready",
+      workspaceName: "workspace",
+      sessionRef: {
+        workspaceId: initialRef.workspaceId,
+        dir: initialRef.dir,
+        sessionId: initialRef.sessionId,
+      },
+      display: {
+        showInternals: false,
+        showThinking: true,
+        diffMode: "unified",
+        compactSkillInvocations: true,
+        panelTheme: "default",
+      },
+      messages: [],
+      childMessages: {},
+      childSessions: {},
+      submitting: false,
+      todos: [],
+      diff: [],
+      permissions: [],
+      questions: [],
+      agents: [],
+      providers: [],
+      mcp: {},
+      mcpResources: {},
+      lsp: [],
+      commands: [],
+      relatedSessionIds: [],
+      agentMode: "build",
+      navigation: {},
+    } as unknown as SessionSnapshot
+
+    assert.equal(normalizeSnapshotPayload(snapshot).display.showSkillsInSlashAutocomplete, false)
   })
 })
 

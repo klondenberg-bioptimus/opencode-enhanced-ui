@@ -17,6 +17,9 @@ export type ComposerIntegrationFixture = {
   }
   agents?: Array<{ name: string; mode: "subagent" | "primary" | "all"; hidden?: boolean }>
   commands?: CommandInfo[]
+  display?: {
+    showSkillsInSlashAutocomplete?: boolean
+  }
   resources?: Record<string, { name: string; uri: string; client: string; description?: string; mimeType?: string }>
   host?: {
     selected?: ComposerPathResult
@@ -38,6 +41,7 @@ export function runComposerIntegration(fix: ComposerIntegrationFixture) {
   state.snapshot.agents = fix.agents ?? []
   state.snapshot.mcpResources = fix.resources ?? {}
   state.snapshot.commands = fix.commands ?? []
+  state.snapshot.display.showSkillsInSlashAutocomplete = fix.display?.showSkillsInSlashAutocomplete ?? false
 
   const results = match?.trigger === "mention"
     ? hostResults(parseComposerFileQuery(match.query).baseQuery.trim(), fix.host)

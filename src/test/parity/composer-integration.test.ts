@@ -314,6 +314,24 @@ describe("composer integration visibility", () => {
     assert.ok(result.hostResults.length === 0, "host search not triggered for skills")
   })
 
+  test("/ shows skills directly and hides the local skills action when enabled", () => {
+    const result = runComposerIntegration({
+      name: "skills shown directly",
+      draft: "/",
+      cursor: 1,
+      commands: serverCommands,
+      display: {
+        showSkillsInSlashAutocomplete: true,
+      },
+      host: { workspace: [] },
+    })
+
+    assert.equal(result.trigger, "slash")
+    assert.ok(!result.items.some((item) => item.label === "skills"))
+    assert.ok(result.items.some((item) => item.label === "summarize"))
+    assert.equal(result.items.find((item) => item.label === "summarize")?.kind, "SKILL")
+  })
+
   test("/skills query does not enter skill results directly", () => {
     const result = runComposerIntegration({
       name: "skills query still slash",

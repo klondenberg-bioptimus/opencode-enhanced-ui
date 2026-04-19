@@ -11,7 +11,7 @@ export type ComposerAutocompleteItem = {
   value?: string
   keywords?: string[]
   trigger: ComposerAutocompleteTrigger
-  kind: "action" | "agent" | "resource" | "selection" | "recent" | "file" | "directory" | "command"
+  kind: "action" | "agent" | "resource" | "selection" | "recent" | "file" | "directory" | "command" | "SKILL"
   match?: {
     label: number[]
     detail: number[]
