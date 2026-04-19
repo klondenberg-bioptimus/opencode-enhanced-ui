@@ -82,6 +82,12 @@ export const composerParityFixtures: ComposerParityFixture[] = [
           detail: "Ask the host to reload the current session snapshot.",
         },
         {
+          id: "slash-sessions",
+          kind: "action",
+          label: "sessions",
+          detail: "Open the session picker for this workspace.",
+        },
+        {
           id: "slash-skills",
           kind: "action",
           label: "skills",
@@ -132,6 +138,12 @@ export const composerParityFixtures: ComposerParityFixture[] = [
           kind: "action",
           label: "undo",
           detail: "Revert the previous user turn immediately.",
+        },
+        {
+          id: "slash-sessions",
+          kind: "action",
+          label: "sessions",
+          detail: "Open the session picker for this workspace.",
         },
         {
           id: "slash-new",
@@ -192,6 +204,12 @@ export const composerParityFixtures: ComposerParityFixture[] = [
           kind: "action",
           label: "refresh",
           detail: "Ask the host to reload the current session snapshot.",
+        },
+        {
+          id: "slash-sessions",
+          kind: "action",
+          label: "sessions",
+          detail: "Open the session picker for this workspace.",
         },
         {
           id: "slash-compact",
@@ -379,6 +397,7 @@ export const composerParityFixtures: ComposerParityFixture[] = [
         { id: "slash-new", kind: "action", label: "new", detail: "Start a new session in this workspace." },
         { id: "slash-refresh", kind: "action", label: "refresh", detail: "Ask the host to reload the current session snapshot." },
         { id: "command:review", kind: "command", label: "review", detail: "review changes [commit|branch|pr]" },
+        { id: "slash-sessions", kind: "action", label: "sessions", detail: "Open the session picker for this workspace." },
         { id: "slash-skills", kind: "action", label: "skills", detail: "Open the skill picker and insert a skill command." },
         { id: "slash-theme", kind: "action", label: "theme", detail: "Open the theme picker for session panels." },
         { id: "slash-undo", kind: "action", label: "undo", detail: "Revert the previous user turn immediately." },
@@ -400,6 +419,7 @@ export const composerParityFixtures: ComposerParityFixture[] = [
         { id: "slash-refresh", kind: "action", label: "refresh", detail: "Ask the host to reload the current session snapshot." },
         // undo, init, compact and debug matched via secondary fields, ranked after
         { id: "slash-undo", kind: "action", label: "undo", detail: "Revert the previous user turn immediately." },
+        { id: "slash-sessions", kind: "action", label: "sessions", detail: "Open the session picker for this workspace." },
         { id: "command:init", kind: "command", label: "init", detail: "create/update AGENTS.md" },
         { id: "slash-new", kind: "action", label: "new", detail: "Start a new session in this workspace." },
         { id: "slash-compact", kind: "action", label: "compact", detail: "Summarize this session immediately using the current model." },

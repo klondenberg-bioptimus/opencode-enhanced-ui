@@ -20,6 +20,7 @@ describe("dispatchHostMessage", () => {
     dispatchHostMessage({ type: "shellCommandSucceeded" } satisfies HostMessage, {
       fileRefStatus,
       onFileSearchResults: () => {},
+      onFocusComposer: () => {},
       onRestoreComposer: () => {},
       onShellCommandSucceeded: () => {
         called += 1
@@ -41,6 +42,7 @@ describe("dispatchHostMessage", () => {
     } satisfies HostMessage, {
       fileRefStatus,
       onFileSearchResults: () => {},
+      onFocusComposer: () => {},
       onRestoreComposer: (payload) => {
         restored = payload.parts.map((p) => p.type === "text" ? p.text : "").join("")
       },
@@ -50,6 +52,78 @@ describe("dispatchHostMessage", () => {
     })
 
     assert.equal(restored, "echo hi")
+  })
+
+  test("dispatches focusComposer to callback", () => {
+    let called = 0
+    const fileRefStatus = new Map<string, boolean>()
+
+    dispatchHostMessage({ type: "focusComposer" } satisfies HostMessage, {
+      fileRefStatus,
+      onErrorMessage: () => {},
+      onFileSearchResults: () => {},
+      onFocusComposer: () => {
+        called += 1
+      },
+      onRestoreComposer: () => {},
+      onShellCommandSucceeded: () => {},
+      setPendingMcpActions: (() => {}) as Dispatch<SetStateAction<Record<string, boolean>>>,
+      setState: (() => {}) as Dispatch<SetStateAction<AppState>>,
+    })
+
+    assert.equal(called, 1)
+  })
+
+  test("stores sessionPicker payload on app state", () => {
+    const fileRefStatus = new Map<string, boolean>()
+    let state = createInitialState({
+      workspaceId: "file:///workspace",
+      dir: "/workspace",
+      sessionId: "session-1",
+    })
+
+    dispatchHostMessage({
+      type: "sessionPicker",
+      payload: {
+        workspaceName: "workspace",
+        currentSessionId: "session-1",
+        items: [{
+          session: {
+            id: "session-2",
+            directory: "/workspace",
+            title: "Related",
+            time: { created: 2, updated: 2 },
+          },
+          tags: ["docs"],
+          related: true,
+        }],
+      },
+    } satisfies HostMessage, {
+      fileRefStatus,
+      onFileSearchResults: () => {},
+      onFocusComposer: () => {},
+      onRestoreComposer: () => {},
+      onShellCommandSucceeded: () => {},
+      setPendingMcpActions: (() => {}) as Dispatch<SetStateAction<Record<string, boolean>>>,
+      setState: ((update: SetStateAction<AppState>) => {
+        state = applyStateUpdate(update, state)
+      }) as Dispatch<SetStateAction<AppState>>,
+    })
+
+    assert.deepEqual(state.sessionPicker, {
+      workspaceName: "workspace",
+      currentSessionId: "session-1",
+      items: [{
+        session: {
+          id: "session-2",
+          directory: "/workspace",
+          title: "Related",
+          time: { created: 2, updated: 2 },
+        },
+        tags: ["docs"],
+        related: true,
+      }],
+    })
   })
 
   test("applies sessionEvent incrementally and preserves unchanged message references", () => {
@@ -137,6 +211,7 @@ describe("dispatchHostMessage", () => {
     } satisfies HostMessage, {
       fileRefStatus,
       onFileSearchResults: () => {},
+      onFocusComposer: () => {},
       onRestoreComposer: () => {},
       onShellCommandSucceeded: () => {},
       setPendingMcpActions: (() => {}) as Dispatch<SetStateAction<Record<string, boolean>>>,
@@ -164,6 +239,7 @@ describe("dispatchHostMessage", () => {
     } satisfies HostMessage, {
       fileRefStatus,
       onFileSearchResults: () => {},
+      onFocusComposer: () => {},
       onRestoreComposer: () => {},
       onShellCommandSucceeded: () => {},
       setPendingMcpActions: (() => {}) as Dispatch<SetStateAction<Record<string, boolean>>>,
@@ -265,6 +341,7 @@ describe("dispatchHostMessage", () => {
     } satisfies HostMessage, {
       fileRefStatus,
       onFileSearchResults: () => {},
+      onFocusComposer: () => {},
       onRestoreComposer: () => {},
       onShellCommandSucceeded: () => {},
       setPendingMcpActions: (() => {}) as Dispatch<SetStateAction<Record<string, boolean>>>,
@@ -300,6 +377,7 @@ describe("dispatchHostMessage", () => {
     } satisfies HostMessage, {
       fileRefStatus,
       onFileSearchResults: () => {},
+      onFocusComposer: () => {},
       onRestoreComposer: () => {},
       onShellCommandSucceeded: () => {},
       setPendingMcpActions: (() => {}) as Dispatch<SetStateAction<Record<string, boolean>>>,
@@ -395,6 +473,7 @@ describe("dispatchHostMessage", () => {
     } satisfies HostMessage, {
       fileRefStatus,
       onFileSearchResults: () => {},
+      onFocusComposer: () => {},
       onRestoreComposer: () => {},
       onShellCommandSucceeded: () => {},
       setPendingMcpActions: (() => {}) as Dispatch<SetStateAction<Record<string, boolean>>>,
@@ -422,6 +501,7 @@ describe("dispatchHostMessage", () => {
     } satisfies HostMessage, {
       fileRefStatus,
       onFileSearchResults: () => {},
+      onFocusComposer: () => {},
       onRestoreComposer: () => {},
       onShellCommandSucceeded: () => {},
       setPendingMcpActions: (() => {}) as Dispatch<SetStateAction<Record<string, boolean>>>,
@@ -506,6 +586,7 @@ describe("dispatchHostMessage", () => {
     } satisfies HostMessage, {
       fileRefStatus,
       onFileSearchResults: () => {},
+      onFocusComposer: () => {},
       onRestoreComposer: () => {},
       onShellCommandSucceeded: () => {},
       setPendingMcpActions: (() => {}) as Dispatch<SetStateAction<Record<string, boolean>>>,
@@ -529,6 +610,7 @@ describe("dispatchHostMessage", () => {
     } satisfies HostMessage, {
       fileRefStatus,
       onFileSearchResults: () => {},
+      onFocusComposer: () => {},
       onRestoreComposer: () => {},
       onShellCommandSucceeded: () => {},
       setPendingMcpActions: (() => {}) as Dispatch<SetStateAction<Record<string, boolean>>>,
@@ -554,6 +636,7 @@ describe("dispatchHostMessage", () => {
     } satisfies HostMessage, {
       fileRefStatus,
       onFileSearchResults: () => {},
+      onFocusComposer: () => {},
       onRestoreComposer: () => {},
       onShellCommandSucceeded: () => {},
       setPendingMcpActions: (() => {}) as Dispatch<SetStateAction<Record<string, boolean>>>,

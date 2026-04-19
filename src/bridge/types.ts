@@ -80,6 +80,18 @@ export type ComposerPathResult = {
   selection?: ComposerFileSelection
 }
 
+export type SessionPickerItem = {
+  session: SessionInfo
+  tags: string[]
+  related: boolean
+}
+
+export type SessionPickerPayload = {
+  workspaceName: string
+  currentSessionId: string
+  items: SessionPickerItem[]
+}
+
 export type HostMessage =
   | {
       type: "bootstrap"
@@ -129,7 +141,14 @@ export type HostMessage =
       parts: ComposerPromptPart[]
     }
   | {
+      type: "focusComposer"
+    }
+  | {
       type: "shellCommandSucceeded"
+    }
+  | {
+      type: "sessionPicker"
+      payload: SessionPickerPayload
     }
 
 export type ComposerPromptPart =
@@ -245,6 +264,18 @@ export type WebviewMessage =
     }
   | {
       type: "newSessionInPlace"
+    }
+  | {
+      type: "requestSessionPicker"
+    }
+  | {
+      type: "switchSessionInPlace"
+      sessionID: string
+    }
+  | {
+      type: "sessionPickerAction"
+      action: "rename" | "share" | "unshare" | "archive" | "tags"
+      sessionID: string
     }
   | {
       type: "runSlashCommand"

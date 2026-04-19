@@ -1,4 +1,4 @@
-import type { ComposerFileSelection, ComposerPathKind, SessionBootstrap, SessionSnapshot, SkillCatalogEntry } from "../../../bridge/types"
+import type { ComposerFileSelection, ComposerPathKind, SessionBootstrap, SessionPickerPayload, SessionSnapshot, SkillCatalogEntry } from "../../../bridge/types"
 import type { DisplaySettings, PanelTheme } from "../../../core/settings"
 import type { AgentInfo, CommandInfo, FileDiff, FormatterStatus, LspStatus, McpResource, McpStatus, MessageInfo, PermissionRequest, ProviderAuthMethod, ProviderInfo, QuestionRequest, SessionInfo, SessionMessage, SessionStatus, Todo } from "../../../core/sdk"
 import type { CommandPromptCatalog, CommandPromptInvocation } from "./command-prompt"
@@ -106,6 +106,7 @@ export type AppState = {
       next?: { id: string; title: string }
     }
   }
+  sessionPicker: SessionPickerPayload
   draft: string
   composerParts: ComposerEditorPart[]
   composerMentions: ComposerMention[]
@@ -178,6 +179,11 @@ export function createInitialState(initialRef: SessionBootstrap["sessionRef"] | 
       agentMode: "build",
       navigation: {},
     },
+    sessionPicker: {
+      workspaceName: "",
+      currentSessionId: "",
+      items: [],
+    },
     draft: "",
     composerParts: [{ type: "text", content: "", start: 0, end: 0 }],
     composerMentions: [],
@@ -244,6 +250,30 @@ export function bootstrapFromSnapshot(payload: SessionSnapshot): SessionBootstra
     sessionRef: payload.sessionRef,
     session: payload.session,
     message: payload.message,
+  }
+}
+
+export function normalizeSessionPickerPayload(payload: SessionPickerPayload | undefined): SessionPickerPayload {
+  if (!payload || typeof payload !== "object") {
+    return {
+      workspaceName: "",
+      currentSessionId: "",
+      items: [],
+    }
+  }
+
+  return {
+    workspaceName: typeof payload.workspaceName === "string" ? payload.workspaceName : "",
+    currentSessionId: typeof payload.currentSessionId === "string" ? payload.currentSessionId : "",
+    items: Array.isArray(payload.items)
+      ? payload.items
+        .filter((item): item is SessionPickerPayload["items"][number] => !!item && typeof item === "object" && !!item.session && typeof item.session === "object")
+        .map((item) => ({
+          session: item.session,
+          tags: Array.isArray(item.tags) ? item.tags.filter((tag): tag is string => typeof tag === "string") : [],
+          related: !!item.related,
+        }))
+      : [],
   }
 }
 

@@ -32,6 +32,26 @@ const image = {
 } as const
 
 describe("buildComposerHostMessage", () => {
+  test("keeps local /sessions actions off the slash-command path", () => {
+    assert.deepEqual(buildComposerHostMessage({
+      draft: "/sessions",
+      commands,
+      parts: [{ type: "text", text: "/sessions" }],
+      images: [],
+      agent: "build",
+      model,
+      variant: "default",
+    }), {
+      type: "submit",
+      text: "/sessions",
+      parts: [{ type: "text", text: "/sessions" }],
+      images: undefined,
+      agent: "build",
+      model,
+      variant: "default",
+    })
+  })
+
   test("keeps skill slash commands on the slash-command path and forwards image parts", () => {
     const parts: ComposerPromptPart[] = [{ type: "text", text: "/using-superpowers " }]
 

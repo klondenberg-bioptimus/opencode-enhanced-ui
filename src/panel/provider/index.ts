@@ -27,11 +27,13 @@ export class SessionPanelManager implements vscode.Disposable {
     if (existing) {
       this.touch(key, existing)
       await existing.reveal()
+      await existing.requestComposerFocus()
       await this.lockSessionGroup(undefined, "open:existing")
       return existing.panel
     }
 
     const controller = this.createController(ref, this.resolveOpenColumn(ref.workspaceId, viewColumn))
+    await controller.requestComposerFocus()
     await controller.push()
     await this.lockSessionGroup(undefined, "open:new")
     return controller.panel
@@ -68,6 +70,7 @@ export class SessionPanelManager implements vscode.Disposable {
     if (currentKey === nextKey) {
       this.touch(currentKey, current)
       await current.reveal()
+      await current.requestComposerFocus()
       return current.panel
     }
 
@@ -79,6 +82,7 @@ export class SessionPanelManager implements vscode.Disposable {
     this.panels.delete(currentKey)
     await current.retarget(nextRef, nextKey)
     this.panels.set(nextKey, current)
+    await current.requestComposerFocus()
     await this.lockSessionGroup(current.panel, "retarget")
 
     if (panelKey(this.currentRef) === currentKey) {

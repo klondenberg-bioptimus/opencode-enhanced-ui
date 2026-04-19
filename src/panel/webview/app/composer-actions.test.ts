@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 
-import { isCompletedSlashCommand, resolveComposerSlashAction } from "./composer-actions"
+import { isCompletedSlashCommand, resolveComposerAutocompleteAction, resolveComposerSlashAction } from "./composer-actions"
 
 describe("resolveComposerSlashAction", () => {
   test("routes /new to a local new-session action", () => {
@@ -16,6 +16,15 @@ describe("resolveComposerSlashAction", () => {
   test("routes /skills to the local skill-picker action", () => {
     assert.deepEqual(resolveComposerSlashAction("/skills", []), {
       type: "openSkillPicker",
+    })
+  })
+
+  test("routes /sessions to a local session-picker action", () => {
+    assert.deepEqual(resolveComposerSlashAction("/sessions", []), {
+      type: "openSessionPicker",
+    })
+    assert.deepEqual(resolveComposerSlashAction("  /sessions  ", []), {
+      type: "openSessionPicker",
     })
   })
 
@@ -73,5 +82,23 @@ describe("isCompletedSlashCommand", () => {
       hints: [],
       source: "skill",
     }]), false)
+  })
+})
+
+describe("resolveComposerAutocompleteAction", () => {
+  test("routes slash-sessions autocomplete acceptance to the local session picker", () => {
+    assert.deepEqual(resolveComposerAutocompleteAction({
+      id: "slash-sessions",
+      kind: "action",
+    }), {
+      type: "openSessionPicker",
+    })
+  })
+
+  test("ignores non-local autocomplete items", () => {
+    assert.equal(resolveComposerAutocompleteAction({
+      id: "command:review",
+      kind: "command",
+    }), undefined)
   })
 })

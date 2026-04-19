@@ -4,7 +4,7 @@ import * as vscode from "vscode"
 
 import type { SessionPanelRef } from "../bridge/types"
 import type { SessionInfo, SessionStatus } from "../core/sdk"
-import { forkSessionMessage, renameSession, resolveNewSessionOpenColumn, resolveReusableNewSession, resolveSeedSessionTarget } from "../core/commands"
+import { forkSessionMessage, manageSessionTags, renameSession, resolveNewSessionOpenColumn, resolveReusableNewSession, resolveSeedSessionTarget } from "../core/commands"
 
 function session(id: string, updated: number, title = `New session - ${id}`): SessionInfo {
   return {
@@ -244,5 +244,38 @@ describe("renameSession", () => {
       title: "Renamed session",
     })
     assert.deepEqual(refreshed, ["file:///workspace-a", true])
+  })
+})
+
+describe("manageSessionTags", () => {
+  test("prompts with current tags, normalizes comma-separated input, and persists the result", async () => {
+    let inputOptions: vscode.InputBoxOptions | undefined
+    let saved: unknown
+
+    await manageSessionTags({
+      target: {
+        runtime: {
+          workspaceId: "file:///workspace-a",
+          dir: "/workspace-a",
+          name: "workspace-a",
+          state: "ready",
+        } as any,
+        session: session("session-tags", 1, "Taggable"),
+      },
+      tags: {
+        tags: () => ["docs", "ops"],
+        setTags: async (...args: unknown[]) => {
+          saved = args
+        },
+      } as any,
+      showInputBox: async (options) => {
+        inputOptions = options
+        return "docs, release, docs"
+      },
+    })
+
+    assert.equal(inputOptions?.value, "docs, ops")
+    assert.match(inputOptions?.prompt ?? "", /Taggable/)
+    assert.deepEqual(saved, ["file:///workspace-a", "session-tags", ["docs", "release"]])
   })
 })

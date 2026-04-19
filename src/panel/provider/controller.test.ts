@@ -139,6 +139,7 @@ async function handle(controller: SessionPanelController, event: SessionEvent) {
 
 function createWebviewMessageHarness(rt: Record<string, unknown>) {
   let onMessage: ((message: unknown) => void) | undefined
+  const posted: unknown[] = []
   const panel = {
     viewColumn: vscode.ViewColumn.Active,
     webview: {
@@ -149,7 +150,10 @@ function createWebviewMessageHarness(rt: Record<string, unknown>) {
         onMessage = listener
         return { dispose() {} }
       },
-      postMessage: async () => true,
+      postMessage: async (message: unknown) => {
+        posted.push(message)
+        return true
+      },
     },
     onDidDispose: () => ({ dispose() {} }),
     onDidChangeViewState: () => ({ dispose() {} }),
@@ -183,6 +187,7 @@ function createWebviewMessageHarness(rt: Record<string, unknown>) {
 
   return {
     controller,
+    posted,
     send(message: unknown) {
       onMessage?.(message)
     },
@@ -692,6 +697,120 @@ describe("preserveIncrementalTranscript", () => {
 })
 
 describe("SessionPanelController.actionContext", () => {
+  test("requests session picker data from extension commands and posts the payload back to the webview", async () => {
+    const originalExecuteCommand = vscode.commands.executeCommand
+    const executed: unknown[][] = []
+
+    ;(vscode.commands as any).executeCommand = async (...args: unknown[]) => {
+      executed.push(args)
+      if (args[0] === "opencode-ui.getSessionPickerPayload") {
+        return {
+          workspaceName: "workspace",
+          currentSessionId: "session-1",
+          items: [{
+            session: sessionInfo("child-1", "session-1"),
+            tags: ["docs"],
+            related: true,
+          }],
+        }
+      }
+      return undefined
+    }
+
+    try {
+      const { controller, posted, send } = createWebviewMessageHarness({
+        state: "ready",
+        dir: "/workspace",
+        sdk: {},
+      })
+
+      ;(controller as any).current = snapshot({ relatedSessionIds: ["session-1", "child-1"] })
+      send({ type: "requestSessionPicker" })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      assert.deepEqual(executed, [[
+        "opencode-ui.getSessionPickerPayload",
+        {
+          workspaceId: "file:///workspace",
+          dir: "/workspace",
+          sessionId: "session-1",
+        },
+        ["session-1", "child-1"],
+      ]])
+      assert.deepEqual(posted.at(-1), {
+        type: "sessionPicker",
+        payload: {
+          workspaceName: "workspace",
+          currentSessionId: "session-1",
+          items: [{
+            session: sessionInfo("child-1", "session-1"),
+            tags: ["docs"],
+            related: true,
+          }],
+        },
+      })
+      controller.dispose()
+    } finally {
+      ;(vscode.commands as any).executeCommand = originalExecuteCommand
+    }
+  })
+
+  test("forwards picker switch and row actions to extension commands", async () => {
+    const originalExecuteCommand = vscode.commands.executeCommand
+    const executed: unknown[][] = []
+
+    ;(vscode.commands as any).executeCommand = async (...args: unknown[]) => {
+      executed.push(args)
+      return undefined
+    }
+
+    try {
+      const { controller, send } = createWebviewMessageHarness({
+        state: "ready",
+        dir: "/workspace",
+        sdk: {},
+      })
+
+      send({ type: "switchSessionInPlace", sessionID: "session-2" })
+      send({ type: "sessionPickerAction", action: "archive", sessionID: "session-3" })
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      assert.deepEqual(executed, [
+        [
+          "opencode-ui.switchSessionInPlace",
+          {
+            workspaceId: "file:///workspace",
+            dir: "/workspace",
+            sessionId: "session-1",
+          },
+          "session-2",
+        ],
+        [
+          "opencode-ui.sessionPickerAction",
+          {
+            workspaceId: "file:///workspace",
+            dir: "/workspace",
+            sessionId: "session-1",
+          },
+          "session-3",
+          "archive",
+        ],
+        [
+          "opencode-ui.getSessionPickerPayload",
+          {
+            workspaceId: "file:///workspace",
+            dir: "/workspace",
+            sessionId: "session-1",
+          },
+          ["session-1"],
+        ],
+      ])
+      controller.dispose()
+    } finally {
+      ;(vscode.commands as any).executeCommand = originalExecuteCommand
+    }
+  })
+
   test("retarget resets the controller to a different session in place", async () => {
     const current = snapshot()
     const { controller, pushes } = createHarness(current)
@@ -745,6 +864,35 @@ describe("SessionPanelController.actionContext", () => {
     assert.deepEqual(posted.at(-1), {
       type: "restoreComposer",
       parts: [{ type: "text", text: "@src/app.ts" }],
+    })
+  })
+
+  test("posts focusComposer after the webview becomes ready when focus was requested early", async () => {
+    const current = snapshot()
+    const { controller } = createHarness(current)
+    const posted: unknown[] = []
+    const raw = controller as any
+
+    raw.ready = false
+    raw.panel = {
+      title: "OpenCode",
+      webview: {
+        postMessage: async (message: unknown) => {
+          posted.push(message)
+          return true
+        },
+      },
+    }
+
+    await raw.requestComposerFocus()
+
+    assert.deepEqual(posted, [])
+
+    raw.ready = true
+    await raw.flushComposerFocus()
+
+    assert.deepEqual(posted.at(-1), {
+      type: "focusComposer",
     })
   })
 

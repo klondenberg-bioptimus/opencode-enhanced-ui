@@ -19,6 +19,7 @@ export class SessionPanelController implements vscode.Disposable {
   private incrementalReady = false
   private pending: Promise<void> | undefined
   private pendingComposerParts: ComposerPromptPart[] | undefined
+  private pendingComposerFocus = false
   private current: SessionSnapshot | undefined
   private refreshSeq = 0
   private deferredDirty = {
@@ -58,6 +59,7 @@ export class SessionPanelController implements vscode.Disposable {
           void (async () => {
             await this.push(false, "webview:ready")
             await this.flushSeedComposer()
+            await this.flushComposerFocus()
           })()
           return
         }
@@ -99,6 +101,24 @@ export class SessionPanelController implements vscode.Disposable {
 
         if (message?.type === "newSessionInPlace") {
           void vscode.commands.executeCommand("opencode-ui.newSessionInPlace", this.ref)
+          return
+        }
+
+        if (message?.type === "requestSessionPicker") {
+          void this.postSessionPicker()
+          return
+        }
+
+        if (message?.type === "switchSessionInPlace") {
+          void vscode.commands.executeCommand("opencode-ui.switchSessionInPlace", this.ref, message.sessionID)
+          return
+        }
+
+        if (message?.type === "sessionPickerAction") {
+          void (async () => {
+            await vscode.commands.executeCommand("opencode-ui.sessionPickerAction", this.ref, message.sessionID, message.action)
+            await this.postSessionPicker()
+          })()
           return
         }
 
@@ -211,6 +231,11 @@ export class SessionPanelController implements vscode.Disposable {
     await this.flushSeedComposer()
   }
 
+  async requestComposerFocus() {
+    this.pendingComposerFocus = true
+    await this.flushComposerFocus()
+  }
+
   async push(force?: boolean, reason?: string) {
     if (!this.ready || this.state.disposed) {
       return
@@ -251,6 +276,7 @@ export class SessionPanelController implements vscode.Disposable {
     this.state.pendingSubmitCount = 0
     this.pending = undefined
     this.pendingComposerParts = undefined
+    this.pendingComposerFocus = false
     this.current = undefined
     this.incrementalReady = false
     this.deferredDirty = {
@@ -361,6 +387,23 @@ export class SessionPanelController implements vscode.Disposable {
     await postToWebview(this.panel.webview, message)
   }
 
+  private async postSessionPicker() {
+    const payload = await vscode.commands.executeCommand<Extract<HostMessage, { type: "sessionPicker" }>["payload"] | undefined>(
+      "opencode-ui.getSessionPickerPayload",
+      this.ref,
+      this.current?.relatedSessionIds ?? [this.ref.sessionId],
+    )
+
+    if (!payload) {
+      return
+    }
+
+    await postToWebview(this.panel.webview, {
+      type: "sessionPicker",
+      payload,
+    })
+  }
+
   async flushSeedComposer() {
     if (this.state.disposed || !this.ready || !this.pendingComposerParts?.length) {
       return
@@ -371,6 +414,17 @@ export class SessionPanelController implements vscode.Disposable {
     await postToWebview(this.panel.webview, {
       type: "restoreComposer",
       parts,
+    })
+  }
+
+  async flushComposerFocus() {
+    if (this.state.disposed || !this.ready || !this.pendingComposerFocus) {
+      return
+    }
+
+    this.pendingComposerFocus = false
+    await postToWebview(this.panel.webview, {
+      type: "focusComposer",
     })
   }
 

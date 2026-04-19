@@ -2,12 +2,13 @@ import React from "react"
 import type { ComposerPathResult, HostMessage, SessionSnapshot } from "../../../bridge/types"
 import { reduceSessionSnapshot } from "../../shared/session-reducer"
 import { summarizeSessionSnapshot } from "../../shared/session-summary"
-import { bootstrapFromSnapshot, normalizeSnapshotPayload, type AppState, type VsCodeApi } from "../app/state"
+import { bootstrapFromSnapshot, normalizeSessionPickerPayload, normalizeSnapshotPayload, type AppState, type VsCodeApi } from "../app/state"
 
 export function dispatchHostMessage(message: HostMessage, handlers: {
   fileRefStatus: Map<string, boolean>
   onErrorMessage?: (message: string) => void
   onFileSearchResults: (payload: { requestID: string; query: string; results: ComposerPathResult[] }) => void
+  onFocusComposer: () => void
   onRestoreComposer: (payload: { parts: import("../../../bridge/types").ComposerPromptPart[] }) => void
   onShellCommandSucceeded: () => void
   setPendingMcpActions: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
@@ -123,8 +124,21 @@ export function dispatchHostMessage(message: HostMessage, handlers: {
     return
   }
 
+  if (message?.type === "focusComposer") {
+    handlers.onFocusComposer()
+    return
+  }
+
   if (message?.type === "shellCommandSucceeded") {
     handlers.onShellCommandSucceeded()
+    return
+  }
+
+  if (message?.type === "sessionPicker") {
+    handlers.setState((current) => ({
+      ...current,
+      sessionPicker: normalizeSessionPickerPayload(message.payload),
+    }))
     return
   }
 
@@ -155,6 +169,7 @@ export function useHostMessages({
   fileRefStatus,
   onErrorMessage,
   onFileSearchResults,
+  onFocusComposer,
   onRestoreComposer,
   onShellCommandSucceeded,
   setPendingMcpActions,
@@ -164,6 +179,7 @@ export function useHostMessages({
   fileRefStatus: Map<string, boolean>
   onErrorMessage?: (message: string) => void
   onFileSearchResults: (payload: { requestID: string; query: string; results: ComposerPathResult[] }) => void
+  onFocusComposer: () => void
   onRestoreComposer: (payload: { parts: import("../../../bridge/types").ComposerPromptPart[] }) => void
   onShellCommandSucceeded: () => void
   setPendingMcpActions: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
@@ -171,6 +187,7 @@ export function useHostMessages({
   vscode: VsCodeApi
 }) {
   const fileSearchHandlerRef = React.useRef(onFileSearchResults)
+  const focusComposerHandlerRef = React.useRef(onFocusComposer)
   const restoreComposerHandlerRef = React.useRef(onRestoreComposer)
   const shellSucceededHandlerRef = React.useRef(onShellCommandSucceeded)
 
@@ -183,6 +200,10 @@ export function useHostMessages({
   }, [onRestoreComposer])
 
   React.useEffect(() => {
+    focusComposerHandlerRef.current = onFocusComposer
+  }, [onFocusComposer])
+
+  React.useEffect(() => {
     shellSucceededHandlerRef.current = onShellCommandSucceeded
   }, [onShellCommandSucceeded])
 
@@ -192,6 +213,7 @@ export function useHostMessages({
         fileRefStatus,
         onErrorMessage,
         onFileSearchResults: (payload) => fileSearchHandlerRef.current(payload),
+        onFocusComposer: () => focusComposerHandlerRef.current(),
         onRestoreComposer: (payload) => restoreComposerHandlerRef.current(payload),
         onShellCommandSucceeded: () => shellSucceededHandlerRef.current(),
         setPendingMcpActions,

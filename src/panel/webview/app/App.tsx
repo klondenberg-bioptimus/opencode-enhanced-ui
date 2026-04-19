@@ -17,7 +17,7 @@ import { buildComposerSubmitParts, composerMentionAgentOverride } from "./compos
 import { ComposerFooter } from "./composer-footer"
 import { absorbFileSelectionSuffix, composerMentions as mentionsFromParts, composerPartsEqual, composerText, deleteStructuredRange, emptyComposerParts, ensureTextPart, replaceRangeWithMention, replaceRangeWithText } from "./composer-editor"
 import { getSelectionOffsets, parseComposerEditor, renderComposerEditor, setCursorPosition, syncComposerPillSelection } from "./composer-editor-dom"
-import { isCompletedSlashCommand, resolveComposerSlashAction } from "./composer-actions"
+import { isCompletedSlashCommand, resolveComposerAutocompleteAction, resolveComposerSlashAction } from "./composer-actions"
 import { collectDroppedFilePaths, shouldHandleComposerFileDrop } from "./composer-drop"
 import { autocompleteItemView, buildComposerMenuItems, mentionForQuery } from "./composer-menu"
 import { composerPrimaryAction } from "./composer-primary-action"
@@ -28,6 +28,7 @@ import { mergeRestoredComposerParts, restoredComposerCursor } from "./composer-s
 import { activeChildSessionId } from "./session-navigation"
 import { captureCommandPromptInvocations, consumeFailedCommandPrompt, shouldTrackCommandPromptInvocation, type CommandPromptInvocation } from "./command-prompt"
 import { CodexTodoPopover } from "./codex-todo-popover"
+import { SessionPicker } from "./session-picker"
 import { buildThemePickerItems, ThemePicker } from "./theme-picker"
 
 declare global {
@@ -69,6 +70,7 @@ export function App() {
   const [composerDrag, setComposerDrag] = React.useState<null | "mention">(null)
   const [modelPickerOpen, setModelPickerOpen] = React.useState(false)
   const [themePickerOpen, setThemePickerOpen] = React.useState(false)
+  const [sessionPickerOpen, setSessionPickerOpen] = React.useState(false)
   const [previewImage, setPreviewImage] = React.useState<PreviewImage | null>(null)
   const [skillPickerOpen, setSkillPickerOpen] = React.useState(false)
   const [skillPickerSelectedIndex, setSkillPickerSelectedIndex] = React.useState(0)
@@ -77,6 +79,7 @@ export function App() {
   const composerRef = React.useRef<HTMLDivElement | null>(null)
   const modelPickerRef = React.useRef<HTMLDivElement | null>(null)
   const themePickerRef = React.useRef<HTMLDivElement | null>(null)
+  const sessionPickerRef = React.useRef<HTMLDivElement | null>(null)
   const composerCursorRef = React.useRef<number | null>(null)
   const searchRef = React.useRef<{ requestID: string; query: string } | null>(null)
   const escTimerRef = React.useRef<number | null>(null)
@@ -320,6 +323,22 @@ export function App() {
     restoreComposerCursor(result.draft, restoredComposerCursor(parts))
   }, [restoreComposerCursor, setComposerState, state.composerParts])
 
+  const onFocusComposer = React.useCallback(() => {
+    window.setTimeout(() => {
+      const input = composerRef.current
+      if (!input || state.bootstrap.status !== "ready" || blocked || leaderPending) {
+        return
+      }
+
+      const cursor = state.draft.length
+      input.focus()
+      setCursorPosition(input, cursor)
+      resizeComposer(input)
+      ensureComposerCursorVisible(input)
+      syncComposerInput(state.draft, cursor, cursor, "passive")
+    }, 0)
+  }, [blocked, leaderPending, state.bootstrap.status, state.draft, syncComposerInput])
+
   const onComposerDragOver = React.useCallback((event: React.DragEvent<HTMLElement>) => {
     const mentions = droppedFileMentions(event.dataTransfer, state.bootstrap.sessionRef.dir)
     if (!shouldHandleComposerFileDrop({
@@ -380,6 +399,7 @@ export function App() {
   useHostMessages({
     fileRefStatus,
     onFileSearchResults,
+    onFocusComposer,
     onErrorMessage: onHostErrorMessage,
     onRestoreComposer,
     onShellCommandSucceeded: exitShellMode,
@@ -466,7 +486,7 @@ export function App() {
   }, [latestUserSelection])
 
   React.useEffect(() => {
-    if (!modelPickerOpen && !themePickerOpen) {
+    if (!modelPickerOpen && !themePickerOpen && !sessionPickerOpen) {
       return
     }
 
@@ -478,14 +498,19 @@ export function App() {
       if (target instanceof Node && themePickerRef.current?.contains(target)) {
         return
       }
+      if (target instanceof Node && sessionPickerRef.current?.contains(target)) {
+        return
+      }
       setModelPickerOpen(false)
       setThemePickerOpen(false)
+      setSessionPickerOpen(false)
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setModelPickerOpen(false)
         setThemePickerOpen(false)
+        setSessionPickerOpen(false)
       }
     }
 
@@ -495,7 +520,7 @@ export function App() {
       document.removeEventListener("mousedown", onPointerDown)
       window.removeEventListener("keydown", onKeyDown)
     }
-  }, [modelPickerOpen, themePickerOpen])
+  }, [modelPickerOpen, sessionPickerOpen, themePickerOpen])
 
   React.useLayoutEffect(() => {
     const input = composerRef.current
@@ -580,6 +605,20 @@ export function App() {
 
       if (slashAction.type === "openSkillPicker") {
         openSkillPicker()
+        return
+      }
+
+      if (slashAction.type === "openSessionPicker") {
+        setState((current) => ({
+          ...current,
+          draft: "",
+          composerParts: emptyComposerParts(),
+          composerMentions: [],
+          composerMentionAgentOverride: undefined,
+          imageAttachments: [],
+          error: "",
+        }))
+        openSessionPicker()
         return
       }
 
@@ -671,6 +710,7 @@ export function App() {
     composerAutocomplete.close()
     setModelPickerOpen(false)
     setThemePickerOpen(false)
+    setSessionPickerOpen(false)
     setSkillPickerSelectedIndex(0)
     setSkillPickerOpen(true)
     const result = setComposerState(emptyComposerParts(), "")
@@ -732,12 +772,38 @@ export function App() {
     vscode.postMessage({ type: "newSessionInPlace" })
   }, [])
 
+  const requestSessionPicker = React.useCallback(() => {
+    vscode.postMessage({ type: "requestSessionPicker" })
+  }, [])
+
+  const openSessionPicker = React.useCallback(() => {
+    autocompleteDismissedRef.current = null
+    composerAutocomplete.close()
+    setModelPickerOpen(false)
+    setThemePickerOpen(false)
+    setSkillPickerOpen(false)
+    setSessionPickerOpen(true)
+    requestSessionPicker()
+    setComposerState(emptyComposerParts(), "")
+  }, [composerAutocomplete, requestSessionPicker, setComposerState])
+
+  const closeSessionPicker = React.useCallback(() => {
+    setSessionPickerOpen(false)
+  }, [])
+
+  const switchSessionInPlace = React.useCallback((sessionID: string) => {
+    setSessionPickerOpen(false)
+    vscode.postMessage({ type: "switchSessionInPlace", sessionID })
+  }, [])
+
   const openModelPicker = React.useCallback(() => {
+    setSessionPickerOpen(false)
     setThemePickerOpen(false)
     setModelPickerOpen(true)
   }, [])
 
   function openThemePicker() {
+    setSessionPickerOpen(false)
     setModelPickerOpen(false)
     setThemePickerOpen(true)
   }
@@ -1046,55 +1112,56 @@ export function App() {
       return
     }
 
-    if (item.kind === "action") {
-      if (item.id === "slash-new") {
+    const autocompleteAction = resolveComposerAutocompleteAction(item)
+    if (autocompleteAction) {
+      if (autocompleteAction.type === "newSessionInPlace") {
         clearComposerDraft()
         postNewSession()
         composerAutocomplete.close()
         return
       }
 
-      if (item.id === "slash-skills") {
+      if (autocompleteAction.type === "openSkillPicker") {
         openSkillPicker()
         return
       }
 
-      if (item.id === "slash-undo") {
+      if (autocompleteAction.type === "undoSession") {
         clearComposerDraft()
         postComposerAction("undoSession")
         composerAutocomplete.close()
         return
       }
 
-      if (item.id === "slash-redo") {
+      if (autocompleteAction.type === "redoSession") {
         clearComposerDraft()
         postComposerAction("redoSession")
         composerAutocomplete.close()
         return
       }
 
-      if (item.id === "slash-compact") {
+      if (autocompleteAction.type === "compactSession") {
         clearComposerDraft()
         postComposerAction("compactSession", currentSelection.model)
         composerAutocomplete.close()
         return
       }
 
-      if (item.id === "slash-model") {
+      if (autocompleteAction.type === "openModelPicker") {
         clearComposerDraft()
         openModelPicker()
         composerAutocomplete.close()
         return
       }
 
-      if (item.id === "slash-theme") {
+      if (autocompleteAction.type === "openThemePicker") {
         clearComposerDraft()
         openThemePicker()
         composerAutocomplete.close()
         return
       }
 
-      if (item.id === "slash-reset-agent") {
+      if (autocompleteAction.type === "resetAgent") {
         setState((current) => ({
           ...current,
           draft: "",
@@ -1108,10 +1175,15 @@ export function App() {
         return
       }
 
-      if (item.id === "slash-refresh") {
+      if (autocompleteAction.type === "refreshSession") {
         clearComposerDraft()
         postComposerAction("refreshSession")
         composerAutocomplete.close()
+        return
+      }
+
+      if (autocompleteAction.type === "openSessionPicker") {
+        openSessionPicker()
         return
       }
     }
@@ -1639,11 +1711,18 @@ export function App() {
                         />
                       {!state.draft.trim() && !composerFocused ? <div className="oc-composerPlaceholder" aria-hidden="true">{composerPlaceholder}</div> : null}
                     </div>
-                    <div className="oc-modelPickerLayer" ref={themePickerOpen ? themePickerRef : modelPickerRef}>
+                    <div className="oc-modelPickerLayer" ref={sessionPickerOpen ? sessionPickerRef : themePickerOpen ? themePickerRef : modelPickerRef}>
                       <div className="oc-composerInfoWrap">
                         <ComposerInfo state={state} leaderPending={leaderPending} modelPickerOpen={modelPickerOpen} onToggleModelPicker={toggleModelPicker} onCycleVariant={() => cycleComposerVariant()} />
                       </div>
                       <ComposerPrimaryActionButton action={primaryAction} onClick={handleComposerPrimaryAction} />
+                      {sessionPickerOpen ? (
+                        <SessionPicker
+                          payload={state.sessionPicker}
+                          onClose={closeSessionPicker}
+                          onSwitch={switchSessionInPlace}
+                        />
+                      ) : null}
                       {modelPickerOpen ? (
                         <ModelPicker
                           sections={modelPickerSections}

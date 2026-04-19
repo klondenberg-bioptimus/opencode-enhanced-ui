@@ -4,7 +4,7 @@ import * as vscode from "vscode"
 
 import type { SessionMessage } from "../../core/sdk"
 import type { SkillCatalogEntry } from "../../bridge/types"
-import { providerAuthAction, restoredPromptPartsFromMessage, runComposerAction, runMcpAction, runShellCommand, runSlashCommand, submit } from "./actions"
+import { buildSessionPickerPayload, providerAuthAction, restoredPromptPartsFromMessage, runComposerAction, runMcpAction, runShellCommand, runSlashCommand, submit } from "./actions"
 
 const WRAPPED_SKILL_OUTPUT = `<skill_content name="using-superpowers">
 # Skill: using-superpowers
@@ -146,6 +146,77 @@ function createContext(overrides?: {
 }
 
 describe("provider actions submitting", () => {
+  test("buildSessionPickerPayload shapes workspace sessions, tags, and related state for the webview", () => {
+    const payload = buildSessionPickerPayload({
+      workspaceName: "workspace",
+      currentSessionId: "session-1",
+      relatedSessionIds: ["session-1", "session-2"],
+      sessions: [
+        {
+          id: "session-1",
+          directory: "/workspace",
+          title: "Current",
+          time: { created: 1, updated: 1 },
+        },
+        {
+          id: "session-2",
+          directory: "/workspace",
+          title: "Related",
+          time: { created: 2, updated: 2 },
+        },
+        {
+          id: "session-3",
+          directory: "/workspace",
+          title: "Workspace only",
+          time: { created: 3, updated: 3 },
+          share: { url: "https://example.com/share" },
+        },
+      ],
+      tagsBySessionId: {
+        "session-2": ["ops"],
+        "session-3": ["docs", "shared"],
+      },
+    })
+
+    assert.deepEqual(payload, {
+      workspaceName: "workspace",
+      currentSessionId: "session-1",
+      items: [
+        {
+          session: {
+            id: "session-1",
+            directory: "/workspace",
+            title: "Current",
+            time: { created: 1, updated: 1 },
+          },
+          tags: [],
+          related: true,
+        },
+        {
+          session: {
+            id: "session-2",
+            directory: "/workspace",
+            title: "Related",
+            time: { created: 2, updated: 2 },
+          },
+          tags: ["ops"],
+          related: true,
+        },
+        {
+          session: {
+            id: "session-3",
+            directory: "/workspace",
+            title: "Workspace only",
+            time: { created: 3, updated: 3 },
+            share: { url: "https://example.com/share" },
+          },
+          tags: ["docs", "shared"],
+          related: false,
+        },
+      ],
+    })
+  })
+
   test("submit toggles submitting around promptAsync", async () => {
     let promptPayload: unknown
     const { ctx, posted, syncStates } = createContext({

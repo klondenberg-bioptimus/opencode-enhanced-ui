@@ -38,6 +38,14 @@ export function buildComposerMenuItems(state: AppState, files: ComposerPathResul
       kind: "action",
     },
     {
+      id: "slash-sessions",
+      label: "sessions",
+      detail: "Open the session picker for this workspace.",
+      keywords: ["switch", "session", "related", "workspace", "tags"],
+      trigger: "slash",
+      kind: "action",
+    },
+    {
       id: "slash-skills",
       label: "skills",
       detail: "Open the skill picker and insert a skill command.",

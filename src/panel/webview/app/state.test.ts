@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 import type { SessionSnapshot } from "../../../bridge/types"
-import { createInitialState, normalizeSnapshotPayload, persistableAppState, type PersistedAppState } from "./state"
+import { createInitialState, normalizeSessionPickerPayload, normalizeSnapshotPayload, persistableAppState, type PersistedAppState } from "./state"
 
 const initialRef = {
   workspaceId: "vscode-remote://ssh-remote+box/workspace",
@@ -183,5 +183,45 @@ describe("normalizeSnapshotPayload", () => {
     } as unknown as SessionSnapshot
 
     assert.equal(normalizeSnapshotPayload(snapshot).display.panelTheme, "default")
+  })
+})
+
+describe("normalizeSessionPickerPayload", () => {
+  test("normalizes missing session picker fields to safe defaults", () => {
+    assert.deepEqual(normalizeSessionPickerPayload(undefined as never), {
+      workspaceName: "",
+      currentSessionId: "",
+      items: [],
+    })
+  })
+
+  test("preserves valid picker entries and drops malformed tag arrays", () => {
+    assert.deepEqual(normalizeSessionPickerPayload({
+      workspaceName: "workspace",
+      currentSessionId: "session-1",
+      items: [{
+        session: {
+          id: "session-2",
+          directory: "/workspace",
+          title: "Child",
+          time: { created: 2, updated: 2 },
+        },
+        tags: ["docs", 1, null] as unknown as string[],
+        related: true,
+      }],
+    }), {
+      workspaceName: "workspace",
+      currentSessionId: "session-1",
+      items: [{
+        session: {
+          id: "session-2",
+          directory: "/workspace",
+          title: "Child",
+          time: { created: 2, updated: 2 },
+        },
+        tags: ["docs"],
+        related: true,
+      }],
+    })
   })
 })

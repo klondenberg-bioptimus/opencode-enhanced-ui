@@ -2,8 +2,8 @@ import * as vscode from "vscode"
 import * as path from "node:path"
 import { URL } from "node:url"
 import { postToWebview } from "../../bridge/host"
-import type { ComposerPromptPart, SessionPanelRef, SkillCatalogEntry } from "../../bridge/types"
-import type { MessageInfo, PermissionReply, PromptFilePartInput, PromptPartInput, SessionMessage } from "../../core/sdk"
+import type { ComposerPromptPart, SessionPanelRef, SessionPickerPayload, SkillCatalogEntry } from "../../bridge/types"
+import type { MessageInfo, PermissionReply, PromptFilePartInput, PromptPartInput, SessionInfo, SessionMessage } from "../../core/sdk"
 import { WorkspaceManager } from "../../core/workspace"
 import { loadSkillCatalog } from "../../core/skills"
 import { text, textError, wait } from "./utils"
@@ -231,6 +231,27 @@ export async function runShellCommand(ctx: ActionContext, command: string, agent
     if (!ctx.state.disposed && run === ctx.state.run) {
       await ctx.syncSubmitting()
     }
+  }
+}
+
+export function buildSessionPickerPayload(input: {
+  workspaceName: string
+  currentSessionId: string
+  relatedSessionIds: string[]
+  sessions: SessionInfo[]
+  tagsBySessionId?: Record<string, string[]>
+}): SessionPickerPayload {
+  const related = new Set(input.relatedSessionIds)
+  const tagsBySessionId = input.tagsBySessionId ?? {}
+
+  return {
+    workspaceName: input.workspaceName,
+    currentSessionId: input.currentSessionId,
+    items: input.sessions.map((session) => ({
+      session,
+      tags: Array.isArray(tagsBySessionId[session.id]) ? tagsBySessionId[session.id]!.filter((tag): tag is string => typeof tag === "string") : [],
+      related: related.has(session.id),
+    })),
   }
 }
 

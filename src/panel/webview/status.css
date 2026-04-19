@@ -558,6 +558,11 @@
   border-color: color-mix(in srgb, var(--oc-accent) 34%, var(--oc-border-strong) 66%);
 }
 
+.oc-modelPickerAction.is-active {
+  border-color: color-mix(in srgb, var(--oc-accent) 38%, transparent 62%);
+  background: color-mix(in srgb, var(--oc-accent) 12%, var(--oc-surface-control) 88%);
+}
+
 .oc-modelPickerTitle {
   font-weight: 600;
   color: var(--oc-fg);
@@ -695,6 +700,29 @@
 .oc-modelPickerFavoriteToggle.is-favorite,
 .oc-modelPickerFavoriteToggle:hover {
   color: var(--oc-warning);
+}
+
+.oc-sessionPickerActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.oc-sessionPickerAction {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--oc-border-strong) 75%, transparent 25%);
+  border-radius: 6px;
+  padding: 4px 6px;
+  background: color-mix(in srgb, var(--oc-surface-elevated) 90%, transparent 10%);
+  color: var(--oc-fg-muted);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.oc-sessionPickerAction:hover {
+  border-color: color-mix(in srgb, var(--oc-accent) 36%, transparent 64%);
+  color: var(--oc-fg);
 }
 
 .oc-modelPickerItemHint {

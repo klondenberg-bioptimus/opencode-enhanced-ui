@@ -25,6 +25,28 @@ describe("SessionPanelController.reveal", () => {
 })
 
 describe("SessionPanelManager.open", () => {
+  test("requests composer focus after opening a new session panel", async () => {
+    const focused: string[] = []
+    const manager = Object.create(SessionPanelManager.prototype) as SessionPanelManager
+
+    Reflect.set(manager, "panels", new Map())
+    Reflect.set(manager, "createController", () => ({
+      panel: {},
+      push: async () => {},
+      requestComposerFocus: async () => {
+        focused.push("focus")
+      },
+    }))
+
+    await manager.open({
+      workspaceId: "file:///workspace",
+      dir: "/workspace",
+      sessionId: "session-new",
+    })
+
+    assert.deepEqual(focused, ["focus"])
+  })
+
   test("creates new session panels in the existing OpenCode group before splitting again", async () => {
     const created: vscode.ViewColumn[] = []
     const manager = Object.create(SessionPanelManager.prototype) as SessionPanelManager
@@ -45,6 +67,7 @@ describe("SessionPanelManager.open", () => {
       return {
         panel: {},
         push: async () => {},
+        requestComposerFocus: async () => {},
       }
     })
 
@@ -66,6 +89,7 @@ describe("SessionPanelManager.open", () => {
     Reflect.set(manager, "createController", () => ({
       panel: {},
       push: async () => {},
+      requestComposerFocus: async () => {},
     }))
     Reflect.set(vscode.commands, "executeCommand", async (command: string) => {
       executed.push(command)
@@ -87,6 +111,7 @@ describe("SessionPanelManager.open", () => {
   test("re-locks the editor group when revealing an existing session panel", async () => {
     const executed: string[] = []
     const steps: string[] = []
+    const focused: string[] = []
     const manager = Object.create(SessionPanelManager.prototype) as SessionPanelManager
     const original = vscode.commands.executeCommand
     const existingKey = "file:///workspace::session-open"
@@ -100,6 +125,9 @@ describe("SessionPanelManager.open", () => {
       panel: {},
       reveal: async () => {
         steps.push("reveal")
+      },
+      requestComposerFocus: async () => {
+        focused.push("focus")
       },
     }]]))
     Reflect.set(vscode.commands, "executeCommand", async (command: string) => {
@@ -119,6 +147,7 @@ describe("SessionPanelManager.open", () => {
 
     assert.deepEqual(steps, ["reveal", "workbench.action.lockEditorGroup"])
     assert.deepEqual(executed, ["workbench.action.lockEditorGroup"])
+    assert.deepEqual(focused, ["focus"])
   })
 })
 
@@ -132,6 +161,7 @@ describe("SessionPanelManager.retarget", () => {
     Reflect.set(manager, "panels", new Map([[currentKey, {
       panel: {},
       retarget: async () => {},
+      requestComposerFocus: async () => {},
     }]]))
     Reflect.set(vscode.commands, "executeCommand", async (command: string) => {
       executed.push(command)

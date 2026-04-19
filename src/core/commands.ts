@@ -14,6 +14,7 @@ import { SessionPanelManager } from "../panel/provider"
 import { buildEditorSeed, buildExplorerSeed, type LaunchSeed } from "./launch-context"
 import { applySessionSearchCapabilityResult, CapabilityState, CapabilityStore, classifyCapabilityError, createEmptyCapabilities, type RuntimeCapabilities } from "./capabilities"
 import { SidebarProvider } from "../sidebar/provider"
+import { buildSessionPickerPayload } from "../panel/provider/actions"
 
 type SessionActionRuntime = Pick<WorkspaceRuntime, "workspaceId" | "dir" | "name" | "state"> & {
   sdk?: {
@@ -284,6 +285,118 @@ export function commands(
         showErrorMessage: (message) => vscode.window.showErrorMessage(message),
       })
     }),
+    vscode.commands.registerCommand("opencode-ui.getSessionPickerPayload", async (current?: WorkspaceRef & { sessionId: string }, relatedSessionIds?: string[]) => {
+      if (!current) {
+        return undefined
+      }
+
+      const rt = mgr.get(current.workspaceId)
+      if (!rt || rt.state !== "ready" || !rt.sdk) {
+        return undefined
+      }
+
+      await sessions.refresh(rt.workspaceId, true)
+      return buildSessionPickerPayload({
+        workspaceName: rt.name,
+        currentSessionId: current.sessionId,
+        relatedSessionIds: relatedSessionIds ?? [],
+        sessions: sessions.list(rt.workspaceId),
+        tagsBySessionId: tags.tagsBySession(rt.workspaceId),
+      })
+    }),
+    vscode.commands.registerCommand("opencode-ui.switchSessionInPlace", async (current?: WorkspaceRef & { sessionId: string }, sessionID?: string) => {
+      if (!current || !sessionID || current.sessionId === sessionID) {
+        return
+      }
+
+      const rt = mgr.get(current.workspaceId)
+      if (!rt || rt.state !== "ready") {
+        await vscode.window.showErrorMessage(runtimeNotReadyMessage(rt))
+        return
+      }
+
+      await panels.retarget(current, {
+        ...workspaceRef(rt),
+        sessionId: sessionID,
+      })
+    }),
+    vscode.commands.registerCommand("opencode-ui.sessionPickerAction", async (
+      current?: WorkspaceRef & { sessionId: string },
+      sessionID?: string,
+      action?: "rename" | "share" | "unshare" | "archive" | "tags",
+    ) => {
+      if (!current || !sessionID || !action) {
+        return
+      }
+
+      const rt = mgr.get(current.workspaceId)
+      if (!rt || rt.state !== "ready" || !rt.sdk) {
+        await vscode.window.showErrorMessage(runtimeNotReadyMessage(rt))
+        return
+      }
+
+      await sessions.refresh(rt.workspaceId, true)
+      const session = sessions.list(rt.workspaceId).find((item) => item.id === sessionID)
+      if (!session) {
+        await vscode.window.showInformationMessage("Session was not found.")
+        return
+      }
+
+      const target = {
+        runtime: rt,
+        session,
+      } satisfies SessionActionTarget
+
+      if (action === "rename") {
+        await renameSession({
+          target,
+          sessions,
+          showInputBox: (options) => vscode.window.showInputBox(options),
+          showInformationMessage: (message) => vscode.window.showInformationMessage(message),
+          showErrorMessage: (message) => vscode.window.showErrorMessage(message),
+        })
+        return
+      }
+
+      if (action === "share") {
+        await shareSession({
+          target,
+          sessions,
+          copyText: (value) => vscode.env.clipboard.writeText(value),
+          showInformationMessage: (message) => vscode.window.showInformationMessage(message),
+          showErrorMessage: (message) => vscode.window.showErrorMessage(message),
+        })
+        return
+      }
+
+      if (action === "unshare") {
+        await unshareSession({
+          target,
+          sessions,
+          showInformationMessage: (message) => vscode.window.showInformationMessage(message),
+          showErrorMessage: (message) => vscode.window.showErrorMessage(message),
+        })
+        return
+      }
+
+      if (action === "archive") {
+        await archiveSession({
+          target,
+          sessions,
+          closeSession: () => tabs.closeSession(workspaceRef(target.runtime), target.session.id),
+          showWarningMessage: (message, options, ...items) => vscode.window.showWarningMessage(message, options, ...items),
+          showInformationMessage: (message) => vscode.window.showInformationMessage(message),
+          showErrorMessage: (message) => vscode.window.showErrorMessage(message),
+        })
+        return
+      }
+
+      await manageSessionTags({
+        target,
+        tags,
+        showInputBox: (options) => vscode.window.showInputBox(options),
+      })
+    }),
     vscode.commands.registerCommand("opencode-ui.quickNewSession", async () => {
       const rt = runtimeFromActiveEditor(mgr) ?? firstRuntime(mgr)
 
@@ -371,19 +484,14 @@ export function commands(
         return
       }
 
-      const current = tags.tags(item.runtime.workspaceId, item.session.id)
-      const input = await vscode.window.showInputBox({
-        prompt: `Manage tags for ${displaySessionTitle(item.session.title, item.session.id.slice(0, 8))}`,
-        placeHolder: "tag-a, tag-b",
-        value: current.join(", "),
-        ignoreFocusOut: true,
+      await manageSessionTags({
+        target: {
+          runtime: item.runtime as SessionActionRuntime,
+          session: item.session,
+        },
+        tags,
+        showInputBox: (options) => vscode.window.showInputBox(options),
       })
-
-      if (input === undefined) {
-        return
-      }
-
-      await tags.setTags(item.runtime.workspaceId, item.session.id, parseSessionTagsInput(input))
       tree.refresh()
     }),
     vscode.commands.registerCommand("opencode-ui.filterWorkspaceSessionsByTag", async (item?: WorkspaceItem) => {
@@ -616,6 +724,26 @@ export async function renameSession(input: SessionActionInput & {
   } catch (error) {
     await input.showErrorMessage(`OpenCode rename failed for ${input.target.runtime.name}: ${errorMessage(error)}`)
   }
+}
+
+export async function manageSessionTags(input: {
+  target: SessionActionTarget
+  tags: Pick<SessionTagStore, "tags" | "setTags">
+  showInputBox: (options: vscode.InputBoxOptions) => Thenable<string | undefined>
+}) {
+  const current = input.tags.tags(input.target.runtime.workspaceId, input.target.session.id)
+  const value = await input.showInputBox({
+    prompt: `Manage tags for ${displaySessionTitle(input.target.session.title, input.target.session.id.slice(0, 8))}`,
+    placeHolder: "tag-a, tag-b",
+    value: current.join(", "),
+    ignoreFocusOut: true,
+  })
+
+  if (value === undefined) {
+    return
+  }
+
+  await input.tags.setTags(input.target.runtime.workspaceId, input.target.session.id, parseSessionTagsInput(value))
 }
 
 export async function archiveSession(input: SessionActionInput & {
