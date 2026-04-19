@@ -227,11 +227,7 @@ export function MarkdownBlock({ content, className = "" }: { content: string; cl
 }
 
 function AssistantTextBlock({ content, className = "" }: { content: string; className?: string }) {
-  const { panelTheme } = useTranscriptVisibility()
-  if (panelTheme === "codex" || panelTheme === "claude") {
-    return <MarkdownBlock content={content} className={className} />
-  }
-  return <div className={`oc-partText${className ? ` ${className}` : ""}`}>{content}</div>
+  return <MarkdownBlock content={content} className={className} />
 }
 
 export function OutputWindow({ action, title, running = false, lineCount, className = "", children }: { action: string; title: React.ReactNode; running?: boolean; lineCount: number; className?: string; children: React.ReactNode }) {

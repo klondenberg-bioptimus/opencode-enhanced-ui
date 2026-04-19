@@ -202,12 +202,12 @@ describe("skill tool rendering", () => {
     assert.equal(html.includes("Write long-form content"), false)
   })
 
-  test("keeps assistant markdown source text literal in the default theme", () => {
+  test("renders assistant markdown as rich content in the default theme", () => {
     const html = renderAssistantTextPart("default")
 
-    assert.equal(html.includes("# 其他产品动态"), true)
-    assert.equal(html.includes("<h1>"), false)
-    assert.equal(html.includes("<li>Canva</li>"), false)
+    assert.equal(html.includes("<h1>其他产品动态</h1>"), true)
+    assert.equal(html.includes("<li>Canva</li>"), true)
+    assert.equal(html.includes("# 其他产品动态"), false)
   })
 
   test("renders assistant markdown as rich content in codex and claude themes", () => {

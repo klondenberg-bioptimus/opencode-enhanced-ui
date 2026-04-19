@@ -262,6 +262,18 @@ describe("panel theme settings", () => {
     assert.match(baseCss, /\.oc-shell\[data-oc-theme=\"codex\"\]\s+\.oc-pill-command\s+\.oc-pillFileType\s*\{[\s\S]*font-family:\s*var\(--oc-mono\);/)
     assert.match(baseCss, /\.oc-shell\[data-oc-theme=\"codex\"\]\s+\.oc-pill-command\s+\.oc-pillFileType\s*\{[\s\S]*text-transform:\s*uppercase;/)
 
+    assert.doesNotMatch(markdownCss, /\.oc-markdown h1::before,\s*[\s\S]*\.oc-markdown h3::before\s*\{[\s\S]*content:\s*\"# \";/)
+    assert.doesNotMatch(markdownCss, /list-style-type:\s*oc-md-unordered;/)
+    assert.doesNotMatch(markdownCss, /list-style-type:\s*oc-md-ordered;/)
+    assert.match(markdownCss, /\.oc-markdown ul\s*\{[\s\S]*list-style-type:\s*disc;/)
+    assert.match(markdownCss, /\.oc-markdown ol\s*\{[\s\S]*list-style-type:\s*decimal;/)
+    assert.match(markdownCss, /\.oc-markdown h1\s*\{[\s\S]*font-size:\s*var\(--oc-font-size-xl\);/)
+    assert.match(markdownCss, /\.oc-markdown h2\s*\{[\s\S]*font-size:\s*calc\(var\(--oc-font-size\)\s*\+\s*3px\);/)
+    assert.match(markdownCss, /\.oc-markdown h3\s*\{[\s\S]*font-size:\s*var\(--oc-font-size-lg\);/)
+    assert.match(markdownCss, /\.oc-taskList\s*\{/)
+    assert.match(markdownCss, /\.oc-taskListCheckbox\s*\{/)
+    assert.match(markdownCss, /\.oc-markdown img\s*\{/)
+
     assert.match(markdownCss, /\.oc-shell\[data-oc-theme=\"claude\"\]\s+\.oc-markdown blockquote\s*\{/)
     assert.match(markdownCss, /\.oc-shell\[data-oc-theme=\"claude\"\]\s+\.oc-markdown blockquote\s*\{[\s\S]*box-shadow:\s*inset 3px 0 0/)
     assert.match(markdownCss, /\.oc-shell\[data-oc-theme=\"claude\"\]\s+\.oc-markdown h1::before\s*,[\s\S]*content:\s*\"\";/)

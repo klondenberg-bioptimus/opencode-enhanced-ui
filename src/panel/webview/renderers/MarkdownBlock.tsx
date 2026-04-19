@@ -82,6 +82,7 @@ function createMarkdown() {
       return renderMarkdownCodeWindow(value, language)
     },
   })
+  installTaskListSupport(instance)
   const linkDefault = instance.renderer.rules.link_open
   instance.renderer.rules.link_open = (...args: Parameters<NonNullable<typeof linkDefault>>) => {
     const [tokens, idx, options, env, self] = args
@@ -98,11 +99,78 @@ function createMarkdown() {
     tokens[idx]?.attrSet("class", "oc-inlineCode")
     return codeInlineDefault ? codeInlineDefault(tokens, idx, options, env, self) : self.renderToken(tokens, idx, options)
   }
-  instance.renderer.rules.hr = (tokens, idx) => {
-    const value = tokens[idx]?.markup || "---"
-    return `<p>${instance.utils.escapeHtml(value)}</p>`
-  }
   return instance
+}
+
+function installTaskListSupport(instance: MarkdownIt) {
+  instance.core.ruler.after("inline", "oc-task-lists", (state) => {
+    for (let index = 0; index < state.tokens.length; index += 1) {
+      const inlineToken = state.tokens[index]
+      if (inlineToken?.type !== "inline" || !inlineToken.children?.length) {
+        continue
+      }
+      if (state.tokens[index - 1]?.type !== "paragraph_open" || state.tokens[index - 2]?.type !== "list_item_open") {
+        continue
+      }
+
+      const marker = extractTaskListMarker(inlineToken)
+      if (!marker) {
+        continue
+      }
+
+      inlineToken.content = marker.remaining
+      const paragraphToken = state.tokens[index - 1]
+      const listItemToken = state.tokens[index - 2]
+      appendClass(paragraphToken, "oc-taskListLabel")
+      appendClass(listItemToken, "oc-taskListItem")
+      listItemToken?.attrSet("data-checked", marker.checked ? "true" : "false")
+      appendClass(closestListToken(state.tokens, index - 3), "oc-taskList")
+
+      const checkboxToken = new state.Token("html_inline", "", 0)
+      checkboxToken.content = `<input class="oc-taskListCheckbox" type="checkbox"${marker.checked ? " checked" : ""} disabled tabindex="-1" aria-hidden="true">`
+      inlineToken.children.unshift(checkboxToken)
+    }
+  })
+}
+
+function extractTaskListMarker(token: { content: string; children?: Array<{ type: string; content: string }> | null }) {
+  const firstChild = token.children?.[0]
+  if (!firstChild || firstChild.type !== "text") {
+    return null
+  }
+  const match = firstChild.content.match(/^\[( |x|X)\]\s+/)
+  if (!match) {
+    return null
+  }
+
+  const remaining = firstChild.content.slice(match[0].length)
+  firstChild.content = remaining
+  if (!remaining) {
+    token.children?.shift()
+  }
+
+  return {
+    checked: match[1]?.toLowerCase() === "x",
+    remaining: token.content.slice(match[0].length),
+  }
+}
+
+function closestListToken(tokens: Array<{ type: string; attrJoin: (name: string, value: string) => void }>, startIndex: number) {
+  for (let index = startIndex; index >= 0; index -= 1) {
+    const token = tokens[index]
+    if (token?.type === "bullet_list_open" || token?.type === "ordered_list_open") {
+      return token
+    }
+  }
+  return null
+}
+
+function appendClass(token: { attrGet?: (name: string) => string | null; attrJoin?: (name: string, value: string) => void } | null | undefined, className: string) {
+  const classValue = token?.attrGet?.("class") || ""
+  if (classValue.split(/\s+/).includes(className)) {
+    return
+  }
+  token?.attrJoin?.("class", className)
 }
 
 function linkLabel(tokens: Parameters<NonNullable<MarkdownIt["renderer"]["rules"]["link_open"]>>[0], idx: number) {

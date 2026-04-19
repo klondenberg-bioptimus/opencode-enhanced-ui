@@ -84,17 +84,37 @@
 .oc-markdown h5,
 .oc-markdown h6 {
   margin: 1em 0 0;
-  font-size: var(--oc-font-size-lg);
   line-height: 1.45;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--oc-md-current-heading);
 }
 
+.oc-markdown h1 {
+  font-size: var(--oc-font-size-xl);
+  line-height: 1.22;
+}
+
+.oc-markdown h2 {
+  font-size: calc(var(--oc-font-size) + 3px);
+  line-height: 1.3;
+}
+
+.oc-markdown h3 {
+  font-size: var(--oc-font-size-lg);
+  line-height: 1.38;
+}
+
+.oc-markdown h4,
+.oc-markdown h5,
+.oc-markdown h6 {
+  font-size: var(--oc-font-size);
+}
+
 .oc-markdown h1::before,
 .oc-markdown h2::before,
 .oc-markdown h3::before {
-  content: "# ";
+  content: "";
   color: var(--oc-md-current-list);
 }
 
@@ -106,11 +126,11 @@
 }
 
 .oc-markdown ul {
-  list-style-type: oc-md-unordered;
+  list-style-type: disc;
 }
 
 .oc-markdown ol {
-  list-style-type: oc-md-ordered;
+  list-style-type: decimal;
   padding-left: 24px;
 }
 
@@ -132,6 +152,36 @@
 
 .oc-markdown li + li {
   margin-top: 0;
+}
+
+.oc-taskList {
+  padding-left: 0;
+  list-style: none;
+}
+
+.oc-taskList .oc-taskList {
+  margin-top: 0.35em;
+  padding-left: 22px;
+}
+
+.oc-taskListItem {
+  position: relative;
+  padding-left: 24px;
+}
+
+.oc-taskListCheckbox {
+  position: absolute;
+  left: 0;
+  top: 0.28em;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--oc-accent);
+  pointer-events: none;
+}
+
+.oc-taskListLabel {
+  margin: 0;
 }
 
 .oc-markdown blockquote {
@@ -236,6 +286,14 @@
   padding: 2px 10px;
 }
 
+.oc-markdown img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1em 0;
+  border-radius: var(--oc-radius-md);
+}
+
 .oc-markdown table {
   display: block;
   width: 100%;
@@ -258,6 +316,7 @@
 }
 
 .oc-markdown hr {
+  margin: 1.25em 0;
   border: 0;
   border-top: 1px solid var(--oc-md-current-rule);
 }

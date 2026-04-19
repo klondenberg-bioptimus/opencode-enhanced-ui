@@ -32,4 +32,35 @@ describe("MarkdownBlock file links", () => {
 
     assert.doesNotMatch(html, /href="http:\/\/README\.md"[^>]*target="_blank"/)
   })
+
+  test("renders thematic breaks as real horizontal rules", () => {
+    const html = renderToStaticMarkup(
+      <MarkdownBlock
+        fileRefStatus={new Map()}
+        onOpenFile={() => {}}
+        onResolveFileRefs={() => {}}
+        content={"before\n\n---\n\nafter"}
+      />,
+    )
+
+    assert.match(html, /<hr>/)
+    assert.doesNotMatch(html, /<p>---<\/p>/)
+  })
+
+  test("renders markdown task lists as disabled checkboxes", () => {
+    const html = renderToStaticMarkup(
+      <MarkdownBlock
+        fileRefStatus={new Map()}
+        onOpenFile={() => {}}
+        onResolveFileRefs={() => {}}
+        content={"- [x] done\n- [ ] pending"}
+      />,
+    )
+
+    assert.match(html, /class="oc-taskList"/)
+    assert.match(html, /class="oc-taskListCheckbox" type="checkbox" checked disabled/)
+    assert.match(html, /class="oc-taskListCheckbox" type="checkbox" disabled/)
+    assert.doesNotMatch(html, /\[x\] done/)
+    assert.doesNotMatch(html, /\[ \] pending/)
+  })
 })
