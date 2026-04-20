@@ -582,6 +582,42 @@ describe("Timeline user message rendering", () => {
     assert.equal(html.includes("data-preview="), true)
   })
 
+  test("does not crash when a user text part is not a string", () => {
+    const html = renderToStaticMarkup(
+      <Timeline
+        bootstrapStatus="ready"
+        compactSkillInvocations={true}
+        diffMode="unified"
+        messages={[sessionMessage(messageInfo("m1", "user"), [{
+          id: "p1",
+          sessionID: "session-1",
+          messageID: "m1",
+          type: "text",
+          text: { value: "bad payload" } as unknown as string,
+        }])]}
+        onCopyUserMessage={() => {}}
+        onForkUserMessage={() => {}}
+        onOpenFileAttachment={() => {}}
+        onPreviewImageAttachment={() => {}}
+        onRedoSession={() => {}}
+        onUndoUserMessage={() => {}}
+        showInternals={false}
+        showThinking={true}
+        commandPromptInvocations={{}}
+        commands={[INIT_COMMAND]}
+        skillCatalog={[]}
+        AgentBadge={({ name }) => <span>{name}</span>}
+        CompactionDivider={() => <div>divider</div>}
+        EmptyState={({ title, text }) => <div>{title}:{text}</div>}
+        MarkdownBlock={({ content, className }) => <div className={className}>{content}</div>}
+        PartView={({ part }) => <div>{part.type}</div>}
+      />,
+    )
+
+    assert.equal(html.includes("No visible prompt text."), true)
+    assert.equal(html.includes("COMMAND"), false)
+  })
+
   test("does not render a command pill for skill-sourced command metadata", () => {
     const html = renderToStaticMarkup(
       <Timeline

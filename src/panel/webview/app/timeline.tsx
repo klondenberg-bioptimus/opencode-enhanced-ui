@@ -800,7 +800,7 @@ function lastPendingAssistantIndex(messages: SessionMessage[]) {
 }
 
 function primaryUserText(message: SessionMessage) {
-  return message.parts.find((part): part is TextPart => part.type === "text" && !part.synthetic && !part.ignored)
+  return message.parts.find((part): part is TextPart => part.type === "text" && typeof part.text === "string" && !part.synthetic && !part.ignored)
 }
 
 function visibleUserText(message: SessionMessage) {

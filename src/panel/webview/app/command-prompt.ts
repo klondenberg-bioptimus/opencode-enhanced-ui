@@ -12,8 +12,10 @@ const MAX_PREVIEW_LINES = 10
 const MAX_PREVIEW_CHARS = 420
 const TEMPLATE_DYNAMIC_TOKEN = "\u0000"
 
-export function normalizeCommandPromptText(value: string) {
-  return value.replace(/\r\n?/g, "\n").trim()
+export function normalizeCommandPromptText(value: unknown) {
+  return typeof value === "string"
+    ? value.replace(/\r\n?/g, "\n").trim()
+    : ""
 }
 
 export function fingerprintCommandPromptText(value: string) {
@@ -163,7 +165,7 @@ export function shouldTrackCommandPromptInvocation(commandName: string, commands
 }
 
 function primaryUserText(message: SessionMessage) {
-  return message.parts.find((part): part is TextPart => part.type === "text" && !part.synthetic && !part.ignored)
+  return message.parts.find((part): part is TextPart => part.type === "text" && typeof part.text === "string" && !part.synthetic && !part.ignored)
 }
 
 function rememberCommandPromptInvocation(
