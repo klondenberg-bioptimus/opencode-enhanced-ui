@@ -5,6 +5,7 @@
 /node_modules
 /dist
 /*.vsix
+!/releases/*.vsix
 /package-lock.json
 docs/.DS_Store
 docs/screenshots/.DS_Store
