@@ -68,7 +68,7 @@ export async function updatePanelTheme(theme: PanelTheme) {
 }
 
 export function openSettingsQuery() {
-  return "@ext:lantingxin.opencode-enhanced-ui"
+  return "@ext:bioptimus.opencode-enhanced-ui"
 }
 
 export function proxyRestartMessage() {
